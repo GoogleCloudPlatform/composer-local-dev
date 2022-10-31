@@ -1,0 +1,8 @@
+{
+  "composer_image_version": "composer-2.0.15-airflow-2.2.5",
+  "composer_location": "us-central1",
+  "composer_project_id": "abc",
+  "dags_path": "dags",
+  "dag_list_interval": 10,
+  "port": 8080
+}

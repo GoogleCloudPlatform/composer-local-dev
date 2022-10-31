@@ -1,0 +1,38 @@
+# Build artifacts
+*.py[cod]
+__pycache__
+*.egg-info/
+build/
+dist/
+
+# Documentation-related
+docs/_build
+
+# Test files
+.nox/
+.tox/
+.cache/
+.pytest_cache/
+cert_path
+key_path
+
+# Coverage files
+.coverage
+coverage.xml
+*sponge_log.xml
+nosetests.xml
+htmlcov/
+
+# PyCharm configuration:
+.idea
+venv/
+
+# Generated files
+pylintrc
+pylintrc.test
+pytype_output/
+
+.DS_Store
+
+# Composer CLI
+composer/
