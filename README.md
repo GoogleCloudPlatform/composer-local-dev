@@ -410,13 +410,7 @@ To delete a a local Airflow environment:
     composer-dev stop LOCAL_ENVIRONMENT_NAME
     ```
 
-2. Remove the local Airflow environment:
-
-    ```bash
-    composer-dev remove LOCAL_ENVIRONMENT_NAME
-    ```
-
-3. Delete the environment's directory `./composer/<local_environment_name>`.
+2. Delete the environment's directory `./composer/<local_environment_name>`.
 
     **Important:** Deleting this directory does not
     [delete the Docker image](#delete-docker-images) of the environments.
