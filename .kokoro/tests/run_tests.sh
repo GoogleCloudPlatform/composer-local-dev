@@ -17,6 +17,15 @@ set -e
 # add user's pip binary path to PATH
 export PATH="${HOME}/.local/bin:${PATH}"
 
+if [[ ! -z "${KOKORO_BUILD_ID}" ]]; then # export vars only for Kokoro job
+  # Setup service account credentials
+  export GOOGLE_APPLICATION_CREDENTIALS=${KOKORO_GFILE_DIR}/kokoro/service-account-key.json
+
+  # Setup project id
+  export PROJECT_ID=$(cat "${KOKORO_GFILE_DIR}/kokoro/project-id.txt")
+  export COMPOSER_TESTS_PROJECT_ID=PROJECT_ID
+fi
+
 if [[ "$OSTYPE" == "darwin"* ]]; then # Mac OSX
   # Mac requires .13 fix versions (which is not available for other platforms)
   pyenv install --skip-existing 3.7.13
@@ -30,6 +39,13 @@ fi
 python -m pip install --require-hashes --upgrade --quiet -r .kokoro/tests/requirements.txt
 python -m nox --version
 
-echo -e "******************** Running tests... ********************\n"
+echo -e "******************** Running unit tests... ********************\n"
 python -m nox -s "unit"
+echo -e "******************** Unit tests complete.  ********************\n"
+echo -e "******************** Running E2E tests... ********************\n"
+if [[ "$OSTYPE" == "darwin"* ]]; then # Mac OSX
+    echo "Skipping E2E tests on Mac OSX due to the missing Docker."  # TODO: (b/259378070) Install Docker on MacOS
+else
+    python -m nox -s "e2e"
+fi
 echo -e "******************** Tests complete.  ********************\n"

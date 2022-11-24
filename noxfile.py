@@ -17,7 +17,7 @@ from pathlib import Path
 import nox
 
 DEFAULT_PYTHON_VERSION = "3.9"
-UNIT_TEST_PYTHON_VERSIONS = ["3.7", "3.8", "3.10"]  # TODO Fix 3.9 on Kokoro
+TEST_PYTHON_VERSIONS = ["3.7", "3.8", "3.10"]  # TODO Fix 3.9 on Kokoro
 
 CURRENT_DIRECTORY = Path(__file__).parent.absolute()
 
@@ -34,7 +34,7 @@ def install_docs_profile(session):
     session.install(".[docs]")
 
 
-@nox.session(python=UNIT_TEST_PYTHON_VERSIONS)
+@nox.session(python=TEST_PYTHON_VERSIONS)
 def unit(session):
     """Run the unit test suite."""
     install_tests_profile(session)
@@ -46,7 +46,20 @@ def unit(session):
     )
 
 
-@nox.session(python=UNIT_TEST_PYTHON_VERSIONS)
+@nox.session(python=TEST_PYTHON_VERSIONS)
+def e2e(session):
+    """Run the e2e test suite."""
+    install_tests_profile(session)
+
+    session.run(
+        "pytest",
+        "--e2e",
+        str(Path("tests/e2e")),
+        *session.posargs,
+    )
+
+
+@nox.session(python=TEST_PYTHON_VERSIONS)
 def coverage(session):
     install_tests_profile(session)
 

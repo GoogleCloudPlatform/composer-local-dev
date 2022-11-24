@@ -80,6 +80,12 @@ def run_app(
     cmd = cmd.split()
     runner = CliRunner()
     result = runner.invoke(cli.cli, cmd, input=input)
+    if result.exit_code != exit_code:
+        print(result.output)
+        raise AssertionError(
+            f"Expected exit code does not match actual: "
+            f"{exit_code}!={result.exit_code}"
+        )
     assert result.exit_code == exit_code
     if expected_output is not None:
         actual_output = clean_cli_output(result.output)
