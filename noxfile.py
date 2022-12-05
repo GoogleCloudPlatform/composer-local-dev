@@ -17,7 +17,7 @@ from pathlib import Path
 import nox
 
 DEFAULT_PYTHON_VERSION = "3.9"
-TEST_PYTHON_VERSIONS = ["3.7", "3.8", "3.10"]  # TODO Fix 3.9 on Kokoro
+TEST_PYTHON_VERSIONS = ["3.7", "3.8", "3.9", "3.10"]
 
 CURRENT_DIRECTORY = Path(__file__).parent.absolute()
 

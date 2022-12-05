@@ -412,8 +412,9 @@ class TestEnvironment:
             f"Environment variables file '{env_dir / 'variables.env'}' "
             f"not found."
         )
-        with pytest.raises(errors.ComposerCliError, match=exp_error):
+        with pytest.raises(errors.ComposerCliError) as err:
             environment.load_environment_variables(env_dir)
+            assert str(err) == exp_error
 
     def test_load_environment_variables_filter_blocked_env_vars(self):
         env_dir = (TEST_DATA_DIR / "blocked_env_vars").resolve()
@@ -465,10 +466,9 @@ class TestEnvironment:
         exp_error = constants.INVALID_ENV_VARIABLES_FILE_ERROR.format(
             env_file_path=env_file_path, line="AIRFLOW_KEYVALUE"
         )
-        with pytest.raises(
-            errors.FailedToParseVariablesError, match=re.escape(exp_error)
-        ):
+        with pytest.raises(errors.FailedToParseVariablesError) as err:
             environment.load_environment_variables(env_dir)
+            assert str(err) == exp_error
 
     @mock.patch("composer_local_dev.environment.docker.from_env")
     @mock.patch(
@@ -484,10 +484,10 @@ class TestEnvironment:
             location="location",
             dags_path=str(env_dir),
         )
-        with pytest.raises(
-            errors.ComposerCliError, match=f"Missing '{requirement_file}' file."
-        ):
+        exp_error = f"Missing '{requirement_file}' file."
+        with pytest.raises(errors.ComposerCliError) as err:
             env.assert_requirements_exist()
+            assert str(err) == exp_error
 
     @mock.patch("composer_local_dev.environment.docker.from_env")
     def test_get_container(self, mocked_docker, default_env):
@@ -1059,17 +1059,19 @@ class TestEnvironmentConfig:
             config_path=config_path, error=""
         )
         with pytest.raises(
-            errors.FailedToParseConfigError, match=exp_error
-        ), working_directory(env_dir):
+            errors.FailedToParseConfigError
+        ) as err, working_directory(env_dir):
             environment.EnvironmentConfig(env_dir, None)
+            assert str(err) == exp_error
 
     def test_missing_config(self):
         env_dir = (TEST_DATA_DIR / "missing_composer").resolve()
         exp_error = f"Configuration file '{env_dir / 'config.json'}' not found."
-        with pytest.raises(
-            errors.ComposerCliError, match=exp_error
-        ), working_directory(env_dir):
+        with pytest.raises(errors.ComposerCliError) as err, working_directory(
+            env_dir
+        ):
             environment.EnvironmentConfig(env_dir, None)
+            assert str(err) == exp_error
 
     @mock.patch(
         "composer_local_dev.environment.EnvironmentConfig.load_configuration_from_file"
@@ -1091,10 +1093,9 @@ class TestEnvironmentConfig:
         exp_error = constants.INVALID_INT_VALUE_ERROR.format(
             param_name=param, value=value
         )
-        with pytest.raises(
-            errors.FailedToParseConfigParamIntError, match=exp_error
-        ):
+        with pytest.raises(errors.FailedToParseConfigParamIntError) as err:
             environment.EnvironmentConfig(tmp_path, None)
+            assert str(err) == exp_error
 
     @mock.patch(
         "composer_local_dev.environment.EnvironmentConfig.load_configuration_from_file"
@@ -1122,7 +1123,6 @@ class TestEnvironmentConfig:
         exp_error = constants.INVALID_INT_RANGE_VALUE_ERROR.format(
             param_name=param, value=value, allowed_range=allowed_range
         )
-        with pytest.raises(
-            errors.FailedToParseConfigParamIntRangeError, match=exp_error
-        ):
+        with pytest.raises(errors.FailedToParseConfigParamIntRangeError) as err:
             environment.EnvironmentConfig(tmp_path, None)
+            assert str(err) == exp_error

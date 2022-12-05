@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
+set -xe
 
 # add user's pip binary path to PATH
 export PATH="${HOME}/.local/bin:${PATH}"
@@ -32,7 +32,9 @@ if [[ "$OSTYPE" == "darwin"* ]]; then # Mac OSX
   pyenv global 3.7.13
 else
   pyenv install --skip-existing 3.7.10
-  pyenv global 3.7.10
+  pyenv install --skip-existing 3.8.10
+  pyenv install --skip-existing 3.9.5
+  pyenv global 3.7.10 3.8.10 3.9.5
 fi
 
 # install nox for testing

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import json
+import os
 import pathlib
 import re
 import subprocess
@@ -107,12 +108,12 @@ class TestResolveGcloudConfigPath:
     @mock.patch.object(pathlib.Path, "is_dir")
     @mock.patch.object(pathlib.Path, "expanduser")
     @mock.patch(
-        "composer_local_dev.environment.utils.is_windows_os", return_value=True
+        "composer_local_dev.environment.utils.is_windows_os", return_value=False
     )
     def test_resolve_path_not_on_windows(
         self, mocked_os_check, mocked_expand, mocked_is_dir
     ):
-        config_path = "path/to/config"
+        config_path = os.pathsep.join(["path", "to", "config"])
         mocked_expand.return_value = pathlib.Path(config_path)
         mocked_is_dir.return_value = True
         actual_config_path = utils.resolve_gcloud_config_path()

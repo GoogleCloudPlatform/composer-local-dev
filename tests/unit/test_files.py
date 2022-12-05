@@ -56,10 +56,11 @@ class TestResolveEnvironment:
             )
             + constants.ADD_DEBUG_ON_ERROR_INFO
         )
-        with pytest.raises(
-            errors.ComposerCliError, match=re.escape(exp_error)
-        ), working_directory(env_dir):
+        with pytest.raises(errors.ComposerCliError) as err, working_directory(
+            env_dir
+        ):
             files.resolve_environment_path(env_name)
+            assert str(err) == exp_error
 
     @pytest.mark.parametrize("env_name", [None, "test"])
     def test_no_envs(self, env_name):
@@ -71,10 +72,11 @@ class TestResolveEnvironment:
             )
             + constants.ADD_DEBUG_ON_ERROR_INFO
         )
-        with pytest.raises(
-            errors.ComposerCliError, match=re.escape(exp_error)
-        ), working_directory(env_dir):
+        with pytest.raises(errors.ComposerCliError) as err, working_directory(
+            env_dir
+        ):
             files.resolve_environment_path(env_name)
+            assert str(err) == exp_error
 
     @pytest.mark.parametrize("env_name", ["one_env", "two_envs"])
     def test_not_exising_name(self, env_name):
@@ -87,10 +89,11 @@ class TestResolveEnvironment:
             )
             + constants.ADD_DEBUG_ON_ERROR_INFO
         )
-        with pytest.raises(
-            errors.ComposerCliError, match=re.escape(exp_error)
-        ), working_directory(env_dir):
+        with pytest.raises(errors.ComposerCliError) as err, working_directory(
+            env_dir
+        ):
             files.resolve_environment_path(invalid_env)
+            assert str(err) == exp_error
 
     @pytest.mark.parametrize("env_name", [None, "example_env"])
     def test_one_env_existing_name(self, env_name):
@@ -113,10 +116,11 @@ class TestResolveEnvironment:
         error_msg = constants.ENVIRONMENT_NOT_SELECTED_ERROR.format(
             env_dir=composer_dir, env_names=env_names
         )
-        with pytest.raises(
-            errors.ComposerCliError, match=error_msg
-        ), working_directory(env_dir):
+        with pytest.raises(errors.ComposerCliError) as err, working_directory(
+            env_dir
+        ):
             files.resolve_environment_path(None)
+            assert str(err) == error_msg
 
 
 class TestGetEnvironmentDirectories:
@@ -210,8 +214,9 @@ class TestAssertDagsPathExists:
     def test_missing_path(self):
         path = "i/dont/exist"
         error_msg = f"Dags path does not exist or is not a directory: {path}"
-        with pytest.raises(errors.DAGPathNotExistError, match=error_msg):
+        with pytest.raises(errors.DAGPathNotExistError) as err:
             files.assert_dag_path_exists(path)
+            assert str(err) == error_msg
 
     def test_path_is_file(self, tmp_path):
         file_path = tmp_path / "file.ext"
@@ -220,8 +225,9 @@ class TestAssertDagsPathExists:
         error_msg = (
             f"Dags path does not exist or is not a directory: {file_path}"
         )
-        with pytest.raises(errors.DAGPathNotExistError, match=error_msg):
+        with pytest.raises(errors.DAGPathNotExistError) as err:
             files.assert_dag_path_exists(str(file_path))
+            assert str(err) == error_msg
 
 
 def test_dos2unix_file(tmp_path):
