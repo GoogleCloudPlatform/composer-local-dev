@@ -26,6 +26,7 @@ if [ -f /var/local/setup_python_command.sh ]; then
 fi
 
 pip3 install --upgrade -r composer_requirements.txt
+pip3 check
 
 airflow db init
 

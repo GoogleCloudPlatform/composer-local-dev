@@ -18,7 +18,10 @@ from tests.e2e import run_app
 
 @pytest.mark.e2e
 def test_recreate_running_env(
-    valid_version, valid_version_older, valid_project_id, env_name
+    composer_image_version,
+    composer_image_version_older,
+    valid_project_id,
+    env_name,
 ):
     default_port, new_port = "8080", "8085"
     create_cmd = (
@@ -26,13 +29,13 @@ def test_recreate_running_env(
         "-p {project} --port {port} {env_name}"
     )
     create_cmd_default = create_cmd.format(
-        version=valid_version,
+        version=composer_image_version,
         project=valid_project_id,
         port=default_port,
         env_name=env_name,
     )
     create_cmd_new_version_port = create_cmd.format(
-        version=valid_version_older,
+        version=composer_image_version_older,
         project=valid_project_id,
         port=new_port,
         env_name=env_name,
@@ -43,13 +46,15 @@ def test_recreate_running_env(
         "Image version: {version}"
     )
     exp_describe_initial = exp_describe.format(
-        env_name=env_name, port=default_port, version=valid_version
+        env_name=env_name, port=default_port, version=composer_image_version
     )
     exp_describe_recreated = exp_describe.format(
-        env_name=env_name, port=default_port, version=valid_version_older
+        env_name=env_name,
+        port=default_port,
+        version=composer_image_version_older,
     )
     exp_describe_restarted = exp_describe.format(
-        env_name=env_name, port=new_port, version=valid_version_older
+        env_name=env_name, port=new_port, version=composer_image_version_older
     )
 
     run_app(create_cmd_default)

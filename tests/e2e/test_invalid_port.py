@@ -18,14 +18,14 @@ from tests.e2e import assert_dir_empty, run_app
 
 @pytest.mark.e2e
 def test_create_with_invalid_port(
-    valid_version, valid_project_id, env_name, temporary_work_dir
+    composer_image_version, valid_project_id, env_name, temporary_work_dir
 ):
     invalid_port_err = (
         "Invalid value for '--web-server-port' / '--port':"
         " -1 is not in the range 0<=x<=65536."
     )
     run_app(
-        f"create --from-image-version {valid_version} --port -1 {valid_project_id} {env_name}",
+        f"create --from-image-version {composer_image_version} --port -1 {valid_project_id} {env_name}",
         exit_code=2,
         expected_output=invalid_port_err,
     )

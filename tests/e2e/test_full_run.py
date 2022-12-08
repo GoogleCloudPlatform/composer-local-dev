@@ -19,10 +19,10 @@ from tests.e2e import assert_example_dag_listed, run_app
 
 
 @pytest.mark.e2e
-def test_full_run(valid_version, valid_project_id, env_name):
+def test_full_run(composer_image_version, valid_project_id, env_name):
     dags_dir = pathlib.Path(__file__).parent / "example_dag"
     run_app(
-        f"create --from-image-version {valid_version} "
+        f"create --from-image-version {composer_image_version} "
         f"-p {valid_project_id} --dags-path {dags_dir} {env_name}"
     )
     run_app(f"start {env_name}")

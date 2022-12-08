@@ -48,12 +48,12 @@ def get_env_var(name: str) -> str:
 
 
 @pytest.fixture(scope="session")
-def valid_version_older() -> str:
+def composer_image_version_older() -> str:
     return "composer-2.0.8-airflow-2.2.3"
 
 
 @pytest.fixture(scope="session")
-def valid_version() -> str:
+def composer_image_version() -> str:
     try:
         return os.environ["COMPOSER_TESTS_IMAGE_VERSION"]
     except KeyError:
