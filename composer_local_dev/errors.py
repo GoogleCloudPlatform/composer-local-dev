@@ -67,6 +67,12 @@ class EnvironmentNotRunningError(ComposerCliError):
         super().__init__(msg)
 
 
+class EnvironmentNotFoundError(EnvironmentNotRunningError):
+    """Composer environment docker container was not found."""
+
+    pass
+
+
 class EnvironmentStartError(ComposerCliError):
     """Composer environment failed to start."""
 

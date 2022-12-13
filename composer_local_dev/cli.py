@@ -14,8 +14,10 @@
 
 import logging
 import pathlib
+import shutil
 from typing import List, Optional, Union
 
+import rich.markdown
 import rich_click as click
 
 from composer_local_dev import console, constants
@@ -70,7 +72,7 @@ click.rich_click.COMMAND_GROUPS = {
                 "logs",
                 "list",
                 "describe",
-                "fetch-config",
+                "remove",
             ],
         },
         {
@@ -78,7 +80,6 @@ click.rich_click.COMMAND_GROUPS = {
             "commands": [
                 "run-airflow-cmd",
                 "list-available-versions",
-                "list-source-environments",
             ],
         },
     ]
@@ -458,6 +459,65 @@ def describe(environment: Optional[str], verbose: bool, debug: bool):
     env_path = files.resolve_environment_path(environment)
     env = composer_environment.Environment.load_from_config(env_path, None)
     env.describe()
+
+
+@cli.command()
+@optional_environment
+@verbose_mode
+@debug_mode
+@click.option(
+    "--skip-confirmation",
+    is_flag=True,
+    default=False,
+    help="Do not require confirmation before removing the environment.",
+)
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Force the environment removal even if it is running.",
+)
+@errors.catch_exceptions()
+def remove(
+    environment: Optional[str],
+    verbose: bool,
+    debug: bool,
+    skip_confirmation: bool,
+    force: bool,
+):
+    """
+    Remove Composer environment.
+
+    Remove environment directory and the docker container.
+
+    > composer-dev remove env_name
+
+    Environment name is optional if there is only one environment in the
+    composer directory.
+    """
+    utils.setup_logging(verbose, debug)
+    env_path = files.resolve_environment_path(environment)
+    if not skip_confirmation:
+        click.confirm(
+            constants.REMOVE_ENV_CONFIRMATION_PROMPT.format(env_path=env_path),
+            abort=True,
+        )
+    try:
+        env = composer_environment.Environment.load_from_config(env_path, None)
+    except errors.InvalidConfigurationError:
+        md = rich.markdown.Markdown(
+            constants.MALFORMED_CONFIG_REMOVING_CONTAINER
+        )
+        console.get_console().print(md)
+    else:
+        container = env.get_container(ignore_not_found=True)
+        if container is not None:
+            if container.status == constants.ContainerStatus.RUNNING:
+                if not force:
+                    raise click.UsageError(constants.USE_FORCE_TO_REMOVE_ERROR)
+                container.stop()
+            container.remove()
+    shutil.rmtree(env_path)
 
 
 # ignore_unknown_options is required to be able to pass options to airflow cmd

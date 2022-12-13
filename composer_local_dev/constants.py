@@ -238,3 +238,16 @@ DOCKER_PERMISSION_ERROR_HINT = (
     "\nPossible reason is that composer-dev was installed in the path that is "
     "not available to Docker. See {docs_faq_url} for more information."
 )
+REMOVE_ENV_CONFIRMATION_PROMPT = (
+    "This will delete directory '{env_path}' and all of its content "
+    "(data/plugins/dags). This command will not delete any Docker images."
+)
+REMOVING_CONTAINER_MSG = "The environment is running. Killing the container..."
+USE_FORCE_TO_REMOVE_ERROR = (
+    "The environment is running. "
+    "Use --force flag if you want to stop environment and remove it."
+)
+MALFORMED_CONFIG_REMOVING_CONTAINER = (
+    "Failed to load environment configuration. Environment Docker container "
+    "could not be removed."
+)

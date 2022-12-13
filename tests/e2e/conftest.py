@@ -76,10 +76,17 @@ def env_name() -> str:
 
 
 @pytest.fixture(autouse=True)
-def e2e_teardown(env_name):
+def e2e_teardown():
     yield
-    run_cmd(f"docker stop composer-local-dev-{env_name}")
-    run_cmd(f"docker rm composer-local-dev-{env_name}")
+    containers = run_cmd(
+        "docker ps -a -q --filter=name=composer-local-dev-"
+    ).stdout.strip()
+    if not containers:
+        print("No containers to remove.")
+        return
+    for container_id in containers.split():
+        run_cmd(f"docker stop {container_id}")
+        run_cmd(f"docker rm {container_id}")
 
 
 @pytest.fixture(autouse=True)

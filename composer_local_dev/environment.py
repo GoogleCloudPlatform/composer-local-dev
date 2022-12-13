@@ -458,7 +458,9 @@ class Environment:
             logging.debug("Docker not found.", exc_info=True)
             raise errors.DockerNotAvailableError(err) from None
 
-    def get_container(self, assert_running: bool = False):
+    def get_container(
+        self, assert_running: bool = False, ignore_not_found: bool = False
+    ):
         """
         Returns created docker container and raises when it's not created.
 
@@ -475,7 +477,8 @@ class Environment:
             return container
         except docker_errors.NotFound:
             logging.debug("Container not found.", exc_info=True)
-            raise errors.EnvironmentNotRunningError() from None
+            if not ignore_not_found:
+                raise errors.EnvironmentNotFoundError() from None
 
     @classmethod
     def load_from_config(cls, env_dir_path: pathlib.Path, port: Optional[int]):

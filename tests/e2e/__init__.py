@@ -88,7 +88,13 @@ def run_app(
         )
     assert result.exit_code == exit_code
     if expected_output is not None:
+        expected_output = clean_cli_output(expected_output)
         actual_output = clean_cli_output(result.output)
+        if expected_output not in actual_output:
+            raise AssertionError(
+                f"Expected output not found in the actual output. "
+                f"{expected_output} not in {actual_output}"
+            )
         assert expected_output in actual_output
     return result
 
@@ -117,4 +123,10 @@ def assert_example_dag_listed():
 
 
 def run_cmd(cmd: str):
-    subprocess.run(cmd.split(), check=False)
+    print(f"> {cmd}")
+    result = subprocess.run(
+        cmd.split(), capture_output=True, check=False, text=True
+    )
+    print(result.stdout)
+    print(result.stderr)
+    return result
