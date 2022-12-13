@@ -24,12 +24,17 @@ from composer_local_dev import errors, files, utils, version
 
 LOG = logging.getLogger(__name__)
 
+COMMON_OPTIONS = {
+    "name": "Common options",
+    "options": ["--verbose", "--debug", "--help"],
+}
 click.rich_click.USE_RICH_MARKUP = True
 click.rich_click.USE_MARKDOWN = True
 click.rich_click.MAX_WIDTH = 130
 click.rich_click.STYLE_HELPTEXT = ""
 click.rich_click.OPTION_GROUPS = {
     "composer-dev create": [
+        COMMON_OPTIONS,
         {
             "name": "From Composer source environment",
             "options": ["--from-source-environment", "--project", "--location"],
@@ -43,6 +48,15 @@ click.rich_click.OPTION_GROUPS = {
             "options": ["--web-server-port", "--dags-path"],
         },
     ],
+    "composer-dev start": [COMMON_OPTIONS],
+    "composer-dev stop": [COMMON_OPTIONS],
+    "composer-dev restart": [COMMON_OPTIONS],
+    "composer-dev logs": [COMMON_OPTIONS],
+    "composer-dev remove": [COMMON_OPTIONS],
+    "composer-dev list_available_versions": [COMMON_OPTIONS],
+    "composer-dev run_airflow_cmd": [COMMON_OPTIONS],
+    "composer-dev describe": [COMMON_OPTIONS],
+    "composer-dev list": [COMMON_OPTIONS],
 }
 click.rich_click.COMMAND_GROUPS = {
     "composer-dev": [
