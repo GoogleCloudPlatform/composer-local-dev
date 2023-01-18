@@ -546,16 +546,8 @@ class TestEnvironment:
         ):
             default_env.get_container()
 
-    @mock.patch("composer_local_dev.files.fix_file_permissions")
-    @mock.patch("composer_local_dev.files.create_empty_file")
     @mock.patch("composer_local_dev.environment.get_image_mounts")
-    def test_create_docker_container(
-        self,
-        mocked_mounts,
-        mocked_fix,
-        mocked_create,
-        default_env,
-    ):
+    def test_create_docker_container(self, mocked_mounts, default_env):
         default_env.create_docker_container()
         ports = {
             f"8080/tcp": default_env.port,
@@ -712,11 +704,7 @@ class TestEnvironment:
         description = default_env.prepare_env_description(env_state)
         assert exp_desc == description
 
-    @mock.patch("composer_local_dev.files.create_empty_file")
-    @mock.patch("composer_local_dev.files.fix_file_permissions")
-    def test_create_docker_container_duplicate(
-        self, mocked_fix, mocked_create, default_env
-    ):
+    def test_create_docker_container_duplicate(self, default_env):
         default_env.get_image_mounts = mock.Mock()
         mocked_response = mock.Mock()
         mocked_response.status_code = constants.CONFLICT_ERROR_CODE
@@ -732,11 +720,30 @@ class TestEnvironment:
         ):
             default_env.create_docker_container()
 
-    @mock.patch("composer_local_dev.files.create_empty_file")
-    @mock.patch("composer_local_dev.files.fix_file_permissions")
-    def test_create_docker_container_pull_not_existing_image(
-        self, mocked_fix, mocked_create, default_env
-    ):
+    def test_create_docker_container_mount_permission(self, default_env):
+        default_env.get_image_mounts = mock.Mock()
+        mocked_response = mock.Mock()
+        mocked_response.status_code = 400
+        error = (
+            'Bad Request ("invalid mount config for type "bind": '
+            "bind source path does not exist"
+        )
+        default_env.docker_client.containers.create = mock.Mock(
+            side_effect=docker_errors.APIError(
+                "", explanation=error, response=mocked_response
+            )
+        )
+
+        with pytest.raises(errors.EnvironmentStartError) as err:
+            default_env.create_docker_container()
+        assert (
+            constants.DOCKER_PERMISSION_ERROR_HINT.format(
+                docs_faq_url=constants.COMPOSER_FAQ_MOUNTING_LINK
+            )
+            in err.value.message
+        )
+
+    def test_create_docker_container_pull_not_existing_image(self, default_env):
         default_env.get_image_mounts = mock.Mock()
         response_mock = mock.Mock()
         response_mock.status_code = 450
@@ -925,15 +932,9 @@ def test_get_image_mounts(mocked_mount):
     path = pathlib.Path("path/dir")
     dags_path = "path/to/dags"
     gcloud_path = "config/path"
-    entrypoint = environment.DOCKER_FILES / "entrypoint.sh"
     requirements = path / "requirements.txt"
     airflow_db_path = path / "airflow.db"
     expected_mounts = [
-        mock.call(
-            source=str(entrypoint),
-            target="/home/airflow/entrypoint.sh",
-            type="bind",
-        ),
         mock.call(
             source=str(requirements),
             target="/home/airflow/composer_requirements.txt",
@@ -964,7 +965,7 @@ def test_get_image_mounts(mocked_mount):
         ),
     ]
     actual_mounts = environment.get_image_mounts(
-        path, dags_path, gcloud_path, entrypoint, requirements
+        path, dags_path, gcloud_path, requirements
     )
     assert len(expected_mounts) == len(actual_mounts)
     mocked_mount.assert_has_calls(expected_mounts)

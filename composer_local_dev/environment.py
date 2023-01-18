@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
 import json
 import logging
 import pathlib
+import tarfile
 import time
 import warnings
 from typing import Dict, List, Optional, Tuple, Union
@@ -42,20 +44,17 @@ def get_image_mounts(
     env_path: pathlib.Path,
     dags_path: str,
     gcloud_config_path: str,
-    entrypoint: pathlib.Path,
     requirements: pathlib.Path,
 ) -> List[docker.types.Mount]:
     """
     Return list of docker volumes to be mounted inside container.
     Following paths are mounted:
-     - entrypoint for the script that is executed on start of the container
      - requirements for python packages to be installed
      - dags, plugins and data for paths which contains dags, plugins and data
      - gcloud_config_path which contains user credentials to gcloud
      - environment airflow sqlite db file location
     """
     mount_paths = {
-        entrypoint: "entrypoint.sh",
         requirements: "composer_requirements.txt",
         dags_path: "airflow/dags/",
         env_path / "plugins": "airflow/plugins/",
@@ -93,7 +92,7 @@ def get_default_environment_variables(
 
 def parse_env_variable(
     line: str, env_file_path: pathlib.Path
-) -> Union[str, str]:
+) -> Tuple[str, str]:
     """Parse line in format of key=value and return (key, value) tuple."""
     try:
         key, value = line.split("=", maxsplit=1)
@@ -263,6 +262,26 @@ def get_docker_image_tag_from_image_version(image_version: str) -> str:
     )
 
 
+def is_mount_permission_error(error: docker_errors.APIError) -> bool:
+    """Checks if error is possibly a Docker mount permission error."""
+    return (
+        error.is_client_error()
+        and error.response.status_code == constants.BAD_REQUEST_ERROR_CODE
+        and "invalid mount config" in error.explanation
+    )
+
+
+def copy_entrypoint_to_container(container, src: pathlib.Path) -> None:
+    """Copy entrypoint file to Docker container."""
+    logging.debug("Copying entrypoint file to Docker container.")
+    stream = io.BytesIO()
+    with tarfile.open(fileobj=stream, mode="w|") as tar, open(src, "rb") as f:
+        info = tar.gettarinfo(fileobj=f)
+        info.name = "entrypoint.sh"
+        tar.addfile(info, f)
+    container.put_archive(constants.AIRFLOW_HOME, stream.getvalue())
+
+
 class EnvironmentStatus:
     def __init__(self, name: str, version: str, status: str):
         self.name = name
@@ -367,11 +386,7 @@ class EnvironmentConfig:
     def parse_int_param(
         self,
         name: str,
-        allowed_range: Optional[
-            Tuple[
-                int,
-            ]
-        ] = None,
+        allowed_range: Optional[Tuple[int, int]] = None,
     ):
         """
         Get parameter from the config and convert it to integer.
@@ -564,7 +579,6 @@ class Environment:
             self.env_dir_path,
             self.dags_path,
             utils.resolve_gcloud_config_path(),
-            self.entrypoint_file,
             self.requirements_file,
         )
         default_vars = get_default_environment_variables(
@@ -611,8 +625,12 @@ class Environment:
             container = create_container()
         except docker_errors.APIError as err:
             error = f"Failed to create container with an error: {err}"
+            if is_mount_permission_error(err):
+                error += constants.DOCKER_PERMISSION_ERROR_HINT.format(
+                    docs_faq_url=constants.COMPOSER_FAQ_MOUNTING_LINK
+                )
             raise errors.EnvironmentStartError(error)
-
+        copy_entrypoint_to_container(container, self.entrypoint_file)
         return container
 
     def pull_image(self):

@@ -20,6 +20,7 @@ OPERATION_TIMEOUT_SECONDS = (
     300  # TODO: Check if we need such timeout, or any timeout at all
 )
 
+BAD_REQUEST_ERROR_CODE = 400
 CONFLICT_ERROR_CODE = 409
 SERVER_ERROR_CODE = 500
 
@@ -30,6 +31,7 @@ class ContainerStatus(str, enum.Enum):
 
 
 COMPOSER_VERSIONING_DOCS_LINK = "https://cloud.google.com/composer/docs/concepts/versioning/composer-versions"
+COMPOSER_FAQ_MOUNTING_LINK = "https://cloud.google.com/composer/docs/composer-2/run-local-airflow-environments#troubleshooting-homebrew"
 IMAGE_VERSION_PATTERN = (
     "composer-([1-9]+\.[0-9]+\.[0-9]+)-airflow-([1-9]+[\.|-][0-9]+[\.|-][0-9]+)"
 )
@@ -231,4 +233,8 @@ IMAGE_VERSION_CONTAINER_MISSING = (
 IMAGE_VERSION_TAG_MISSING = (
     "Failed to read image version from the container tag for {env_name} "
     "environment. Using image version from the configuration file."
+)
+DOCKER_PERMISSION_ERROR_HINT = (
+    "\nPossible reason is that composer-dev was installed in the path that is "
+    "not available to Docker. See {docs_faq_url} for more information."
 )
