@@ -72,7 +72,9 @@ class TestEnvironment:
         exp_err = constants.DOCKER_NOT_AVAILABLE_ERROR.format(
             error="Connection aborted"
         )
-        image_version = f"composer-{composer_version}-airflow-{airflow_version}"
+        image_version = (
+            f"composer-{composer_version}-airflow-{airflow_version}"
+        )
         dags_path = str(pathlib.Path(tmp_path))
         with pytest.raises(
             errors.DockerNotAvailableError,
@@ -347,7 +349,9 @@ class TestEnvironment:
     def test_from_image(
         self, mocked_docker, composer_version, airflow_version, tmp_path
     ):
-        image_version = f"composer-{composer_version}-airflow-{airflow_version}"
+        image_version = (
+            f"composer-{composer_version}-airflow-{airflow_version}"
+        )
         dags_path = str(pathlib.Path(tmp_path))
         env = environment.Environment(
             image_version=image_version,
@@ -954,7 +958,7 @@ def test_get_image_mounts(mocked_mount):
         ),
         mock.call(
             source=gcloud_path,
-            target="/home/airflow/.config/gcloud",
+            target="/home/airflow/gcloud",
             type="bind",
         ),
         mock.call(
@@ -1066,7 +1070,9 @@ class TestEnvironmentConfig:
 
     def test_missing_config(self):
         env_dir = (TEST_DATA_DIR / "missing_composer").resolve()
-        exp_error = f"Configuration file '{env_dir / 'config.json'}' not found."
+        exp_error = (
+            f"Configuration file '{env_dir / 'config.json'}' not found."
+        )
         with pytest.raises(errors.ComposerCliError) as err, working_directory(
             env_dir
         ):
@@ -1123,6 +1129,8 @@ class TestEnvironmentConfig:
         exp_error = constants.INVALID_INT_RANGE_VALUE_ERROR.format(
             param_name=param, value=value, allowed_range=allowed_range
         )
-        with pytest.raises(errors.FailedToParseConfigParamIntRangeError) as err:
+        with pytest.raises(
+            errors.FailedToParseConfigParamIntRangeError
+        ) as err:
             environment.EnvironmentConfig(tmp_path, None)
             assert str(err) == exp_error

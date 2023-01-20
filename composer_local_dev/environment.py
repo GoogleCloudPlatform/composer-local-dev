@@ -60,7 +60,7 @@ def get_image_mounts(
         dags_path: "airflow/dags/",
         env_path / "plugins": "airflow/plugins/",
         env_path / "data": "airflow/data/",
-        gcloud_config_path: ".config/gcloud",
+        gcloud_config_path: "gcloud",
         env_path / "airflow.db": "airflow/airflow.db",
     }
     return [
