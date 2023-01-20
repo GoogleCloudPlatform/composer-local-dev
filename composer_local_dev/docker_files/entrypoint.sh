@@ -16,7 +16,13 @@
 
 set -xe
 
+
 sudo chown airflow:airflow airflow
+
+# Workaround for Airflow not being able to read bind mounted gcloud configuration.
+mkdir -p .config/gcloud
+sudo cp gcloud/application_default_credentials.json .config/gcloud/
+sudo chmod +r .config/gcloud/application_default_credentials.json
 
 # That file exists in Composer < 1.19.2 and is responsible for linking name
 # `python` to python3 exec, in Composer >= 1.19.2 name `python` is already
