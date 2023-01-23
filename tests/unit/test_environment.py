@@ -557,6 +557,9 @@ class TestEnvironment:
             "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
             "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
             "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": default_env.dag_dir_list_interval,
+            "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
+            "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
+            "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
             "COMPOSER_PYTHON_VERSION": "3",
             "AIRFLOW_HOME": "/home/airflow/airflow",
             "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": f"google-cloud-platform://?"
@@ -912,6 +915,9 @@ def test_get_environment_variables():
         "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
         "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
         "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": 105,
+        "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
+        "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
+        "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
         "COMPOSER_PYTHON_VERSION": "3",
         "AIRFLOW_HOME": "/home/airflow/airflow",
         "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": "google-cloud-platform://?"
@@ -941,11 +947,11 @@ def test_get_image_mounts(mocked_mount):
             type="bind",
         ),
         mock.call(
-            source=dags_path, target="/home/airflow/airflow/dags/", type="bind"
+            source=dags_path, target="/home/airflow/gcs/dags/", type="bind"
         ),
         mock.call(
             source=str(path / "plugins"),
-            target="/home/airflow/airflow/plugins/",
+            target="/home/airflow/gcs/plugins/",
             type="bind",
         ),
         mock.call(

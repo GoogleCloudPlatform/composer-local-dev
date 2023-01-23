@@ -18,6 +18,9 @@ set -xe
 
 sudo chown airflow:airflow airflow
 
+mkdir -p ${AIRFLOW__CORE__DAGS_FOLDER}
+mkdir -p ${AIRFLOW__CORE__PLUGINS_FOLDER}
+
 # That file exists in Composer < 1.19.2 and is responsible for linking name
 # `python` to python3 exec, in Composer >= 1.19.2 name `python` is already
 # linked to python3 and file no longer exist.

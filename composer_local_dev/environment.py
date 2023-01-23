@@ -56,8 +56,8 @@ def get_image_mounts(
     """
     mount_paths = {
         requirements: "composer_requirements.txt",
-        dags_path: "airflow/dags/",
-        env_path / "plugins": "airflow/plugins/",
+        dags_path: "gcs/dags/",
+        env_path / "plugins": "gcs/plugins/",
         env_path / "data": "airflow/data/",
         gcloud_config_path: ".config/gcloud",
         env_path / "airflow.db": "airflow/airflow.db",
@@ -81,6 +81,9 @@ def get_default_environment_variables(
         "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
         "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
         "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": dag_dir_list_interval,
+        "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
+        "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
+        "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
         "COMPOSER_PYTHON_VERSION": "3",
         "AIRFLOW_HOME": "/home/airflow/airflow",
         "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": f"google-cloud-platform://?"
