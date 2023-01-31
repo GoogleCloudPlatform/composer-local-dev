@@ -422,3 +422,40 @@ To delete all images downloaded by Composer Local Development CLI tool, run:
 ```bash
 docker rmi $(docker images --filter=reference='*/cloud-airflow-releaser/*/*' -q)
 ```
+
+## Troubleshooting
+
+This section provides solutions to common issues.
+
+### Unable to start a local environment on MacOS X
+
+If you installed the `composer-dev` package to a directory where Docker cannot
+access it, then your local environment might not start.
+
+For example, if Python is installed in the `/opt` directory, such as when you
+install it with default Homebrew configuration on MacOS X, then the
+`composer-dev` package is also installed in the `/opt` directory. Because
+Docker complies with Apple's sandbox rules, the `/opt` directory isn't
+available by default. In addition, you cannot add it through the UI (Settings >
+Resources > File sharing).
+
+In this case, Composer Local Development CLI tool generates the following
+error message:
+
+```none
+Failed to create container with an error: 400 Client Error for ...
+Bad Request ("invalid mount config for type "bind": bind source path does not exist:
+/opt/homebrew/lib/python3.9/site-packages/composer_local_dev/docker_files/entrypoint.sh
+
+Possible reason is that composer-dev was installed in the path that is
+not available to Docker. See...")
+```
+
+You can use one of the following solutions:
+
+- Install Python or the `composer-dev` package to a different directory, so
+    that Docker can access the package.
+- Manually edit the
+    `~/Library/Group\ Containers/group.com.docker/settings.json` file and
+    add `/opt` to `filesharingDirectories`.
+
