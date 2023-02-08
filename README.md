@@ -402,18 +402,13 @@ To change the environment's image used by your local Airflow environment:
 **Caution:** Make sure that you saved all required data from the environment,
 such as logs and configuration.
 
-To delete a a local Airflow environment:
+To delete a a local Airflow environment, run the following command:
 
-1. Stop your local Airflow environment:
+```bash
+composer-dev remove LOCAL_ENVIRONMENT_NAME
+```
 
-    ```bash
-    composer-dev stop LOCAL_ENVIRONMENT_NAME
-    ```
-
-2. Delete the environment's directory `./composer/<local_environment_name>`.
-
-    **Important:** Deleting this directory does not
-    [delete the Docker image](#delete-docker-images) of the environments.
+If the environment is running, add the `--force` flag to force its removal.
 
 ### Delete Docker images
 
