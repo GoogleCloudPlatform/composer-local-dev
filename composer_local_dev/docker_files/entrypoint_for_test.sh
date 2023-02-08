@@ -26,7 +26,7 @@ if [ -f /var/local/setup_python_command.sh ]; then
 fi
 
 pip3 install --upgrade -r composer_requirements.txt
-pip3 install --upgrade pytest, pytest-mock
+pip3 install --upgrade pytest pytest-mock
 pip3 check
 
-pytest /home/airflow/airflow/dags/
+python3 -m pytest /home/airflow/airflow/dags/
