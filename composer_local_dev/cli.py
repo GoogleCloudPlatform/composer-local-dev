@@ -57,6 +57,7 @@ click.rich_click.COMMAND_GROUPS = {
                 "list",
                 "describe",
                 "fetch-config",
+                "test",
             ],
         },
         {
@@ -310,6 +311,28 @@ def start(
     )
     console.get_console().print(f"Starting {env.name} composer environment...")
     env.start()
+
+
+@cli.command()
+@optional_environment
+@option_port
+@verbose_mode
+@debug_mode
+@errors.catch_exceptions()
+def test(
+    environment: Optional[str],
+    web_server_port: Optional[int],
+    verbose: bool,
+    debug: bool,
+):
+    """Start Composer environment for test."""
+    utils.setup_logging(verbose, debug)
+    env_path = files.resolve_environment_path(environment)
+    env = composer_environment.Environment.load_from_config(
+        env_path, web_server_port
+    )
+    console.get_console().print(f"Starting {env.name} composer environment...")
+    env.run_test()
 
 
 @cli.command()

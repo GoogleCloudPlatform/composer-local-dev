@@ -49,6 +49,7 @@ DOCKER_REGISTRY_IMAGE_TAG = (
 
 AIRFLOW_HOME = "/home/airflow"
 ENTRYPOINT_PATH = f"{AIRFLOW_HOME}/entrypoint.sh"
+ENTRYPOINT_FOR_TEST_PATH = f"{AIRFLOW_HOME}/entrypoint_for_test.sh"
 
 CREATE_MESSAGE_HINT = """
 Run following command to check how to create new environment:

@@ -420,6 +420,7 @@ class Environment:
         self.env_dir_path = env_dir_path
         self.airflow_db = self.env_dir_path / "airflow.db"
         self.entrypoint_file = DOCKER_FILES / "entrypoint.sh"
+        self.entrypoint_for_test_file = DOCKER_FILES / "entrypoint_for_test.sh"
         self.requirements_file = self.env_dir_path / "requirements.txt"
         self.project_id = project_id
         self.image_version = image_version
@@ -615,6 +616,64 @@ class Environment:
 
         return container
 
+    def create_docker_container_for_test(self):
+        """Creates docker container to execute unit tests.
+
+        Raises when docker container with the same name already exists.
+        """
+
+        LOG.debug("Creating container for unit test")
+        mounts = get_image_mounts(
+            self.env_dir_path,
+            self.dags_path,
+            utils.resolve_gcloud_config_path(),
+            self.entrypoint_for_test_file,
+            self.requirements_file,
+        )
+        default_vars = get_default_environment_variables(
+            self.dag_dir_list_interval, self.project_id
+        )
+        env_vars = {**default_vars, **self.environment_vars}
+        entrypoint = f"sh {constants.ENTRYPOINT_FOR_TEST_PATH}"
+        memory_limit = constants.DOCKER_CONTAINER_MEMORY_LIMIT
+
+        def create_container():
+            try:
+                return self.docker_client.containers.create(
+                    self.image_tag,
+                    name=self.container_name,
+                    entrypoint=entrypoint,
+                    environment=env_vars,
+                    mounts=mounts,
+                    mem_limit=memory_limit,
+                    detach=True,
+                )
+            except docker_errors.APIError as err:
+                logging.debug(
+                    "Received docker API error when creating container.",
+                    exc_info=True,
+                )
+                if err.status_code == constants.CONFLICT_ERROR_CODE:
+                    raise errors.EnvironmentAlreadyRunningError(
+                        self.name
+                    ) from None
+                raise
+
+        try:
+            container = create_container()
+        except docker_errors.ImageNotFound:
+            LOG.debug(
+                "Failed to create container with ImageNotFound error. "
+                "Pulling the imagae..."
+            )
+            self.pull_image()
+            container = create_container()
+        except docker_errors.APIError as err:
+            error = f"Failed to create container with an error: {err}"
+            raise errors.EnvironmentStartError(error)
+
+        return container
+
     def pull_image(self):
         """Pull Composer docker image."""
         try:
@@ -695,6 +754,15 @@ class Environment:
         except errors.EnvironmentNotRunningError:
             return self.create_docker_container()
 
+    def create_container_for_test(self):
+        """
+        create new container to run test.
+        """
+        try:
+            return self.create_docker_container_for_test()
+        except errors.EnvironmentNotRunningError:
+            raise errors.EnvironmentNotRunningError
+
     def start(self, assert_not_running=True):
         """Starts local composer environment.
 
@@ -738,6 +806,36 @@ class Environment:
             raise errors.EnvironmentStartError(error) from None
         self.wait_for_start()
         self.print_start_message()
+
+    def run_test(self):
+        assert_image_exists(self.image_version)
+        self.assert_requirements_exist()
+        files.assert_dag_path_exists(self.dags_path)
+        files.create_empty_file(self.airflow_db)
+        files.fix_file_permissions(
+            self.entrypoint_file, self.requirements_file, self.airflow_db
+        )
+        files.fix_line_endings(self.entrypoint_file, self.requirements_file)
+        container = self.create_container_for_test()
+        try:
+            container.start()
+        except docker.errors.APIError as err:
+            logging.debug(
+                "Starting environment failed with Docker API error.",
+                exc_info=True,
+            )
+            # TODO: (b/234552960) Test on different OS/language setting
+            if (
+                err.status_code == constants.SERVER_ERROR_CODE
+                and "port is already allocated" in str(err)
+            ):
+                container.remove()
+                raise errors.ComposerCliError(
+                    constants.PORT_IN_USE_ERROR.format(port=self.port)
+                )
+            error = f"Environment failed to start with an error: {err}"
+            raise errors.EnvironmentStartError(error) from None
+        self.wait_for_start()
 
     def print_start_message(self):
         """Print the start message after the environment is up and ready."""
