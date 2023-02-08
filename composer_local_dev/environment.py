@@ -39,11 +39,11 @@ def timeout_occurred(start_time):
 
 
 def get_image_mounts(
-    env_path: pathlib.Path,
-    dags_path: str,
-    gcloud_config_path: str,
-    entrypoint: pathlib.Path,
-    requirements: pathlib.Path,
+        env_path: pathlib.Path,
+        dags_path: str,
+        gcloud_config_path: str,
+        entrypoint: pathlib.Path,
+        requirements: pathlib.Path,
 ) -> List[docker.types.Mount]:
     """
     Return list of docker volumes to be mounted inside container.
@@ -74,7 +74,7 @@ def get_image_mounts(
 
 
 def get_default_environment_variables(
-    dag_dir_list_interval: int, project_id: str
+        dag_dir_list_interval: int, project_id: str
 ) -> Dict:
     """Return environment variables that will be set inside container."""
     return {
@@ -85,14 +85,14 @@ def get_default_environment_variables(
         "COMPOSER_PYTHON_VERSION": "3",
         "AIRFLOW_HOME": "/home/airflow/airflow",
         "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": f"google-cloud-platform://?"
-        f"extra__google_cloud_platform__project={project_id}&"
-        f"extra__google_cloud_platform__scope="
-        f"https://www.googleapis.com/auth/cloud-platform",
+                                             f"extra__google_cloud_platform__project={project_id}&"
+                                             f"extra__google_cloud_platform__scope="
+                                             f"https://www.googleapis.com/auth/cloud-platform",
     }
 
 
 def parse_env_variable(
-    line: str, env_file_path: pathlib.Path
+        line: str, env_file_path: pathlib.Path
 ) -> Union[str, str]:
     """Parse line in format of key=value and return (key, value) tuple."""
     try:
@@ -155,7 +155,7 @@ def filter_not_modifiable_env_vars(env_vars: Dict) -> Dict:
 
 
 def get_software_config_from_environment(
-    project: str, location: str, environment: str
+        project: str, location: str, environment: str
 ):
     """Get software configuration from the Composer environment.
 
@@ -240,8 +240,8 @@ def assert_image_exists(image_version: str):
             )
         )
     except (
-        auth_exception.GoogleAuthError,
-        api_exception.GoogleAPIError,
+            auth_exception.GoogleAuthError,
+            api_exception.GoogleAPIError,
     ) as err:
         raise errors.InvalidAuthError(err)
 
@@ -297,7 +297,7 @@ def get_image_version(env):
 
 
 def get_environments_status(
-    envs: List[pathlib.Path],
+        envs: List[pathlib.Path],
 ) -> List[EnvironmentStatus]:
     """Get list of environment statuses."""
     environments_status = []
@@ -365,13 +365,9 @@ class EnvironmentConfig:
             raise errors.MissingRequiredParameterError(name) from None
 
     def parse_int_param(
-        self,
-        name: str,
-        allowed_range: Optional[
-            Tuple[
-                int,
-            ]
-        ] = None,
+            self,
+            name: str,
+            allowed_range: Optional[Tuple[int, ]] = None,
     ):
         """
         Get parameter from the config and convert it to integer.
@@ -390,11 +386,12 @@ class EnvironmentConfig:
             value = self.get_str_param(name)
             value = int(value)
         except ValueError as err:
-            raise errors.FailedToParseConfigParamIntError(name, value) from None
+            raise errors.FailedToParseConfigParamIntError(name,
+                                                          value) from None
         if allowed_range is None:
             return value
         if value < allowed_range[0] or (
-            len(allowed_range) > 1 and value > allowed_range[1]
+                len(allowed_range) > 1 and value > allowed_range[1]
         ):
             raise errors.FailedToParseConfigParamIntRangeError(
                 name, value, allowed_range
@@ -404,16 +401,16 @@ class EnvironmentConfig:
 
 class Environment:
     def __init__(
-        self,
-        env_dir_path: pathlib.Path,
-        project_id: str,
-        image_version: str,
-        location: str,
-        dags_path: Optional[str],
-        dag_dir_list_interval: int = 10,
-        port: Optional[int] = None,
-        pypi_packages: Optional[Dict] = None,
-        environment_vars: Optional[Dict] = None,
+            self,
+            env_dir_path: pathlib.Path,
+            project_id: str,
+            image_version: str,
+            location: str,
+            dags_path: Optional[str],
+            dag_dir_list_interval: int = 10,
+            port: Optional[int] = None,
+            pypi_packages: Optional[Dict] = None,
+            environment_vars: Optional[Dict] = None,
     ):
         self.name = env_dir_path.name
         self.container_name = f"{constants.CONTAINER_NAME}-{self.name}"
@@ -454,8 +451,8 @@ class Environment:
         try:
             container = self.docker_client.containers.get(self.container_name)
             if (
-                assert_running
-                and container.status != constants.ContainerStatus.RUNNING
+                    assert_running
+                    and container.status != constants.ContainerStatus.RUNNING
             ):
                 raise errors.EnvironmentNotRunningError() from None
             return container
@@ -482,13 +479,13 @@ class Environment:
 
     @classmethod
     def from_source_environment(
-        cls,
-        source_environment: str,
-        project: str,
-        location: str,
-        env_dir_path: pathlib.Path,
-        web_server_port: Optional[int],
-        dags_path: Optional[str],
+            cls,
+            source_environment: str,
+            project: str,
+            location: str,
+            env_dir_path: pathlib.Path,
+            web_server_port: Optional[int],
+            dags_path: Optional[str],
     ):
         """
         Create Environment using configuration retrieved from Composer
@@ -498,7 +495,8 @@ class Environment:
             project, location, source_environment
         )
 
-        pypi_packages = {k: v for k, v in software_config.pypi_packages.items()}
+        pypi_packages = {k: v for k, v in
+                         software_config.pypi_packages.items()}
         env_variables = get_env_variables(software_config)
         airflow_overrides = get_airflow_overrides(software_config)
         env_variables.update(airflow_overrides)
@@ -537,7 +535,9 @@ class Environment:
             fp.write(env_vars_lines)
 
     def assert_requirements_exist(self):
-        """Asserts that PyPi requirements file exist in environment directory."""
+        """
+        Asserts that PyPi requirements file exist in environment directory.
+        """
         req_file = self.env_dir_path / "requirements.txt"
         if not req_file.is_file():
             raise errors.ComposerCliError(f"Missing '{req_file}' file.")
@@ -633,8 +633,11 @@ class Environment:
         default_vars = get_default_environment_variables(
             self.dag_dir_list_interval, self.project_id
         )
+        ports = {
+            f"8080/tcp": self.port,
+        }
         env_vars = {**default_vars, **self.environment_vars}
-        entrypoint = f"sh {constants.ENTRYPOINT_FOR_TEST_PATH}"
+        entrypoint = f"sh {constants.ENTRYPOINT_PATH}"
         memory_limit = constants.DOCKER_CONTAINER_MEMORY_LIMIT
 
         def create_container():
@@ -645,6 +648,7 @@ class Environment:
                     entrypoint=entrypoint,
                     environment=env_vars,
                     mounts=mounts,
+                    ports=ports,
                     mem_limit=memory_limit,
                     detach=True,
                 )
@@ -714,8 +718,8 @@ class Environment:
         """
         status = self.get_container().status
         if status not in (
-            constants.ContainerStatus.RUNNING,
-            constants.ContainerStatus.CREATED,
+                constants.ContainerStatus.RUNNING,
+                constants.ContainerStatus.CREATED,
         ):
             raise errors.EnvironmentStartError()
 
@@ -727,10 +731,11 @@ class Environment:
         """
         start_time = time.time()
         with console.get_console().status(
-            "[bold green]Starting environment..."
+                "[bold green]Starting environment..."
         ):
             self.assert_container_is_active()
-            for line in self.get_container().logs(stream=True, timestamps=True):
+            for line in self.get_container().logs(stream=True,
+                                                  timestamps=True):
                 line = line.decode("utf-8").strip()
                 console.get_console().print(line)
                 # TODO: (b/234684803) Improve detecting container readiness
@@ -782,8 +787,8 @@ class Environment:
         files.fix_line_endings(self.entrypoint_file, self.requirements_file)
         container = self.get_or_create_container()
         if (
-            assert_not_running
-            and container.status == constants.ContainerStatus.RUNNING
+                assert_not_running
+                and container.status == constants.ContainerStatus.RUNNING
         ):
             raise errors.EnvironmentAlreadyRunningError(self.name) from None
         try:
@@ -795,8 +800,8 @@ class Environment:
             )
             # TODO: (b/234552960) Test on different OS/language setting
             if (
-                err.status_code == constants.SERVER_ERROR_CODE
-                and "port is already allocated" in str(err)
+                    err.status_code == constants.SERVER_ERROR_CODE
+                    and "port is already allocated" in str(err)
             ):
                 container.remove()
                 raise errors.ComposerCliError(
@@ -818,7 +823,9 @@ class Environment:
         files.fix_line_endings(self.entrypoint_file, self.requirements_file)
         container = self.create_container_for_test()
         try:
+            logging.debug(f"Trying to start container {container}")
             container.start()
+            logging.debug(f"Started container {container}")
         except docker.errors.APIError as err:
             logging.debug(
                 "Starting environment failed with Docker API error.",
@@ -826,8 +833,8 @@ class Environment:
             )
             # TODO: (b/234552960) Test on different OS/language setting
             if (
-                err.status_code == constants.SERVER_ERROR_CODE
-                and "port is already allocated" in str(err)
+                    err.status_code == constants.SERVER_ERROR_CODE
+                    and "port is already allocated" in str(err)
             ):
                 container.remove()
                 raise errors.ComposerCliError(
@@ -835,7 +842,9 @@ class Environment:
                 )
             error = f"Environment failed to start with an error: {err}"
             raise errors.EnvironmentStartError(error) from None
+
         self.wait_for_start()
+        self.stop(remove_container=True)
 
     def print_start_message(self):
         """Print the start message after the environment is up and ready."""
@@ -885,7 +894,7 @@ class Environment:
         By default container is not removed.
         """
         with console.get_console().status(
-            f"[bold green]Stopping composer local environment..."
+                f"[bold green]Stopping composer local environment..."
         ):
             container = self.get_container()
             container.stop()
