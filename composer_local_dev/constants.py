@@ -16,6 +16,9 @@ import enum
 # The name of environment variable with custom configuration path
 CLOUD_CLI_CONFIG_PATH_ENV = "CLOUDSDK_CONFIG"
 
+# The name of environment variable with custom k8s configuration path
+KUBECONFIG_PATH_ENV = "KUBECONFIG"
+
 OPERATION_TIMEOUT_SECONDS = (
     300  # TODO: Check if we need such timeout, or any timeout at all
 )
