@@ -92,6 +92,7 @@ Composer [bold]{name}[/] environment is in state: {state}.
 Image version: {image_version}
 Dags directory: {dags_path}.
 The environment is using credentials from gcloud located at {gcloud_path}.
+The environment is using K8S credentials located at {kube_config_path}.
 
 This information is based on the data available in the
 environments configurations.
