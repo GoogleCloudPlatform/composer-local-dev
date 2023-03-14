@@ -164,6 +164,11 @@ GCLOUD_CONFIG_NOT_FOUND_ERROR = (
     "Please use CLOUDSDK_CONFIG environment variable to override default "
     "configuration location."
 )
+KUBECONFIG_PATH_ENV_ERROR = (
+    "Could not resolve kubectl config location. "
+    "Please use KUBECONFIG environment variable to override default "
+    "configuration location."
+)
 PORT_IN_USE_ERROR = (
     "Port {port} is already in use. "
     "Please use different port or close application using port {port}.\n"
