@@ -454,3 +454,16 @@ You can use one of the following solutions:
     `~/Library/Group\ Containers/group.com.docker/settings.json` file and
     add `/opt` to `filesharingDirectories`.
 
+
+### Add private PIP repository
+
+This version is patched to allow additions of a private pip repository per airflow environment.
+
+To enable the installation of the private repository edit your environment variables file within the environment
+`composer/$YOUR_ENVIRONMENT/variables.env`, add the variable:
+
+```sh
+PRIVATE_PIP_INDEX=$URL
+```
+
+the entrypoint will automatically update the pip configuration to add the private repository
