@@ -17,6 +17,7 @@
 set -xe
 
 sudo chown airflow:airflow airflow
+sudo chown airflow:airflow .config
 
 mkdir -p ${AIRFLOW__CORE__DAGS_FOLDER}
 mkdir -p ${AIRFLOW__CORE__PLUGINS_FOLDER}
@@ -28,6 +29,15 @@ if [ -f /var/local/setup_python_command.sh ]; then
     /var/local/setup_python_command.sh
 fi
 
+
+pip3 install keyring keyrings.google-artifactregistry-auth
+if [ -z "${PRIVATE_PIP_INDEX}" ] 
+then
+  echo "no private index set"
+else
+  echo "index is set to ${PRIVATE_PIP_INDEX}"
+  pip3 config set global.extra-index-url "${PRIVATE_PIP_INDEX}"
+fi
 pip3 install --upgrade -r composer_requirements.txt
 pip3 check
 
