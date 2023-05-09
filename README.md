@@ -373,6 +373,12 @@ and version specifiers.
 
 To apply the changes, [restart your local Airflow environment](#stop-or-restart-a-local-airflow-environment).
 
+### Configure private PyPI repository
+
+To allow installation of PyPI packages from private repositories define PIP_EXTRA_INDEX_URL environment variable that should contain an [alternate package index location](https://mothergeo-py.readthedocs.io/en/latest/development/how-to/alternate-pypi.html#how-to-use-an-alternate-pypi-package-index), eg.
+
+PIP_EXTRA_INDEX_URL=http://pypi.mydomain.com:8080
+
 ### Switch to a different Cloud Composer image
 
 You can use any Cloud Composer 2 image with Composer Local Development CLI
@@ -453,17 +459,3 @@ You can use one of the following solutions:
 - Manually edit the
     `~/Library/Group\ Containers/group.com.docker/settings.json` file and
     add `/opt` to `filesharingDirectories`.
-
-
-### Add private PIP repository
-
-This version is patched to allow additions of a private pip repository per airflow environment.
-
-To enable the installation of the private repository edit your environment variables file within the environment
-`composer/$YOUR_ENVIRONMENT/variables.env`, add the variable:
-
-```sh
-PRIVATE_PIP_INDEX=$URL
-```
-
-the entrypoint will automatically update the pip configuration to add the private repository
