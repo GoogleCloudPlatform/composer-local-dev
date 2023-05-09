@@ -30,12 +30,9 @@ if [ -f /var/local/setup_python_command.sh ]; then
 fi
 
 
-pip3 install keyring keyrings.google-artifactregistry-auth
-if [ -z "${PRIVATE_PIP_INDEX}" ] 
-then
-  echo "no private index set"
-else
-  echo "index is set to ${PRIVATE_PIP_INDEX}"
+if [ -n "${PRIVATE_PIP_INDEX}" ];then
+  echo "Adding private PyPI repository index: ${PIP_EXTRA_INDEX_URL}"
+  pip3 install keyring keyrings.google-artifactregistry-auth
   pip3 config set global.extra-index-url "${PRIVATE_PIP_INDEX}"
 fi
 pip3 install --upgrade -r composer_requirements.txt
