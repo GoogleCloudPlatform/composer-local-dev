@@ -58,7 +58,6 @@ create_user() {
   sudo find /var -user "${old_user_id}" -exec chown -h "${user_name}" {} \;
 }
 
-# Run Airflow as the host user.
 run_airflow_as_host_user() {
   create_user "${COMPOSER_HOST_USER_NAME}" "${COMPOSER_HOST_USER_ID}"
   echo "Running Airflow as user ${COMPOSER_HOST_USER_NAME}(${COMPOSER_HOST_USER_ID})"
@@ -66,7 +65,6 @@ run_airflow_as_host_user() {
   exec sudo -E -u "${COMPOSER_HOST_USER_NAME}" env PATH=${PATH} airflow webserver
 }
 
-# Run Airflow as the default user `airflow` (999).
 run_airflow_as_airflow_user() {
   echo "Running Airflow as user airflow(999)"
   airflow scheduler &

@@ -202,7 +202,7 @@ composer-dev create example-local-environment \
 
 ## Enable the container user to access mounted files and directories
 
-By default, the Composer container runs as the user `airflow` with UID 999. The user needs to access the files and
+By default, the Composer container runs as the user `airflow` with UID 999. The user needs to have access the files and
 directories mounted from the host, e.g., `~/.config/gcloud/application_default_credentials.json`. You can let the
 container run as the current host user by adding `COMPOSER_CONTAINER_RUN_AS_HOST_USER=True` in
 `composer/<LOCAL_ENVIRONMENT_NAME>/variables.env` (**recommended**), or change the file permissions on your host (**not
