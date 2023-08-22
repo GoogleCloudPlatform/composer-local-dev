@@ -18,6 +18,7 @@ import json
 import logging
 import os
 import pathlib
+import platform
 import tarfile
 import time
 import warnings
@@ -91,7 +92,7 @@ def get_default_environment_variables(
         # this env variable to "True" to make it run as the current host user.
         "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
         "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
-        "COMPOSER_HOST_USER_ID": f"{os.getuid()}",
+        "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
         "AIRFLOW_HOME": "/home/airflow/airflow",
         "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": f"google-cloud-platform://?"
         f"extra__google_cloud_platform__project={project_id}&"

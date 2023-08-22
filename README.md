@@ -208,14 +208,12 @@ container run as the current host user by adding `COMPOSER_CONTAINER_RUN_AS_HOST
 `composer/<LOCAL_ENVIRONMENT_NAME>/variables.env` (**recommended**), or change the file permissions on your host (**not
 recommended** for security reasons).
 
-Common errors:
+Known issues:
 
-- `google.auth.exceptions.DefaultCredentialsError: Your default credentials were not found`: it might be because you are
-  the running the container with the default user `airflow (999)` and the host directory `~/.config/gcloud/` is missing
-  the `x` permission for the user.
+- `google.auth.exceptions.DefaultCredentialsError: Your default credentials were not found`: it might be because you are running the container with the default user `airflow (999)` and the host directory `~/.config/gcloud/` is missing the execute permission for the user.
 - `[Errno 13] Permission denied: '/home/airflow/.config/gcloud/application_default_credentials.json'`: it might be
-  because you are the running the container with the default user `airflow (999)` and the host file
-  `~/.config/gcloud/application_default_credentials.json` is missing the `r` permission for the user.
+  because you are running the container with the default user `airflow (999)` and the host file
+  `~/.config/gcloud/application_default_credentials.json` is missing the read permission for the user.
 
 ## Start a local Airflow environment
 
