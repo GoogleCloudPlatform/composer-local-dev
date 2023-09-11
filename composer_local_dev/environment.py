@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import getpass
 import io
 import json
 import logging
+import os
 import pathlib
+import platform
 import tarfile
 import time
 import warnings
@@ -85,6 +88,11 @@ def get_default_environment_variables(
         "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
         "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
         "COMPOSER_PYTHON_VERSION": "3",
+        # By default, the container runs as the user `airflow` with UID 999. Set
+        # this env variable to "True" to make it run as the current host user.
+        "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
+        "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
+        "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
         "AIRFLOW_HOME": "/home/airflow/airflow",
         "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": f"google-cloud-platform://?"
         f"extra__google_cloud_platform__project={project_id}&"
@@ -591,6 +599,10 @@ class Environment:
             self.dag_dir_list_interval, self.project_id
         )
         env_vars = {**default_vars, **self.environment_vars}
+
+        if platform.system() == "Windows" and env_vars["COMPOSER_CONTAINER_RUN_AS_HOST_USER"] == "True":
+          raise Exception("COMPOSER_CONTAINER_RUN_AS_HOST_USER must be set to `False` on Windows")
+
         ports = {
             f"8080/tcp": self.port,
         }

@@ -13,8 +13,10 @@
 # limitations under the License.
 
 import contextlib
+import getpass
 import os
 import pathlib
+import platform
 import re
 from unittest import mock
 
@@ -561,6 +563,9 @@ class TestEnvironment:
             "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
             "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
             "COMPOSER_PYTHON_VERSION": "3",
+            "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
+            "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
+            "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
             "AIRFLOW_HOME": "/home/airflow/airflow",
             "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": f"google-cloud-platform://?"
             f"extra__google_cloud_platform__project={default_env.project_id}&"
@@ -920,6 +925,9 @@ def test_get_environment_variables():
         "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
         "COMPOSER_PYTHON_VERSION": "3",
         "AIRFLOW_HOME": "/home/airflow/airflow",
+        "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
+        "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
+        "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
         "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": "google-cloud-platform://?"
         "extra__google_cloud_platform__project=123&"
         "extra__google_cloud_platform__scope="
