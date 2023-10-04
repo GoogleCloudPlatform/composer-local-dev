@@ -16,8 +16,11 @@ import enum
 # The name of environment variable with custom configuration path
 CLOUD_CLI_CONFIG_PATH_ENV = "CLOUDSDK_CONFIG"
 
+# The name of environment variable with custom k8s configuration path
+KUBECONFIG_PATH_ENV = "KUBECONFIG"
+
 OPERATION_TIMEOUT_SECONDS = (
-    300  # TODO: Check if we need such timeout, or any timeout at all
+    1200  # TODO: Check if we need such timeout, or any timeout at all
 )
 
 BAD_REQUEST_ERROR_CODE = 400
@@ -89,6 +92,7 @@ Composer [bold]{name}[/] environment is in state: {state}.
 Image version: {image_version}
 Dags directory: {dags_path}.
 The environment is using credentials from gcloud located at {gcloud_path}.
+The environment is using K8S credentials located at {kube_config_path}.
 
 This information is based on the data available in the
 environments configurations.
@@ -159,6 +163,11 @@ ENVIRONMENT_ALREADY_RUNNING = (
 GCLOUD_CONFIG_NOT_FOUND_ERROR = (
     "Could not resolve gcloud config location. "
     "Please use CLOUDSDK_CONFIG environment variable to override default "
+    "configuration location."
+)
+KUBECONFIG_PATH_ENV_ERROR = (
+    "Could not resolve kubectl config location. "
+    "Please use KUBECONFIG environment variable to override default "
     "configuration location."
 )
 PORT_IN_USE_ERROR = (

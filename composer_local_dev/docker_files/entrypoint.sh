@@ -31,6 +31,8 @@ fi
 pip3 install --upgrade -r composer_requirements.txt
 pip3 check
 
+export PATH="$PATH:/home/airflow/.local/bin"
+
 airflow db init
 
 # Allow non-authenticated access to UI for Airflow 2.*

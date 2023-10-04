@@ -44,6 +44,7 @@ def get_image_mounts(
     env_path: pathlib.Path,
     dags_path: str,
     gcloud_config_path: str,
+    kube_config_path: str,
     requirements: pathlib.Path,
 ) -> List[docker.types.Mount]:
     """
@@ -52,14 +53,16 @@ def get_image_mounts(
      - requirements for python packages to be installed
      - dags, plugins and data for paths which contains dags, plugins and data
      - gcloud_config_path which contains user credentials to gcloud
+     - kube_config_path which contains user cluster credentials for K8S
      - environment airflow sqlite db file location
     """
     mount_paths = {
         requirements: "composer_requirements.txt",
         dags_path: "gcs/dags/",
         env_path / "plugins": "gcs/plugins/",
-        env_path / "data": "airflow/data/",
+        env_path / "data": "gcs/data/",
         gcloud_config_path: ".config/gcloud",
+        kube_config_path: ".kube/",
         env_path / "airflow.db": "airflow/airflow.db",
     }
     return [
@@ -585,6 +588,7 @@ class Environment:
             self.env_dir_path,
             self.dags_path,
             utils.resolve_gcloud_config_path(),
+            utils.resolve_kube_config_path(),
             self.requirements_file,
         )
         default_vars = get_default_environment_variables(
@@ -875,6 +879,7 @@ class Environment:
             image_version=self.image_version,
             dags_path=self.dags_path,
             gcloud_path=utils.resolve_gcloud_config_path(),
+            kube_config_path=utils.resolve_kube_config_path(),
         )
 
     def describe(self) -> None:

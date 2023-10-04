@@ -154,6 +154,24 @@ def resolve_gcloud_config_path() -> str:
     raise errors.ComposerCliError(constants.GCLOUD_CONFIG_NOT_FOUND_ERROR)
 
 
+def resolve_kube_config_path() -> str:
+    """
+    Returns the absolute path the kubectl CLI's configuration directory.
+    """
+    if constants.KUBECONFIG_PATH_ENV in os.environ:
+        return os.environ[constants.KUBECONFIG_PATH_ENV]
+
+    if is_windows_os():
+        config_path = pathlib.Path("%USERPROFILE%", ".kube")
+    else:
+        config_path = pathlib.Path("~/.kube").expanduser()
+
+    if config_path.is_dir():
+        return str(config_path)
+    raise errors.ComposerCliError(constants.KUBECONFIG_PATH_ENV_ERROR)
+
+
+
 def assert_environment_name_is_valid(env_name: str):
     """
     Asserts that environment name is a valid name.
