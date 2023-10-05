@@ -41,11 +41,11 @@ if [ -n "${PRIVATE_INDEX_URLS}" ]; then
   IFS=$OLDIFS
   EXTRA_INDEX_URLS=""
   for url; do
-    EXTRA_INDEX_URLS="${EXTRA_INDEX_URLS} --extra-index-url \"${url}\""
+    EXTRA_INDEX_URLS="${EXTRA_INDEX_URLS} ${url}"
   done
 
-  # Use the URLs in pip config set
-  eval pip3 config set global.extra-index-url "${EXTRA_INDEX_URLS}"
+  # Export the URLs as an environment variable
+  export PIP_EXTRA_INDEX_URL="${EXTRA_INDEX_URLS}"
 fi
 
 pip3 install --upgrade -r composer_requirements.txt
