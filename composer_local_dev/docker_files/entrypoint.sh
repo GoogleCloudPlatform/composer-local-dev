@@ -17,6 +17,7 @@
 set -xe
 
 sudo chown airflow:airflow airflow
+sudo chown airflow:airflow .config
 
 mkdir -p ${AIRFLOW__CORE__DAGS_FOLDER}
 mkdir -p ${AIRFLOW__CORE__PLUGINS_FOLDER}
