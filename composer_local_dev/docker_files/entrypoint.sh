@@ -43,7 +43,7 @@ if [ -n "${PRIVATE_INDEX_URLS}" ]; then
   for url; do
     EXTRA_INDEX_URLS="${EXTRA_INDEX_URLS} ${url}"
   done
-
+  printf 'PIP_EXTRA_INDEX_URL="%s"\n' "${PIP_EXTRA_INDEX_URL}"
   # Export the URLs as an environment variable
   export PIP_EXTRA_INDEX_URL="${EXTRA_INDEX_URLS}"
 fi
