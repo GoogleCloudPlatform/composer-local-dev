@@ -45,7 +45,7 @@ if [ -n "${PRIVATE_INDEX_URLS}" ]; then
   done
 
   # Export the URLs as an environment variable
-  export PIP_EXTRA_INDEX_URL=${EXTRA_INDEX_URLS}
+  export PIP_EXTRA_INDEX_URL="${EXTRA_INDEX_URLS}"
 fi
 
 # Example usage of PIP_EXTRA_INDEX_URL in pip install
