@@ -48,6 +48,9 @@ if [ -n "${PRIVATE_INDEX_URLS}" ]; then
   export PIP_EXTRA_INDEX_URL="${EXTRA_INDEX_URLS}"
 fi
 
+# Example usage of PIP_EXTRA_INDEX_URL in pip install
+pip3 install --upgrade -r composer_requirements.txt
+
 pip3 install --upgrade -r composer_requirements.txt
 pip3 check
 
