@@ -33,6 +33,7 @@ if [ -n "${PRIVATE_INDEX_URLS}" ]; then
   echo "Adding private PyPI repository indexes: ${PRIVATE_INDEX_URLS}"
   pip3 install keyring keyrings.google-artifactregistry-auth
 
+  # Split PRIVATE_INDEX_URLS by comma and create a space-separated string of URLs
   OLDIFS=$IFS
   IFS=','
   # shellcheck disable=SC2086
@@ -40,9 +41,10 @@ if [ -n "${PRIVATE_INDEX_URLS}" ]; then
   IFS=$OLDIFS
   EXTRA_INDEX_URLS=""
   for url; do
-    EXTRA_INDEX_URLS="${EXTRA_INDEX_URLS} --extra-index-url ${url}"
+    EXTRA_INDEX_URLS="${EXTRA_INDEX_URLS} --extra-index-url \"${url}\""
   done
 
+  # Use the URLs in pip config set
   pip3 config set global.extra-index-url "${EXTRA_INDEX_URLS}"
 fi
 
