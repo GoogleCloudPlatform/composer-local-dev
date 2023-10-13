@@ -559,6 +559,7 @@ class TestEnvironment:
             "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": default_env.dag_dir_list_interval,
             "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
             "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
+            "AIRFLOW__CORE__DATA_FOLDER": "/home/airflow/gcs/data",
             "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
             "COMPOSER_PYTHON_VERSION": "3",
             "AIRFLOW_HOME": "/home/airflow/airflow",
@@ -917,6 +918,7 @@ def test_get_environment_variables():
         "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": 105,
         "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
         "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
+        "AIRFLOW__CORE__DATA_FOLDER": "/home/airflow/gcs/data",
         "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
         "COMPOSER_PYTHON_VERSION": "3",
         "AIRFLOW_HOME": "/home/airflow/airflow",
@@ -956,7 +958,7 @@ def test_get_image_mounts(mocked_mount):
         ),
         mock.call(
             source=str(path / "data"),
-            target="/home/airflow/airflow/data/",
+            target="/home/airflow/gcs/data/",
             type="bind",
         ),
         mock.call(
