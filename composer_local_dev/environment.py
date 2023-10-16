@@ -596,8 +596,8 @@ class Environment:
         LOG.debug("Creating container")
         mounts = get_image_mounts(
             self.env_dir_path,
-            self.transform_path,
             self.dags_path,
+            self.transform_path,
             utils.resolve_gcloud_config_path(),
             self.requirements_file,
         )
