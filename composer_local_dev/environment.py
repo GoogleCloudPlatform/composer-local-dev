@@ -84,7 +84,7 @@ def get_default_environment_variables(
         "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
         "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": dag_dir_list_interval,
         "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
-        "AIRFLOW__CORE__TRANSFORM__FOLDER": "/home/airflow/gcs/transform",
+        "AIRFLOW__CORE__TRANSFORM_FOLDER": "/home/airflow/gcs/transform",
         "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
         "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
         "COMPOSER_PYTHON_VERSION": "3",
