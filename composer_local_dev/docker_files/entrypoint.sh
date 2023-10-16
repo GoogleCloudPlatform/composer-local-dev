@@ -20,7 +20,6 @@ sudo chown airflow:airflow airflow
 sudo chown airflow:airflow .config
 
 mkdir -p ${AIRFLOW__CORE__DAGS_FOLDER}
-mkdir -p ${AIRFLOW__CORE__TRANSFORM_FOLDER}
 mkdir -p ${AIRFLOW__CORE__PLUGINS_FOLDER}
 
 # That file exists in Composer < 1.19.2 and is responsible for linking name

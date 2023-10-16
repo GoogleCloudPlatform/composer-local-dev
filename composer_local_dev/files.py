@@ -107,30 +107,7 @@ def resolve_dags_path(dags_path: Optional[str], env_dir: pathlib.Path) -> str:
     return str(dags_path.resolve())
 
 
-def resolve_transform_path(
-    transform_path: Optional[str], env_dir: pathlib.Path
-) -> str:
-    """
-    Provides and validates path to the transform directory that we use at
-    Brightside.
-    If ``transform_path`` is None, the path is constructed from ``env_dir``
-    path and ``dags`` directory.
-    If ``transform_path`` is not None, but it does not exist, a warning is
-    raised.
-
-    Returns absolute ``transform_path` path.
-    """
-    if transform_path is None:
-        console.get_console().print(constants.TRANSFORM_PATH_NOT_PROVIDED_WARN)
-        transform_path = env_dir / "transform"
-    else:
-        transform_path = pathlib.Path(transform_path)
-    return str(transform_path.resolve())
-
-
-def create_environment_directories(
-    env_dir: pathlib.Path, dags_path: str, transform_path: str
-):
+def create_environment_directories(env_dir: pathlib.Path, dags_path: str):
     """
     Create environment directories (overwriting existing ones).
     Environment directory is a directory which contains configuration files for
@@ -152,15 +129,6 @@ def create_environment_directories(
             constants.CREATING_DAGS_PATH_WARN.format(dags_path=dags_path)
         )
         dags_path.mkdir(parents=True)
-
-    transform_path = pathlib.Path(transform_path)
-    if not transform_path.is_dir():
-        console.get_console().print(
-            constants.CREATING_TRANSFORM_PATH_WARN.format(
-                transform_path=transform_path
-            )
-        )
-        transform_path.mkdir(parents=True)
 
 
 def get_available_environments(composer_dir: pathlib.Path):

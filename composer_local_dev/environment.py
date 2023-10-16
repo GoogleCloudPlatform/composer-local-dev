@@ -43,7 +43,6 @@ def timeout_occurred(start_time):
 def get_image_mounts(
     env_path: pathlib.Path,
     dags_path: str,
-    transform_path: str,
     gcloud_config_path: str,
     requirements: pathlib.Path,
 ) -> List[docker.types.Mount]:
@@ -58,7 +57,6 @@ def get_image_mounts(
     mount_paths = {
         requirements: "composer_requirements.txt",
         dags_path: "gcs/dags/",
-        transform_path: "gcs/transform/",
         env_path / "plugins": "gcs/plugins/",
         env_path / "data": "airflow/data/",
         gcloud_config_path: ".config/gcloud",
@@ -84,7 +82,6 @@ def get_default_environment_variables(
         "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
         "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": dag_dir_list_interval,
         "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
-        "AIRFLOW__CORE__TRANSFORM_FOLDER": "/home/airflow/gcs/transform",
         "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
         "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
         "COMPOSER_PYTHON_VERSION": "3",
@@ -348,12 +345,10 @@ class EnvironmentConfig:
         self.project_id = self.get_str_param("composer_project_id")
         self.image_version = self.get_str_param("composer_image_version")
         self.location = self.get_str_param("composer_location")
-        self.transform_path = self.get_str_param("transform_path")
         self.dags_path = self.get_str_param("dags_path")
         self.dag_dir_list_interval = self.parse_int_param(
             "dag_dir_list_interval", allowed_range=(0,)
         )
-        self.transform_path = self.get_str_param("transform_path")
         self.port = (
             port
             if port is not None
@@ -433,7 +428,6 @@ class Environment:
         image_version: str,
         location: str,
         dags_path: Optional[str],
-        transform_path: Optional[str],
         dag_dir_list_interval: int = 10,
         port: Optional[int] = None,
         pypi_packages: Optional[Dict] = None,
@@ -451,9 +445,6 @@ class Environment:
         self.location = location
         self.dags_path = files.resolve_dags_path(dags_path, env_dir_path)
         self.dag_dir_list_interval = dag_dir_list_interval
-        self.transform_path = files.resolve_transform_path(
-            transform_path, env_dir_path
-        )
         self.port: int = port if port is not None else 8080
         self.pypi_packages = (
             pypi_packages if pypi_packages is not None else dict()
@@ -505,7 +496,6 @@ class Environment:
             location=config.location,
             dags_path=config.dags_path,
             dag_dir_list_interval=config.dag_dir_list_interval,
-            transform_path=config.transform_path,
             port=config.port,
             environment_vars=environment_vars,
         )
@@ -519,7 +509,6 @@ class Environment:
         env_dir_path: pathlib.Path,
         web_server_port: Optional[int],
         dags_path: Optional[str],
-        transform_path: Optional[str],
     ):
         """
         Create Environment using configuration retrieved from Composer
@@ -542,7 +531,6 @@ class Environment:
             location=location,
             dags_path=dags_path,
             dag_dir_list_interval=10,
-            transform_path=transform_path,
             port=web_server_port,
             pypi_packages=pypi_packages,
             environment_vars=env_variables,
@@ -581,7 +569,6 @@ class Environment:
             "composer_location": self.location,
             "composer_project_id": self.project_id,
             "dags_path": self.dags_path,
-            "transform_path": self.transform_path,
             "dag_dir_list_interval": int(self.dag_dir_list_interval),
             "port": int(self.port),
         }
@@ -597,7 +584,6 @@ class Environment:
         mounts = get_image_mounts(
             self.env_dir_path,
             self.dags_path,
-            self.transform_path,
             utils.resolve_gcloud_config_path(),
             self.requirements_file,
         )
@@ -671,9 +657,7 @@ class Environment:
         requirements.txt files.
         """
         assert_image_exists(self.image_version)
-        files.create_environment_directories(
-            self.env_dir_path, self.dags_path, self.transform_path
-        )
+        files.create_environment_directories(self.env_dir_path, self.dags_path)
         files.create_empty_file(self.airflow_db, skip_if_exist=False)
         self.write_environment_config_to_config_file()
         self.pypi_packages_to_requirements()
@@ -686,7 +670,6 @@ class Environment:
                 requirements_path=self.env_dir_path / "requirements.txt",
                 env_variables_path=self.env_dir_path / "variables.env",
                 dags_path=self.dags_path,
-                transform_path=self.transform_path,
             )
         )
 
@@ -786,7 +769,6 @@ class Environment:
             constants.START_MESSAGE.format(
                 env_name=self.name,
                 dags_path=self.dags_path,
-                transform_path=self.transform_path,
                 port=self.port,
             )
         )
@@ -892,7 +874,6 @@ class Environment:
             web_url=web_url,
             image_version=self.image_version,
             dags_path=self.dags_path,
-            transform_path=self.transform_path,
             gcloud_path=utils.resolve_gcloud_config_path(),
         )
 

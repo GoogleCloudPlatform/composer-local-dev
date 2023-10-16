@@ -225,13 +225,6 @@ option_location = click.option(
     metavar="PATH",
     type=click.Path(file_okay=False),
 )
-@click.option(
-    "--transform-path",
-    help="Path to transform folder. If it does not exist, it will be created.",
-    show_default="'transform' directory in the environment directory",
-    metavar="PATH",
-    type=click.Path(file_okay=False),
-)
 @required_environment
 @verbose_mode
 @debug_mode
@@ -246,7 +239,6 @@ def create(
     verbose: bool,
     debug: bool,
     dags_path: Optional[pathlib.Path] = None,
-    transform_path: Optional[pathlib.Path] = None,
 ):
     """
     Create local Composer development environment.
@@ -300,7 +292,6 @@ def create(
             env_dir_path=env_dir,
             web_server_port=web_server_port,
             dags_path=dags_path,
-            transform_path=transform_path,
         )
     else:
         env = composer_environment.Environment(
@@ -310,7 +301,6 @@ def create(
             env_dir_path=env_dir,
             port=web_server_port,
             dags_path=dags_path,
-            transform_path=transform_path,
         )
     env.create()
 
