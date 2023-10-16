@@ -239,6 +239,7 @@ def create(
     verbose: bool,
     debug: bool,
     dags_path: Optional[pathlib.Path] = None,
+    transform_path: Optional[pathlib.Path] = None,
 ):
     """
     Create local Composer development environment.
@@ -292,6 +293,7 @@ def create(
             env_dir_path=env_dir,
             web_server_port=web_server_port,
             dags_path=dags_path,
+            transform_path=transform_path,
         )
     else:
         env = composer_environment.Environment(
@@ -301,6 +303,7 @@ def create(
             env_dir_path=env_dir,
             port=web_server_port,
             dags_path=dags_path,
+            transform_path=transform_path,
         )
     env.create()
 

@@ -57,21 +57,21 @@ Run following command to check how to create new environment:
   $ composer-dev create --help
 """
 CREATE_MESSAGE = """
-Created environment under {env_dir}. 
+Created environment under {env_dir}.
 You can now start it using following command:
 
 $ composer-dev start {env_name}
 
-You can modify generated files to change your environment settings. 
+You can modify generated files to change your environment settings.
 Common settings are defined in {config_path}.
 PyPi extra packages are listed in {requirements_path}.
 Airflow overrides and environment variables are stored in {env_variables_path}.
 
-You can put your plugins and data to plugins and data directories 
+You can put your plugins and data to plugins and data directories
 available at {env_dir}.
 DAGs can be updated at {dags_path} path.
 
-To apply changes done to environment config and PyPI dependencies 
+To apply changes done to environment config and PyPI dependencies
 restart environment using following command:
 
 $ composer-dev restart {env_name}
@@ -107,6 +107,12 @@ CREATING_DAGS_PATH_WARN = (
 )
 DAGS_PATH_NOT_PROVIDED_WARN = (
     "No dags directory provided, using default dags directory."
+)
+CREATING_TRANSFORM_PATH_WARN = (
+    "Transform path '{transform_path}' does not exist. It will be created."
+)
+TRANSFORM_PATH_NOT_PROVIDED_WARN = (
+    "No transform directory provided, using default transform directory."
 )
 ADD_DEBUG_ON_ERROR_INFO = "\n\nTo print debug messages please add --debug flag."
 DAGS_PATH_NOT_EXISTS_ERROR = (
