@@ -21,6 +21,7 @@ init_airflow() {
 
   mkdir -p ${AIRFLOW__CORE__DAGS_FOLDER}
   mkdir -p ${AIRFLOW__CORE__PLUGINS_FOLDER}
+  mkdir -p ${AIRFLOW__CORE__DATA_FOLDER}
 
   # That file exists in Composer < 1.19.2 and is responsible for linking name
   # `python` to python3 exec, in Composer >= 1.19.2 name `python` is already
