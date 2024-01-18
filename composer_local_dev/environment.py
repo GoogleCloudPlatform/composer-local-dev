@@ -858,6 +858,7 @@ class Environment:
         """
         container = self.get_container(assert_running=True)
         command.insert(0, "airflow")
+        command.insert(0, "run")
         result = container.exec_run(cmd=command)
         console.get_console().print(result.output.decode())
 
