@@ -46,6 +46,10 @@ deployed Cloud Composer images for production purposes.
 - If you have only one local environment, you can omit the local environment's
     name from all `composer-dev` commands, except the `run-airflow-cmd`.
 
+- Once local environment started, the Airflow triggerer is up along with scheduler and webserver.
+    Please note that Airflow CLI command `airfow triggerer` was released in Airflow 2.2.0 and thus won't work
+    with older versions.
+
 ## Google Cloud documentation page
 
 See [Google Cloud documentation](https://cloud.google.com/composer/docs/composer-2/run-local-airflow-environments)
