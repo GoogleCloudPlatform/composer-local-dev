@@ -596,7 +596,7 @@ class Environment:
         )
         env_vars = {**default_vars, **self.environment_vars}
         ports = {
-            f"8080/tcp": self.port,
+            "8080/tcp": self.port,
         }
         entrypoint = f"sh {constants.ENTRYPOINT_PATH}"
         memory_limit = constants.DOCKER_CONTAINER_MEMORY_LIMIT
@@ -612,6 +612,7 @@ class Environment:
                     ports=ports,
                     mem_limit=memory_limit,
                     detach=True,
+                    extra_hosts={"host.docker.internal": "host-gateway"},
                 )
             except docker_errors.APIError as err:
                 logging.debug(

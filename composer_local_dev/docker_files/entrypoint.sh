@@ -33,15 +33,6 @@ pip3 check
 
 export PATH="$PATH:/home/airflow/.local/bin"
 
-# Install mysql-server if does't exist
-sudo apt-get update
-sudo apt install mysql-server -y
-sudo service mysql stop
-sudo service mysql start
-sudo mysql -e " CREATE DATABASE IF NOT EXISTS airflow_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-sudo mysql -e "CREATE USER IF NOT EXISTS 'airflow_user' IDENTIFIED BY 'airflow_pass';"
-sudo mysql -e "GRANT ALL PRIVILEGES ON airflow_db.* TO 'airflow_user';"
-
 airflow db init
 
 # Allow non-authenticated access to UI for Airflow 2.*
