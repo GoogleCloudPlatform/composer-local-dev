@@ -33,6 +33,13 @@ pip3 check
 
 export PATH="$PATH:/home/airflow/.local/bin"
 
+echo "Trying to ping host to ensure connection works"
+ping host.docker.internal -c 5
+sudo apt-get update
+sudo apt install netcat -y
+echo "Acessing the MySQL port"
+nc -z -v -w5 host.docker.internal 3306
+
 airflow db init
 
 # Allow non-authenticated access to UI for Airflow 2.*
