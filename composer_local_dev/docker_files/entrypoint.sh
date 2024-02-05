@@ -33,12 +33,14 @@ pip3 check
 
 export PATH="$PATH:/home/airflow/.local/bin"
 
-echo "Trying to ping host to ensure connection works"
-ping host.docker.internal -c 5
 sudo apt-get update
 sudo apt install netcat -y
+echo "Trying to ping host to ensure connection works"
+ping host.docker.internal -c 5 || echo "Ping failed"
+echo "Acessing the SSH port"
+nc -z -v -w5 host.docker.internal 22 || echo "SSH failed"
 echo "Acessing the MySQL port"
-nc -z -v -w5 host.docker.internal 3306
+nc -z -v -w5 host.docker.internal 3306 || echo "MySQL failed"
 
 airflow db init
 
