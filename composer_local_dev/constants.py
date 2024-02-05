@@ -226,10 +226,7 @@ DOCKER_NOT_AVAILABLE_ERROR = (
     "is installed and running. Error: {error}"
 )
 DOCKER_CONTAINER_MEMORY_LIMIT = "4g"
-NOT_MODIFIABLE_ENVIRONMENT_VARIABLES = {
-    "AIRFLOW_HOME",
-    "AIRFLOW__CORE__EXECUTOR",
-}
+NOT_MODIFIABLE_ENVIRONMENT_VARIABLES = {}
 LIST_COMMAND_EPILOG = (
     "\nRun describe command with the environment name to see the detailed "
     "information and potential configuration errors.\n\n"
