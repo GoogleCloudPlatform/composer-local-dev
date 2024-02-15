@@ -34,7 +34,8 @@ else
   pyenv install --skip-existing 3.7.10
   pyenv install --skip-existing 3.8.10
   pyenv install --skip-existing 3.9.5
-  pyenv global 3.7.10 3.8.10 3.9.5
+  pyenv install --skip-existing 3.11.5
+  pyenv global 3.7.10 3.8.10 3.9.5 3.11.5
 fi
 
 # install nox for testing

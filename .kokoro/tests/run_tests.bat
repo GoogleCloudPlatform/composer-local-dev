@@ -20,8 +20,8 @@ set "PYENV_HOME=%USERPROFILE%\.pyenv\pyenv-win\"
 set "PATH=%USERPROFILE%\.pyenv\pyenv-win\bin;%USERPROFILE%\.pyenv\pyenv-win\shims;%PATH%"
 
 @echo "Install additional Python versions"
-call %USERPROFILE%\.pyenv\pyenv-win\bin\pyenv install --skip-existing --register 3.8.10 3.9.13 3.10.5
-call %USERPROFILE%\.pyenv\pyenv-win\bin\pyenv global 3.8.10 3.9.13 3.10.5
+call %USERPROFILE%\.pyenv\pyenv-win\bin\pyenv install --skip-existing --register 3.8.10 3.9.13 3.10.5 3.11.5
+call %USERPROFILE%\.pyenv\pyenv-win\bin\pyenv global 3.8.10 3.9.13 3.10.5 3.11.5
 
 if defined KOKORO_BUILD_ID ( @rem export vars only for Kokoro job
   @rem  Setup service account credentials

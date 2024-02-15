@@ -60,7 +60,7 @@ Composer.
 
 In order to run the CLI tool, install the following prerequisites:
 
-- Python 3.7-3.10 with `pip`
+- Python 3.7-3.11 with `pip`
 - [gcloud CLI](https://cloud.google.com/sdk/docs/install)
 - Docker
 
