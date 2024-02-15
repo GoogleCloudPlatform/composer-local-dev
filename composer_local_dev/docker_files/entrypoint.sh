@@ -39,4 +39,5 @@ if ! grep -Fxq "AUTH_ROLE_PUBLIC = 'Admin'" /home/airflow/airflow/webserver_conf
 fi
 
 airflow scheduler &
+airflow triggerer &
 exec airflow webserver
