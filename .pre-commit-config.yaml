@@ -20,25 +20,25 @@ default_language_version:
 minimum_pre_commit_version: "1.20.0"
 repos:
   - repo: https://github.com/psf/black
-    rev: 22.3.0
+    rev: 24.2.0
     hooks:
     - id: black
       args: [--config=pyproject.toml]
   - repo: https://github.com/asottile/blacken-docs
-    rev: v1.12.1
+    rev: 1.16.0
     hooks:
     - id: blacken-docs
       alias: black
-      additional_dependencies: [black==22.3.0]
+      additional_dependencies: [black==24.2.0]
   - repo: https://github.com/PyCQA/isort
-    rev: 5.10.1
+    rev: 5.13.2
     hooks:
     - id: isort
       name: Run isort to sort imports in Python files
       files: \.py$|\.pyi$
       exclude: ^build/.*$|^\.tox/.*$|^venv/.*$
   - repo: https://github.com/pycqa/pydocstyle
-    rev: 6.1.1
+    rev: 6.3.0
     hooks:
     - id: pydocstyle
       name: Run pydocstyle to check compliance with Python docstring conventions
@@ -50,7 +50,7 @@ repos:
         ^tests/.*\.py$|
       additional_dependencies: ['toml']
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.1.0
+    rev: v2.2.6
     hooks:
     - id: codespell
       name: Run codespell to check for common misspellings in files
@@ -70,7 +70,7 @@ repos:
         files: \.(md|mdown|markdown)$
         additional_dependencies: ['markdownlint-cli']
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.1.10
+    rev: v1.5.5
     hooks:
     - id: insert-license
       name: Add license for all Python and shell files
