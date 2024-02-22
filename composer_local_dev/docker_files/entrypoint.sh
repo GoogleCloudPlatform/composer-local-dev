@@ -1,4 +1,4 @@
-#!/bin/sh"
+#!/bin/sh
 
 # Copyright 2022 Google LLC
 #
@@ -16,28 +16,28 @@
 
 set -xe
 
-init_airflow() {
-  sudo chown airflow:airflow airflow
+echo ENV=${ENV}
 
-  mkdir -p ${AIRFLOW__CORE__DAGS_FOLDER}
-  mkdir -p ${AIRFLOW__CORE__PLUGINS_FOLDER}
-  mkdir -p ${AIRFLOW__CORE__DATA_FOLDER}
+init_airflow() {
+  run mkdir -p ${AIRFLOW__CORE__DAGS_FOLDER}
+  run mkdir -p ${AIRFLOW__CORE__PLUGINS_FOLDER}
+  run mkdir -p ${AIRFLOW__CORE__DATA_FOLDER}
 
   # That file exists in Composer < 1.19.2 and is responsible for linking name
   # `python` to python3 exec, in Composer >= 1.19.2 name `python` is already
   # linked to python3 and file no longer exist.
   if [ -f /var/local/setup_python_command.sh ]; then
-      /var/local/setup_python_command.sh
+      run /var/local/setup_python_command.sh
   fi
 
-  pip3 install --upgrade -r composer_requirements.txt
-  pip3 check
+  run pip3 install --upgrade -r composer_requirements.txt
+  run pip3 check
 
-  airflow db init
+  run airflow db init
 
   # Allow non-authenticated access to UI for Airflow 2.*
   if ! grep -Fxq "AUTH_ROLE_PUBLIC = 'Admin'" /home/airflow/airflow/webserver_config.py; then
-    echo "AUTH_ROLE_PUBLIC = 'Admin'" >> /home/airflow/airflow/webserver_config.py
+    run sh -c "echo \"AUTH_ROLE_PUBLIC = 'Admin'\" >> /home/airflow/airflow/webserver_config.py"
   fi
 }
 
@@ -60,26 +60,36 @@ create_user() {
 }
 
 run_airflow_as_host_user() {
-  create_user "${COMPOSER_HOST_USER_NAME}" "${COMPOSER_HOST_USER_ID}"
+  create_user "${COMPOSER_HOST_USER_NAME}" "${COMPOSER_HOST_USER_ID}" || true
+
+  RUN="sudo -E -u ${COMPOSER_HOST_USER_NAME} env PATH=${PATH} ENV=${ENV}"
+
   echo "Running Airflow as user ${COMPOSER_HOST_USER_NAME}(${COMPOSER_HOST_USER_ID})"
-  sudo -E -u "${COMPOSER_HOST_USER_NAME}" env PATH=${PATH} airflow scheduler &
-  exec sudo -E -u "${COMPOSER_HOST_USER_NAME}" env PATH=${PATH} airflow webserver
 }
 
 run_airflow_as_airflow_user() {
   echo "Running Airflow as user airflow(999)"
-  airflow scheduler &
-  exec airflow webserver
 }
 
 main() {
-  init_airflow
+  sudo chown airflow:airflow airflow
 
   if [ "${COMPOSER_CONTAINER_RUN_AS_HOST_USER}" = "True" ]; then
     run_airflow_as_host_user
   else
     run_airflow_as_airflow_user
   fi
+
+  sudo cat  >/usr/local/bin/run <<EOF
+#!/bin/sh
+
+${RUN:-exec} "\$@"
+EOF
+  sudo chmod +x /usr/local/bin/run
+
+  init_airflow
+  run airflow scheduler &
+  exec run airflow webserver
 }
 
 main "$@"

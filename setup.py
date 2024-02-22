@@ -25,7 +25,7 @@ release_status = (
 )
 dependencies = [
     "click>=7.0",
-    "google-auth==1.30.*",
+    "google-auth==2.23.*",
     "google-cloud-orchestration-airflow>=1.2.0",
     "google-cloud-artifact-registry>=1.2.0",
     "rich_click==1.4.0",
@@ -74,12 +74,13 @@ setuptools.setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Operating System :: OS Independent",
         "Topic :: Internet",
     ],
     platforms="Posix; MacOS X; Windows",
     packages=packages,
-    python_requires=">=3.7,<3.11",
+    python_requires=">=3.7,<3.12",
     install_requires=dependencies,
     extras_require=extras,
     package_data={"": ["docker_files/entrypoint.sh"]},
