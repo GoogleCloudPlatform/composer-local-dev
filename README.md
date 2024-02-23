@@ -46,22 +46,22 @@ deployed Cloud Composer images for production purposes.
 - If you have only one local environment, you can omit the local environment's
     name from all `composer-dev` commands, except the `run-airflow-cmd`.
 
-- Once local environment started, the Airflow triggerer is up along with scheduler and webserver.
-    Please note that Airflow CLI command `airfow triggerer` was released in Airflow 2.2.0 and thus won't work
-    with older versions.
+- Once local environment started, the Airflow triggerer is up along with
+    scheduler and webserver. Please note that Airflow CLI command
+    `airflow triggerer` was released in Airflow 2.2.0 and thus won't
+    work with older versions.
 
 ## Google Cloud documentation page
 
-See [Google Cloud documentation](https://cloud.google.com/composer/docs/composer-2/run-local-airflow-environments)
-for more information about using Composer Local Development CLI tool and Cloud
-Composer.
+See [Google Cloud documentation][1] for more information about using Composer
+Local Development CLI tool and Cloud Composer.
 
 ## Prerequisites
 
 In order to run the CLI tool, install the following prerequisites:
 
-- Python 3.7-3.11 with `pip`
-- [gcloud CLI](https://cloud.google.com/sdk/docs/install)
+- Python 3.8-3.11 with `pip`
+- [gcloud CLI][2]
 - Docker
 
 Docker must be installed and running in the local system. To verify that
@@ -70,7 +70,7 @@ Docker is running, you can run any Docker CLI command, such as `docker ps`.
 ## Configure credentials
 
 If not already done,
-[get new user credentials to use for Application Default Credentials](https://cloud.google.com/sdk/gcloud/reference/auth/application-default/login):
+[get new user credentials to use for Application Default Credentials][3]:
 
 ```bash
 gcloud auth application-default login
@@ -92,7 +92,7 @@ environment's service account makes the calls.
 ## Install from the source code
 
 1. Clone this repository
-2.  In the top-level directory of the cloned repository, run:
+2. In the top-level directory of the cloned repository, run:
 
     ```bash
     pip install .
@@ -133,7 +133,7 @@ composer-dev create \
 Replace:
 
 - `IMAGE_VERSION` with the name of the Cloud Composer image.
-- `PROJECT_ID` with the [Project ID](https://cloud.google.com/resource-manager/docs/creating-managing-projects).
+- `PROJECT_ID` with the [Project ID][4].
 - `WEB_SERVER_PORT` with the port that Airflow web server must listen at.
 - `LOCAL_DAGS_PATH` with the path to a local directory where the DAG files are
     located.
@@ -155,11 +155,10 @@ copy of your Cloud Composer environment**.
 Only the following information is taken from a Cloud Composer
 environment:
 
-- [Image version](https://cloud.google.com/composer/docs/concepts/versioning/composer-versions) (versions of Cloud Composer and
-    Airflow used in your environment).
-- List of [custom PyPI packages](https://cloud.google.com/composer/docs/composer-2/install-python-dependencies) installed in your
-    environment.
-- Commented list of names of [environment variables](https://cloud.google.com/composer/docs/composer-2/set-environment-variables) set in your environment.
+- [Image version][5] (versions of Cloud Composer and Airflow used in your
+    environment).
+- List of [custom PyPI packages][6] installed in your environment.
+- Commented list of names of [environment variables][7] set in your environment.
 
     **Important:** Cloud Composer **does not copy the values** of
     environment variables. You can manually uncomment environment variables
@@ -188,7 +187,7 @@ Replace:
 - `ENVIRONMENT_NAME` with the name of the Cloud Composer environment.
 - `LOCATION` with the region where the Cloud Composer environment is
     located.
-- `PROJECT_ID` with the [Project ID](https://cloud.google.com/resource-manager/docs/creating-managing-projects).
+- `PROJECT_ID` with the [Project ID][4].
 - `WEB_SERVER_PORT` with a port for the local Airflow web server.
 - `LOCAL_DAGS_PATH` with a path to a local directory where the DAGs are
     located.
@@ -270,10 +269,10 @@ composer-dev logs LOCAL_ENVIRONMENT_NAME
 
 ## Run an Airflow CLI command
 
-You can run [Airflow CLI commands](https://airflow.apache.org/docs/apache-airflow/stable/cli-and-env-variables-ref.html) in your local
-Airflow environment.
+You can run [Airflow CLI commands][8] in your local Airflow environment.
 
-**Note:** The command syntax is different from [gcloud CLI syntax for Airflow CLI commands](https://cloud.google.com/composer/docs/composer-2/access-airflow-cli).
+**Note:** The command syntax is different from
+[gcloud CLI syntax for Airflow CLI commands][9].
 
 To run an Airflow CLI command:
 
@@ -313,7 +312,6 @@ composer-dev list
 
 To describe a specific environment, and get details such as image version, DAGs
 path, and web server URL of an environment:
-
 
 ```bash
 composer-dev describe LOCAL_ENVIRONMENT_NAME
@@ -355,7 +353,7 @@ some of the variables.
 The `variables.env` file must contain key-value definitions, one line for each
 environment variable. To change Airflow configuration options, use the
 `AIRFLOW__SECTION__KEY` format. For more information about the available
-environment variables, see [Airflow configuration reference](https://airflow.apache.org/docs/apache-airflow/stable/configurations-ref.html)
+environment variables, see [Airflow configuration reference][10]
 
 ```bash
 EXAMPLE_VARIABLE=True
@@ -363,32 +361,30 @@ ANOTHER_VARIABLE=test
 AIRFLOW__WEBSERVER__DAG_DEFAULT_VIEW=graph
 ```
 
-To apply the changes, [restart your local Airflow environment](#stop-or-restart-a-local-airflow-environment).
+To apply the changes, [restart your local Airflow environment](#stop-or-restart-a-local-airflow-environments).
 
 ### Install or remove PyPI packages
 
 To install or remove PyPI packages, modify the `requirements.txt` file in the
 environment directory: `./composer/<local_environment_name>/requirements.txt`.
 
-Requirements must follow the format specified in
-[PEP-508](https://www.python.org/dev/peps/pep-0508/#grammar) where each requirement is
-specified in lowercase and consists of the package name with optional extras
-and version specifiers.
+Requirements must follow the format specified in [PEP-508][12] where each
+requirement is specified in lowercase and consists of the package name with
+optional extras and version specifiers.
 
-To apply the changes, [restart your local Airflow environment](#stop-or-restart-a-local-airflow-environment).
+To apply the changes, [restart your local Airflow environment](#stop-or-restart-a-local-airflow-environments).
 
 ### Switch to a different Cloud Composer image
 
 You can use any Cloud Composer 2 image with Composer Local Development CLI
 tool and switch between the images. This approach is different from
-[upgrading](https://cloud.google.com/composer/docs/composer-2/upgrade-environments) your Cloud Composer environment, because
-configuration parameters of your local Airflow environment are applied when it
-starts.
+[upgrading][11] your Cloud Composer environment, because configuration
+parameters of your local Airflow environment are applied when it starts.
 
-For example, after a new Cloud Composer version is
-released, you can switch your environment to use the new version, and keep
-existing local Airflow environment configuration. As another example, you can switch between different Airflow versions within a specific
-Cloud Composer version.
+For example, after a new Cloud Composer version is released, you can switch
+your environment to use the new version, and keep existing local Airflow
+environment configuration. As another example, you can switch between
+different Airflow versions within a specific Cloud Composer version.
 
 To change the environment's image used by your local Airflow environment:
 
@@ -399,14 +395,14 @@ To change the environment's image used by your local Airflow environment:
     available values, you can
     [list available Cloud Composer versions](#create-a-local-airflow-environment-with-a-specific-cloud-composer-version).
 
-3. To apply the changes, [restart your local Airflow environment](#stop-or-restart-a-local-airflow-environment).
+3. To apply the changes, [restart your local Airflow environment](#stop-or-restart-a-local-airflow-environments).
 
 ### Delete a local Airflow environment
 
 **Caution:** Make sure that you saved all required data from the environment,
 such as logs and configuration.
 
-To delete a a local Airflow environment, run the following command:
+To delete a local Airflow environment, run the following command:
 
 ```bash
 composer-dev remove LOCAL_ENVIRONMENT_NAME
@@ -458,3 +454,16 @@ You can use one of the following solutions:
     `~/Library/Group\ Containers/group.com.docker/settings.json` file and
     add `/opt` to `filesharingDirectories`.
 
+---
+[1]: https://cloud.google.com/composer/docs/composer-2/run-local-airflow-environments
+[2]: https://cloud.google.com/sdk/docs/install
+[3]: https://cloud.google.com/sdk/gcloud/reference/auth/application-default/login
+[4]: https://cloud.google.com/resource-manager/docs/creating-managing-projects
+[5]: https://cloud.google.com/composer/docs/concepts/versioning/composer-versions
+[6]: https://cloud.google.com/composer/docs/composer-2/install-python-dependencies
+[7]: https://cloud.google.com/composer/docs/composer-2/set-environment-variables
+[8]: https://airflow.apache.org/docs/apache-airflow/stable/cli-and-env-variables-ref.html
+[9]: https://cloud.google.com/composer/docs/composer-2/access-airflow-cli
+[10]: https://airflow.apache.org/docs/apache-airflow/stable/configurations-ref.html
+[11]: https://cloud.google.com/composer/docs/composer-2/upgrade-environments
+[12]: https://www.python.org/dev/peps/pep-0508/#grammar
