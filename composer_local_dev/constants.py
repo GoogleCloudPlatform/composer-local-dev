@@ -225,7 +225,7 @@ DOCKER_NOT_AVAILABLE_ERROR = (
     "Docker not available or failed to start. Please ensure docker service "
     "is installed and running. Error: {error}"
 )
-DOCKER_CONTAINER_MEMORY_LIMIT = "4g"
+DOCKER_CONTAINER_MEMORY_LIMIT = "15g"
 NOT_MODIFIABLE_ENVIRONMENT_VARIABLES = {}
 LIST_COMMAND_EPILOG = (
     "\nRun describe command with the environment name to see the detailed "
