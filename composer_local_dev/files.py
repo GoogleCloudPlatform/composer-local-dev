@@ -146,6 +146,7 @@ def get_available_environments(composer_dir: pathlib.Path):
 
 def fix_file_permissions(
     entrypoint: pathlib.Path,
+    run: pathlib.Path,
     requirements: pathlib.Path,
     airflow_db: pathlib.Path,
 ) -> None:
@@ -154,6 +155,7 @@ def fix_file_permissions(
     Linux OS. Windows and MAC OS X don't need it.
     Args:
         entrypoint: Init script of the container. It needs to be executable.
+        run: Script used to run commands as the right user. It needs to be executable.
         requirements: List of PyPi packages to be installed in the container.
         It needs to be readable by all users.
         airflow_db: path to Airflow Sqlite database file.
@@ -162,6 +164,7 @@ def fix_file_permissions(
     if not utils.is_linux_os():
         return
     make_file_readable_and_executable(entrypoint)
+    make_file_readable_and_executable(run)
     make_file_writeable(requirements)
     make_file_writeable(airflow_db)
 
@@ -175,13 +178,16 @@ def make_file_writeable(file_path: pathlib.Path) -> None:
 
 
 def fix_line_endings(
-    entrypoint: pathlib.Path, requirements: pathlib.Path
+    entrypoint: pathlib.Path,
+    run: pathlib.Path,
+    requirements: pathlib.Path,
 ) -> None:
     """
     Fix windows line endings so the files created under Windows
     can be used in the docker container.
     """
     dos2unix_file(entrypoint)
+    dos2unix_file(run)
     dos2unix_file(requirements)
 
 

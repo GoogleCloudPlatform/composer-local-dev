@@ -16,30 +16,29 @@
 
 set -xe
 
-init_airflow() {
-  # The run command is defined in the main() function below
-  # If COMPOSER_HOST_USER_NAME is True, run will execute the command as the local user
-  # Otherwise, the command will be executed as is
+run_as_user=/home/airflow/run_as_user.sh
 
-  run mkdir -p ${AIRFLOW__CORE__DAGS_FOLDER}
-  run mkdir -p ${AIRFLOW__CORE__PLUGINS_FOLDER}
-  run mkdir -p ${AIRFLOW__CORE__DATA_FOLDER}
+init_airflow() {
+
+  $run_as_user mkdir -p ${AIRFLOW__CORE__DAGS_FOLDER}
+  $run_as_user mkdir -p ${AIRFLOW__CORE__PLUGINS_FOLDER}
+  $run_as_user mkdir -p ${AIRFLOW__CORE__DATA_FOLDER}
 
   # That file exists in Composer < 1.19.2 and is responsible for linking name
   # `python` to python3 exec, in Composer >= 1.19.2 name `python` is already
   # linked to python3 and file no longer exist.
   if [ -f /var/local/setup_python_command.sh ]; then
-      run /var/local/setup_python_command.sh
+      $run_as_user /var/local/setup_python_command.sh
   fi
 
-  run pip3 install --upgrade -r composer_requirements.txt
-  run pip3 check
+  $run_as_user pip3 install --upgrade -r composer_requirements.txt
+  $run_as_user pip3 check
 
-  run airflow db init
+  $run_as_user airflow db init
 
   # Allow non-authenticated access to UI for Airflow 2.*
   if ! grep -Fxq "AUTH_ROLE_PUBLIC = 'Admin'" /home/airflow/airflow/webserver_config.py; then
-    run sh -c "echo \"AUTH_ROLE_PUBLIC = 'Admin'\" >> /home/airflow/airflow/webserver_config.py"
+    $run_as_user sh -c "echo \"AUTH_ROLE_PUBLIC = 'Admin'\" >> /home/airflow/airflow/webserver_config.py"
   fi
 }
 
@@ -61,46 +60,22 @@ create_user() {
   sudo find /var -user "${old_user_id}" -exec chown -h "${user_name}" {} \;
 }
 
-prepare_running_airflow_as_host_user() {
-  # Do not recreate user if it already exists
-  create_user "${COMPOSER_HOST_USER_NAME}" "${COMPOSER_HOST_USER_ID}" || true
-
-  # Define run command
-  sudo cat >/usr/local/bin/run <<EOF
-#!/bin/sh
-
-sudo -E -u ${COMPOSER_HOST_USER_NAME} env PATH=${PATH} "\$@"
-EOF
-
-  echo "Running Airflow as user ${COMPOSER_HOST_USER_NAME}(${COMPOSER_HOST_USER_ID})"
-}
-
-prepare_running_airflow_as_airflow_user() {
-  echo "Running Airflow as user airflow(999)"
-
-  # Define run command
-  sudo cat >/usr/local/bin/run <<EOF
-#!/bin/sh
-
-exec "\$@"
-EOF
-}
-
 main() {
   sudo chown airflow:airflow airflow
 
   if [ "${COMPOSER_CONTAINER_RUN_AS_HOST_USER}" = "True" ]; then
-    prepare_running_airflow_as_host_user
+    # Do not recreate user if it already exists
+    create_user "${COMPOSER_HOST_USER_NAME}" "${COMPOSER_HOST_USER_ID}" || true
+
+    echo "Running Airflow as user ${COMPOSER_HOST_USER_NAME}(${COMPOSER_HOST_USER_ID})"
   else
-    prepare_running_airflow_as_airflow_user
+    echo "Running Airflow as user airflow(999)"
   fi
 
-  sudo chmod +x /usr/local/bin/run
-
   init_airflow
-  run airflow scheduler &
-  run airflow triggerer &
-  exec run airflow webserver
+  $run_as_user airflow scheduler &
+  $run_as_user airflow triggerer &
+  exec $run_as_user airflow webserver
 }
 
 main "$@"
