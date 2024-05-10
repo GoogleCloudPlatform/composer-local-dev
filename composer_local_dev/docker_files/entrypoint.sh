@@ -102,6 +102,14 @@ create_user() {
   fi
 }
 
+install_and_run_sshd() {
+  echo "Installing and running sshd"
+  sudo apt-get -qq update && sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install openssh-server > /dev/null 2>&1
+  sudo mkdir /run/sshd
+  echo "airflow:${COMPOSER_CONTAINER_AIRFLOW_USER_PASSWORD}" | sudo chpasswd
+  sudo /usr/sbin/sshd
+}
+
 main() {
   sudo chown airflow:airflow airflow
   sudo chmod +x $run_as_user
@@ -114,6 +122,10 @@ main() {
   # when using the SimpleAuthManager
   if [ -d "$FAST_API_DIR" ]; then
     sudo chown -R airflow:airflow "$FAST_API_DIR"
+  fi
+
+  if [ "${COMPOSER_CONTAINER_ENABLE_SSHD}" = "True" ]; then
+    install_and_run_sshd
   fi
 
   if [ "${COMPOSER_CONTAINER_RUN_AS_HOST_USER}" = "True" ]; then
