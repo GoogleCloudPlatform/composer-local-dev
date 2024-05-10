@@ -203,6 +203,13 @@ composer-dev create example-local-environment \
   --dags-path example_directory/dags
 ```
 
+## Remote debugging
+To facilitate remote debugging in the local Airflow environment, use the `--enable-ssh` flag.  
+This flag allows SSH access into the container, enabling you to debug your DAGs directly.  
+For SSH connection, use the `airflow` user. The default password for this user is `airflow`.  
+If you need to change this default password, set the `COMPOSER_CONTAINER_AIRFLOW_USER_PASSWORD` environment variable
+in the variables.env file.
+
 ## Enable the container user to access mounted files and directories from the host
 
 By default, the Composer container runs as the user `airflow` with UID 999. The user needs to have access the files and
