@@ -833,13 +833,10 @@ class Environment:
             self.requirements_file,
             db_mounts,
         )
-
         db_vars = db_extras["env_vars"]
         default_vars = self.get_default_environment_variables(db_vars, self.enable_ssh)
 
         env_vars = {**default_vars, **self.environment_vars}
-
-
         if (
             platform.system() == "Windows"
             and env_vars["COMPOSER_CONTAINER_RUN_AS_HOST_USER"] == "True"
@@ -851,7 +848,6 @@ class Environment:
         ports = {
             f"8080/tcp": self.port,
         }
-
         entrypoint = f"bash {constants.ENTRYPOINT_PATH}"
         memory_limit = (
             self.container_memory_limit
