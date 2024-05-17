@@ -74,8 +74,23 @@ run_airflow_as_airflow_user() {
   exec airflow webserver
 }
 
+install_and_run_sshd() {
+  echo "Installing sshd"
+  if ! command -v /usr/sbin/sshd &> /dev/null
+  then
+    sudo apt-get -qq update && sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install openssh-server > /dev/null 2>&1
+    sudo mkdir /run/sshd
+    echo "airflow:${COMPOSER_CONTAINER_AIRFLOW_USER_PASSWORD}" | sudo chpasswd
+  fi
+  sudo /usr/sbin/sshd
+}
+
 main() {
   init_airflow
+
+  if [ "${COMPOSER_CONTAINER_ENABLE_SSHD}" = "True" ]; then
+    install_and_run_sshd
+  fi
 
   if [ "${COMPOSER_CONTAINER_RUN_AS_HOST_USER}" = "True" ]; then
     run_airflow_as_host_user

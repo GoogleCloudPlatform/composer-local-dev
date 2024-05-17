@@ -76,7 +76,7 @@ def get_image_mounts(
 
 
 def get_default_environment_variables(
-    dag_dir_list_interval: int, project_id: str
+    dag_dir_list_interval: int, project_id: str, enable_ssh: bool = False
 ) -> Dict:
     """Return environment variables that will be set inside container."""
     return {
@@ -92,6 +92,8 @@ def get_default_environment_variables(
         # By default, the container runs as the user `airflow` with UID 999. Set
         # this env variable to "True" to make it run as the current host user.
         "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
+        "COMPOSER_CONTAINER_ENABLE_SSHD": str(enable_ssh),
+        "COMPOSER_CONTAINER_AIRFLOW_USER_PASSWORD": "airflow",
         "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
         "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
         "AIRFLOW_HOME": "/home/airflow/airflow",
@@ -348,7 +350,12 @@ def get_environments_status(
 
 
 class EnvironmentConfig:
-    def __init__(self, env_dir_path: pathlib.Path, port: Optional[int]):
+    def __init__(
+        self,
+        env_dir_path: pathlib.Path,
+        port: Optional[int],
+        ssh_port: Optional[int] = None,
+    ):
         self.env_dir_path = env_dir_path
         self.config = self.load_configuration_from_file()
         self.project_id = self.get_str_param("composer_project_id")
@@ -362,6 +369,12 @@ class EnvironmentConfig:
             port
             if port is not None
             else self.parse_int_param("port", allowed_range=(0, 65536))
+        )
+        self.enable_ssh = self.get_str_param("enable_ssh")
+        self.ssh_port = (
+            ssh_port
+            if ssh_port is not None
+            else self.parse_int_param("ssh_port", allowed_range=(0, 65536))
         )
 
     def load_configuration_from_file(self) -> Dict:
@@ -439,6 +452,8 @@ class Environment:
         dags_path: Optional[str],
         dag_dir_list_interval: int = 10,
         port: Optional[int] = None,
+        enable_ssh: Optional[bool] = False,
+        ssh_port: Optional[int] = None,
         pypi_packages: Optional[Dict] = None,
         environment_vars: Optional[Dict] = None,
     ):
@@ -455,6 +470,8 @@ class Environment:
         self.dags_path = files.resolve_dags_path(dags_path, env_dir_path)
         self.dag_dir_list_interval = dag_dir_list_interval
         self.port: int = port if port is not None else 8080
+        self.enable_ssh: bool = enable_ssh
+        self.ssh_port: int = ssh_port if ssh_port is not None else 10022
         self.pypi_packages = (
             pypi_packages if pypi_packages is not None else dict()
         )
@@ -493,9 +510,14 @@ class Environment:
                 raise errors.EnvironmentNotFoundError() from None
 
     @classmethod
-    def load_from_config(cls, env_dir_path: pathlib.Path, port: Optional[int]):
+    def load_from_config(
+        cls,
+        env_dir_path: pathlib.Path,
+        port: Optional[int],
+        ssh_port: Optional[int] = None,
+    ):
         """Create local environment using 'config.json' configuration file."""
-        config = EnvironmentConfig(env_dir_path, port)
+        config = EnvironmentConfig(env_dir_path, port, ssh_port)
         environment_vars = load_environment_variables(env_dir_path)
 
         return cls(
@@ -506,6 +528,8 @@ class Environment:
             dags_path=config.dags_path,
             dag_dir_list_interval=config.dag_dir_list_interval,
             port=config.port,
+            enable_ssh=config.enable_ssh,
+            ssh_port=config.ssh_port,
             environment_vars=environment_vars,
         )
 
@@ -518,6 +542,8 @@ class Environment:
         env_dir_path: pathlib.Path,
         web_server_port: Optional[int],
         dags_path: Optional[str],
+        enable_ssh: Optional[bool] = False,
+        ssh_port: Optional[int] = None,
     ):
         """
         Create Environment using configuration retrieved from Composer
@@ -541,6 +567,8 @@ class Environment:
             dags_path=dags_path,
             dag_dir_list_interval=10,
             port=web_server_port,
+            enable_ssh=enable_ssh,
+            ssh_port=ssh_port,
             pypi_packages=pypi_packages,
             environment_vars=env_variables,
         )
@@ -580,6 +608,8 @@ class Environment:
             "dags_path": self.dags_path,
             "dag_dir_list_interval": int(self.dag_dir_list_interval),
             "port": int(self.port),
+            "enable_ssh": bool(self.enable_ssh),
+            "ssh_port": int(self.ssh_port),
         }
         with open(self.env_dir_path / "config.json", "w") as fp:
             json.dump(config, fp, indent=4)
@@ -597,16 +627,25 @@ class Environment:
             self.requirements_file,
         )
         default_vars = get_default_environment_variables(
-            self.dag_dir_list_interval, self.project_id
+            self.dag_dir_list_interval, self.project_id, self.enable_ssh
         )
         env_vars = {**default_vars, **self.environment_vars}
 
-        if platform.system() == "Windows" and env_vars["COMPOSER_CONTAINER_RUN_AS_HOST_USER"] == "True":
-          raise Exception("COMPOSER_CONTAINER_RUN_AS_HOST_USER must be set to `False` on Windows")
+        if (
+            platform.system() == "Windows"
+            and env_vars["COMPOSER_CONTAINER_RUN_AS_HOST_USER"] == "True"
+        ):
+            raise Exception(
+                "COMPOSER_CONTAINER_RUN_AS_HOST_USER must be set to `False` on Windows"
+            )
 
         ports = {
             f"8080/tcp": self.port,
         }
+
+        if env_vars["COMPOSER_CONTAINER_ENABLE_SSHD"] == "True":
+            ports[f"22/tcp"] = self.ssh_port
+
         entrypoint = f"sh {constants.ENTRYPOINT_PATH}"
         memory_limit = constants.DOCKER_CONTAINER_MEMORY_LIMIT
 

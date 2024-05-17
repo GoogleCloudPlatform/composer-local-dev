@@ -383,10 +383,19 @@ class TestEnvironment:
         ],
     )
     @pytest.mark.parametrize("port", [None, 8090])
+    @pytest.mark.parametrize("ssh_port", [None, 2222])
+    @pytest.mark.parametrize("enable_ssh", [False, True])
     @mock.patch("composer_local_dev.environment.docker.from_env")
     @mock.patch("composer_local_dev.environment.assert_image_exists")
     def test_create_and_load_from_config(
-        self, mocked_docker, mocked_assert, pypi_packages, port, tmp_path
+        self,
+        mocked_docker,
+        mocked_assert,
+        pypi_packages,
+        port,
+        enable_ssh,
+        ssh_port,
+        tmp_path,
     ):
         env_dir_path = tmp_path / ".compose" / "my_env"
         image_version = "composer-2.0.8-airflow-2.2.3"
@@ -398,6 +407,8 @@ class TestEnvironment:
             dags_path=str(pathlib.Path(tmp_path)),
             dag_dir_list_interval=10,
             port=port,
+            enable_ssh=enable_ssh,
+            ssh_port=ssh_port,
             pypi_packages=pypi_packages,
         )
         expected_env.create()
@@ -565,6 +576,8 @@ class TestEnvironment:
             "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
             "COMPOSER_PYTHON_VERSION": "3",
             "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
+            "COMPOSER_CONTAINER_ENABLE_SSHD": "False",
+            "COMPOSER_CONTAINER_AIRFLOW_USER_PASSWORD": "airflow",
             "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
             "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
             "AIRFLOW_HOME": "/home/airflow/airflow",
@@ -928,6 +941,8 @@ def test_get_environment_variables():
         "COMPOSER_PYTHON_VERSION": "3",
         "AIRFLOW_HOME": "/home/airflow/airflow",
         "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
+        "COMPOSER_CONTAINER_ENABLE_SSHD": "False",
+        "COMPOSER_CONTAINER_AIRFLOW_USER_PASSWORD": "airflow",
         "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
         "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
         "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": "google-cloud-platform://?"
