@@ -29,7 +29,7 @@ dependencies = [
     "google-cloud-orchestration-airflow>=1.2.0",
     "google-cloud-artifact-registry>=1.2.0",
     "rich_click==1.4.0",
-    "docker==6.*",
+    "docker>=7.1.0,<8.0.0",
 ]
 extras = {
     "tests": ["pytest", "nox", "coverage"],
