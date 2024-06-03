@@ -430,6 +430,15 @@ class TestEnvironment:
         env_vars = environment.load_environment_variables(env_dir)
         assert expected_env_vars == env_vars
 
+    def test_load_invalid_value_for_env_vars(self):
+        env_dir = (TEST_DATA_DIR / "invalid_value_for_env_vars").resolve()
+        expected_env_vars = {
+            "RANDOM_NAME": "123",
+            "AIRFLOW__CORE__EXECUTOR": "LocalExecutor",
+        }
+        env_vars = environment.load_environment_variables(env_dir)
+        assert expected_env_vars == env_vars
+
     @mock.patch("composer_local_dev.environment.docker.from_env")
     @mock.patch("composer_local_dev.environment.assert_image_exists")
     def test_environment_vars_to_env_file(

@@ -144,6 +144,17 @@ def load_environment_variables(env_dir_path: pathlib.Path) -> Dict:
                     "and will be ignored.",
                     key,
                 )
+            elif key in constants.STRICT_ENVIRONMENT_VARIABLES:
+                possible_values = constants.STRICT_ENVIRONMENT_VARIABLES[key]
+                if value not in possible_values:
+                    LOG.warning(
+                        "'%s' environment variable can be set "
+                        "to the one of the following values: '%s'",
+                        key,
+                        ",".join(possible_values),
+                    )
+                else:
+                    env_vars[key] = value
             else:
                 env_vars[key] = value
     return env_vars
@@ -160,6 +171,17 @@ def filter_not_modifiable_env_vars(env_vars: Dict) -> Dict:
                 "'%s' environment variable cannot be set and will be ignored.",
                 key,
             )
+        elif key in constants.STRICT_ENVIRONMENT_VARIABLES:
+            possible_values = constants.STRICT_ENVIRONMENT_VARIABLES[key]
+            if val not in possible_values:
+                LOG.warning(
+                    "'%s' environment variable can be set "
+                    "to the one of the following values: '%s'",
+                    key,
+                    ",".join(possible_values),
+                )
+            else:
+                env_vars[key] = val
         else:
             filtered_env_vars[key] = val
     return filtered_env_vars
@@ -601,8 +623,13 @@ class Environment:
         )
         env_vars = {**default_vars, **self.environment_vars}
 
-        if platform.system() == "Windows" and env_vars["COMPOSER_CONTAINER_RUN_AS_HOST_USER"] == "True":
-          raise Exception("COMPOSER_CONTAINER_RUN_AS_HOST_USER must be set to `False` on Windows")
+        if (
+            platform.system() == "Windows"
+            and env_vars["COMPOSER_CONTAINER_RUN_AS_HOST_USER"] == "True"
+        ):
+            raise Exception(
+                "COMPOSER_CONTAINER_RUN_AS_HOST_USER must be set to `False` on Windows"
+            )
 
         ports = {
             f"8080/tcp": self.port,

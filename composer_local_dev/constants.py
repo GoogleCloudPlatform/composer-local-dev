@@ -219,7 +219,10 @@ DOCKER_NOT_AVAILABLE_ERROR = (
 DOCKER_CONTAINER_MEMORY_LIMIT = "4g"
 NOT_MODIFIABLE_ENVIRONMENT_VARIABLES = {
     "AIRFLOW_HOME",
-    "AIRFLOW__CORE__EXECUTOR",
+}
+# The following environment variables can only be used with the given possible values
+STRICT_ENVIRONMENT_VARIABLES = {
+    "AIRFLOW__CORE__EXECUTOR": ["LocalExecutor", "SequentialExecutor",],
 }
 LIST_COMMAND_EPILOG = (
     "\nRun describe command with the environment name to see the detailed "

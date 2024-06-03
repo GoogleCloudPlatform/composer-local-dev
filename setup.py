@@ -25,11 +25,12 @@ release_status = (
 )
 dependencies = [
     "click>=7.0",
+    "docker==6.*",
     "google-auth==2.27.*",
     "google-cloud-orchestration-airflow>=1.2.0",
     "google-cloud-artifact-registry>=1.2.0",
+    "requests<2.32.0",  # to resolve the issue https://github.com/docker/docker-py/issues/3256
     "rich_click==1.4.0",
-    "docker==6.*",
 ]
 extras = {
     "tests": ["pytest", "nox", "coverage"],
