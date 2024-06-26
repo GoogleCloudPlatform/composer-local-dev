@@ -133,6 +133,23 @@ class TestResolveGcloudConfigPath:
             utils.resolve_gcloud_config_path()
 
 
+class TestResolveKubeConfigPath:
+    def test_kube_config_set_with_env_variable(self):
+        config_path = "path/to/config"
+        with mock.patch.dict(
+            "os.environ", {constants.KUBECONFIG_PATH_ENV: config_path}
+        ):
+            actual_config_path = utils.resolve_kube_config_path()
+        assert config_path == actual_config_path
+
+    @mock.patch(
+        "composer_local_dev.constants.KUBECONFIG_PATH_ENV", spec_set=True
+    )
+    def test_kube_config_set_without_env_variable(self, mocked_kube_config_env):
+        actual_config_path = utils.resolve_kube_config_path()
+        assert actual_config_path is None
+
+
 class TestAsserEnvironmentNameIsValid:
     @pytest.mark.parametrize(
         "name, message",

@@ -44,10 +44,11 @@ def timeout_occurred(start_time):
 
 
 def get_image_mounts(
-    env_path: pathlib.Path,
-    dags_path: str,
-    gcloud_config_path: str,
-    requirements: pathlib.Path,
+        env_path: pathlib.Path,
+        dags_path: str,
+        gcloud_config_path: str,
+        kube_config_path: Optional[str],
+        requirements: pathlib.Path,
 ) -> List[docker.types.Mount]:
     """
     Return list of docker volumes to be mounted inside container.
@@ -55,6 +56,7 @@ def get_image_mounts(
      - requirements for python packages to be installed
      - dags, plugins and data for paths which contains dags, plugins and data
      - gcloud_config_path which contains user credentials to gcloud
+     - kube_config_path which contains user cluster credentials for K8S [Optional]
      - environment airflow sqlite db file location
     """
     mount_paths = {
@@ -65,6 +67,9 @@ def get_image_mounts(
         gcloud_config_path: ".config/gcloud",
         env_path / "airflow.db": "airflow/airflow.db",
     }
+    # Add kube_config_path only if it's provided
+    if kube_config_path:
+        mount_paths[kube_config_path] = ".kube/"
     return [
         docker.types.Mount(
             source=str(source),
@@ -76,7 +81,7 @@ def get_image_mounts(
 
 
 def get_default_environment_variables(
-    dag_dir_list_interval: int, project_id: str
+        dag_dir_list_interval: int, project_id: str
 ) -> Dict:
     """Return environment variables that will be set inside container."""
     return {
@@ -96,14 +101,14 @@ def get_default_environment_variables(
         "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
         "AIRFLOW_HOME": "/home/airflow/airflow",
         "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": f"google-cloud-platform://?"
-        f"extra__google_cloud_platform__project={project_id}&"
-        f"extra__google_cloud_platform__scope="
-        f"https://www.googleapis.com/auth/cloud-platform",
+                                             f"extra__google_cloud_platform__project={project_id}&"
+                                             f"extra__google_cloud_platform__scope="
+                                             f"https://www.googleapis.com/auth/cloud-platform",
     }
 
 
 def parse_env_variable(
-    line: str, env_file_path: pathlib.Path
+        line: str, env_file_path: pathlib.Path
 ) -> Tuple[str, str]:
     """Parse line in format of key=value and return (key, value) tuple."""
     try:
@@ -188,7 +193,7 @@ def filter_not_modifiable_env_vars(env_vars: Dict) -> Dict:
 
 
 def get_software_config_from_environment(
-    project: str, location: str, environment: str
+        project: str, location: str, environment: str
 ):
     """Get software configuration from the Composer environment.
 
@@ -273,8 +278,8 @@ def assert_image_exists(image_version: str):
             )
         )
     except (
-        auth_exception.GoogleAuthError,
-        api_exception.GoogleAPIError,
+            auth_exception.GoogleAuthError,
+            api_exception.GoogleAPIError,
     ) as err:
         raise errors.InvalidAuthError(err)
 
@@ -299,9 +304,9 @@ def get_docker_image_tag_from_image_version(image_version: str) -> str:
 def is_mount_permission_error(error: docker_errors.APIError) -> bool:
     """Checks if error is possibly a Docker mount permission error."""
     return (
-        error.is_client_error()
-        and error.response.status_code == constants.BAD_REQUEST_ERROR_CODE
-        and "invalid mount config" in error.explanation
+            error.is_client_error()
+            and error.response.status_code == constants.BAD_REQUEST_ERROR_CODE
+            and "invalid mount config" in error.explanation
     )
 
 
@@ -350,7 +355,7 @@ def get_image_version(env):
 
 
 def get_environments_status(
-    envs: List[pathlib.Path],
+        envs: List[pathlib.Path],
 ) -> List[EnvironmentStatus]:
     """Get list of environment statuses."""
     environments_status = []
@@ -418,9 +423,9 @@ class EnvironmentConfig:
             raise errors.MissingRequiredParameterError(name) from None
 
     def parse_int_param(
-        self,
-        name: str,
-        allowed_range: Optional[Tuple[int, int]] = None,
+            self,
+            name: str,
+            allowed_range: Optional[Tuple[int, int]] = None,
     ):
         """
         Get parameter from the config and convert it to integer.
@@ -443,7 +448,7 @@ class EnvironmentConfig:
         if allowed_range is None:
             return value
         if value < allowed_range[0] or (
-            len(allowed_range) > 1 and value > allowed_range[1]
+                len(allowed_range) > 1 and value > allowed_range[1]
         ):
             raise errors.FailedToParseConfigParamIntRangeError(
                 name, value, allowed_range
@@ -453,16 +458,16 @@ class EnvironmentConfig:
 
 class Environment:
     def __init__(
-        self,
-        env_dir_path: pathlib.Path,
-        project_id: str,
-        image_version: str,
-        location: str,
-        dags_path: Optional[str],
-        dag_dir_list_interval: int = 10,
-        port: Optional[int] = None,
-        pypi_packages: Optional[Dict] = None,
-        environment_vars: Optional[Dict] = None,
+            self,
+            env_dir_path: pathlib.Path,
+            project_id: str,
+            image_version: str,
+            location: str,
+            dags_path: Optional[str],
+            dag_dir_list_interval: int = 10,
+            port: Optional[int] = None,
+            pypi_packages: Optional[Dict] = None,
+            environment_vars: Optional[Dict] = None,
     ):
         self.name = env_dir_path.name
         self.container_name = f"{constants.CONTAINER_NAME}-{self.name}"
@@ -493,7 +498,7 @@ class Environment:
             raise errors.DockerNotAvailableError(err) from None
 
     def get_container(
-        self, assert_running: bool = False, ignore_not_found: bool = False
+            self, assert_running: bool = False, ignore_not_found: bool = False
     ):
         """
         Returns created docker container and raises when it's not created.
@@ -504,8 +509,8 @@ class Environment:
         try:
             container = self.docker_client.containers.get(self.container_name)
             if (
-                assert_running
-                and container.status != constants.ContainerStatus.RUNNING
+                    assert_running
+                    and container.status != constants.ContainerStatus.RUNNING
             ):
                 raise errors.EnvironmentNotRunningError() from None
             return container
@@ -533,13 +538,13 @@ class Environment:
 
     @classmethod
     def from_source_environment(
-        cls,
-        source_environment: str,
-        project: str,
-        location: str,
-        env_dir_path: pathlib.Path,
-        web_server_port: Optional[int],
-        dags_path: Optional[str],
+            cls,
+            source_environment: str,
+            project: str,
+            location: str,
+            env_dir_path: pathlib.Path,
+            web_server_port: Optional[int],
+            dags_path: Optional[str],
     ):
         """
         Create Environment using configuration retrieved from Composer
@@ -616,6 +621,7 @@ class Environment:
             self.env_dir_path,
             self.dags_path,
             utils.resolve_gcloud_config_path(),
+            utils.resolve_kube_config_path(),
             self.requirements_file,
         )
         default_vars = get_default_environment_variables(
@@ -624,8 +630,8 @@ class Environment:
         env_vars = {**default_vars, **self.environment_vars}
 
         if (
-            platform.system() == "Windows"
-            and env_vars["COMPOSER_CONTAINER_RUN_AS_HOST_USER"] == "True"
+                platform.system() == "Windows"
+                and env_vars["COMPOSER_CONTAINER_RUN_AS_HOST_USER"] == "True"
         ):
             raise Exception(
                 "COMPOSER_CONTAINER_RUN_AS_HOST_USER must be set to `False` on Windows"
@@ -665,7 +671,7 @@ class Environment:
         except docker_errors.ImageNotFound:
             LOG.debug(
                 "Failed to create container with ImageNotFound error. "
-                "Pulling the imagae..."
+                "Pulling the image..."
             )
             self.pull_image()
             container = create_container()
@@ -719,8 +725,8 @@ class Environment:
         """
         status = self.get_container().status
         if status not in (
-            constants.ContainerStatus.RUNNING,
-            constants.ContainerStatus.CREATED,
+                constants.ContainerStatus.RUNNING,
+                constants.ContainerStatus.CREATED,
         ):
             raise errors.EnvironmentStartError()
 
@@ -732,7 +738,7 @@ class Environment:
         """
         start_time = time.time()
         with console.get_console().status(
-            "[bold green]Starting environment..."
+                "[bold green]Starting environment..."
         ):
             self.assert_container_is_active()
             for line in self.get_container().logs(stream=True, timestamps=True):
@@ -778,8 +784,8 @@ class Environment:
         files.fix_line_endings(self.entrypoint_file, self.requirements_file)
         container = self.get_or_create_container()
         if (
-            assert_not_running
-            and container.status == constants.ContainerStatus.RUNNING
+                assert_not_running
+                and container.status == constants.ContainerStatus.RUNNING
         ):
             raise errors.EnvironmentAlreadyRunningError(self.name) from None
         try:
@@ -791,8 +797,8 @@ class Environment:
             )
             # TODO: (b/234552960) Test on different OS/language setting
             if (
-                err.status_code == constants.SERVER_ERROR_CODE
-                and "port is already allocated" in str(err)
+                    err.status_code == constants.SERVER_ERROR_CODE
+                    and "port is already allocated" in str(err)
             ):
                 container.remove()
                 raise errors.ComposerCliError(
@@ -851,7 +857,7 @@ class Environment:
         By default container is not removed.
         """
         with console.get_console().status(
-            f"[bold green]Stopping composer local environment..."
+                f"[bold green]Stopping composer local environment..."
         ):
             container = self.get_container()
             container.stop()
@@ -915,7 +921,8 @@ class Environment:
             image_version=self.image_version,
             dags_path=self.dags_path,
             gcloud_path=utils.resolve_gcloud_config_path(),
-        )
+        ) + (constants.KUBECONFIG_PATH_MESSAGE.format(kube_config_path=utils.resolve_kube_config_path())
+             if utils.resolve_kube_config_path() else "no file") + constants.FINAL_ENV_MESSAGE
 
     def describe(self) -> None:
         """Describe the local composer environment."""

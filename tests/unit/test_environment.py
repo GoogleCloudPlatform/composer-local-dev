@@ -557,8 +557,18 @@ class TestEnvironment:
         ):
             default_env.get_container()
 
+    @mock.patch("composer_local_dev.utils.resolve_gcloud_config_path")
+    @mock.patch("composer_local_dev.utils.resolve_kube_config_path")
     @mock.patch("composer_local_dev.environment.get_image_mounts")
-    def test_create_docker_container(self, mocked_mounts, default_env):
+    def test_create_docker_container(
+            self,
+            mocked_mounts,
+            mocked_resolve_kube_config_path,
+            mocked_resolve_gcloud_config_path,
+            default_env
+    ):
+        mocked_resolve_kube_config_path.return_value = mock.Mock()
+        mocked_resolve_gcloud_config_path.return_value = mock.Mock()
         default_env.create_docker_container()
         ports = {
             f"8080/tcp": default_env.port,
@@ -683,11 +693,13 @@ class TestEnvironment:
         default_env.prepare_env_description.assert_called_with(env_state)
 
     @mock.patch("composer_local_dev.utils.resolve_gcloud_config_path")
-    def test_prepare_env_description_running(self, mocked_gcloud, default_env):
+    @mock.patch("composer_local_dev.utils.resolve_kube_config_path")
+    def test_prepare_env_description_running(self, mocked_kube_config, mocked_gcloud, default_env):
         env_state = "running"
         formatted_state = "[bold green]running[/]"
         port = 8081
         mocked_gcloud.return_value = "path"
+        mocked_kube_config.return_value = "path/kube"
         web_url = constants.WEBSERVER_URL_MESSAGE.format(port=port)
         exp_desc = constants.DESCRIBE_ENV_MESSAGE.format(
             name=default_env.name,
@@ -697,18 +709,25 @@ class TestEnvironment:
             dags_path=default_env.dags_path,
             gcloud_path="path",
         )
+        kub_desc = constants.KUBECONFIG_PATH_MESSAGE.format(
+            kube_config_path="path/kube",
+        )
+        final_desc = constants.FINAL_ENV_MESSAGE
+
         default_env.get_host_port = mock.Mock(return_value=port)
         description = default_env.prepare_env_description(env_state)
-        assert exp_desc == description
+        assert exp_desc + kub_desc + final_desc == description
 
     @mock.patch("composer_local_dev.utils.resolve_gcloud_config_path")
+    @mock.patch("composer_local_dev.utils.resolve_kube_config_path")
     def test_prepare_env_description_not_running(
-        self, mocked_gcloud, default_env
+        self, mocked_kube_config, mocked_gcloud, default_env
     ):
         env_state = "exited"
         formatted_state = "[bold red]exited[/]"
         port = 8081
         mocked_gcloud.return_value = "path"
+        mocked_kube_config.return_value = "path/kube"
         web_url = ""
         exp_desc = constants.DESCRIBE_ENV_MESSAGE.format(
             name=default_env.name,
@@ -717,13 +736,27 @@ class TestEnvironment:
             image_version=default_env.image_version,
             dags_path=default_env.dags_path,
             gcloud_path="path",
+            kube_config_path="path/kube",
         )
+        kub_desc = constants.KUBECONFIG_PATH_MESSAGE.format(
+            kube_config_path="path/kube",
+        )
+        final_desc = constants.FINAL_ENV_MESSAGE
         default_env.get_host_port = mock.Mock(return_value=port)
         description = default_env.prepare_env_description(env_state)
-        assert exp_desc == description
 
-    def test_create_docker_container_duplicate(self, default_env):
-        default_env.get_image_mounts = mock.Mock()
+        assert exp_desc + kub_desc + final_desc == description
+
+    @mock.patch("composer_local_dev.utils.resolve_gcloud_config_path")
+    @mock.patch("composer_local_dev.utils.resolve_kube_config_path")
+    def test_create_docker_container_duplicate(
+            self,
+            mocked_resolve_kube_config_path,
+            mocked_resolve_gcloud_config_path,
+            default_env
+    ):
+        mocked_resolve_kube_config_path.return_value = mock.Mock()
+        mocked_resolve_gcloud_config_path.return_value = mock.Mock()
         mocked_response = mock.Mock()
         mocked_response.status_code = constants.CONFLICT_ERROR_CODE
         default_env.docker_client.containers.create = mock.Mock(
@@ -738,7 +771,16 @@ class TestEnvironment:
         ):
             default_env.create_docker_container()
 
-    def test_create_docker_container_mount_permission(self, default_env):
+    @mock.patch("composer_local_dev.utils.resolve_gcloud_config_path")
+    @mock.patch("composer_local_dev.utils.resolve_kube_config_path")
+    def test_create_docker_container_mount_permission(
+            self,
+            mocked_resolve_kube_config_path,
+            mocked_resolve_gcloud_config_path,
+            default_env
+    ):
+        mocked_resolve_kube_config_path.return_value = mock.Mock()
+        mocked_resolve_gcloud_config_path.return_value = mock.Mock()
         default_env.get_image_mounts = mock.Mock()
         mocked_response = mock.Mock()
         mocked_response.status_code = 400
@@ -761,7 +803,16 @@ class TestEnvironment:
             in err.value.message
         )
 
-    def test_create_docker_container_pull_not_existing_image(self, default_env):
+    @mock.patch("composer_local_dev.utils.resolve_gcloud_config_path")
+    @mock.patch("composer_local_dev.utils.resolve_kube_config_path")
+    def test_create_docker_container_pull_not_existing_image(
+            self,
+            mocked_resolve_kube_config_path,
+            mocked_resolve_gcloud_config_path,
+            default_env
+    ):
+        mocked_resolve_kube_config_path.return_value = mock.Mock()
+        mocked_resolve_gcloud_config_path.return_value = mock.Mock()
         default_env.get_image_mounts = mock.Mock()
         response_mock = mock.Mock()
         response_mock.status_code = 450
@@ -957,6 +1008,7 @@ def test_get_image_mounts(mocked_mount):
     path = pathlib.Path("path/dir")
     dags_path = "path/to/dags"
     gcloud_path = "config/path"
+    kubeconfig_path = "/kube"
     requirements = path / "requirements.txt"
     airflow_db_path = path / "airflow.db"
     expected_mounts = [
@@ -988,9 +1040,14 @@ def test_get_image_mounts(mocked_mount):
             target="/home/airflow/airflow/airflow.db",
             type="bind",
         ),
+        mock.call(
+            source=kubeconfig_path,
+            target="/home/airflow/.kube/",
+            type="bind",
+        ),
     ]
     actual_mounts = environment.get_image_mounts(
-        path, dags_path, gcloud_path, requirements
+        path, dags_path, gcloud_path, kubeconfig_path, requirements
     )
     assert len(expected_mounts) == len(actual_mounts)
     mocked_mount.assert_has_calls(expected_mounts)

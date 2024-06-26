@@ -222,6 +222,14 @@ On Linux or MacOS, it's recommended that you run the container as the current ho
 available on Windows, so you might need to update the permissions of the mounted files and directories on the host to
 allow access by the user inside of the container.
 
+## Interaction with Kubernetes clusters
+
+By default, the file `~/.kube/config` is not mounted. The user can specify path to Kubernetes configuration file by 
+exporting `KUBECONFIG` environment variable before starting environment. 
+```bash
+export KUBECONFIG=~/.kube/config
+```
+
 ## Start a local Airflow environment
 
 To start a local Airflow environment, run:
