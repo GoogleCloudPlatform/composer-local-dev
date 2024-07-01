@@ -28,13 +28,13 @@ fi
 
 if [[ "$OSTYPE" == "darwin"* ]]; then # Mac OSX
   # Mac requires .13 fix versions (which is not available for other platforms)
-  pyenv install --skip-existing 3.7.13
-  pyenv global 3.7.13
+  pyenv install --skip-existing 3.8.10
+  pyenv global 3.8.10
 else
-  pyenv install --skip-existing 3.7.10
   pyenv install --skip-existing 3.8.10
   pyenv install --skip-existing 3.9.5
-  pyenv global 3.7.10 3.8.10 3.9.5
+  pyenv install --skip-existing 3.11.5
+  pyenv global 3.8.10 3.9.5 3.11.5
 fi
 
 # install nox for testing

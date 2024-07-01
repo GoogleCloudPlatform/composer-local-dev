@@ -1,5 +1,22 @@
 # Release notes
 
+## 0.9.2
+
+#### New:
+
+- Adds triggerer support (started by default)
+- Adds support for Python v3.11
+- Removes support for Python v3.7
+- Allow running container as host user to solve permission problems (#24)
+
+#### Changes:
+
+- Bumps google-auth package constraints
+
+#### Fixes:
+
+- Fix #11 - Cannot access data folder on local composer env (#29)
+
 ## 0.9.1
 
 #### New:
