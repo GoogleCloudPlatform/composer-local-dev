@@ -50,7 +50,9 @@ if [ -n "${PRIVATE_INDEX_URLS}" ]; then
 fi
 
 # Example usage of PIP_EXTRA_INDEX_URL in pip install
-pip3 install bunny==1.1.3 --extra-index-url=https://"${BUNNY_USER}":"${BUNNY_PASSWORD}"@"${BUNNY_URL}"
+if [ -n "${BUNNY_USER}" ]; then
+  pip3 install bunny==1.1.3 --extra-index-url=https://"${BUNNY_USER}":"${BUNNY_PASSWORD}"@"${BUNNY_URL}"
+fi
 
 pip3 install --upgrade -r composer_requirements.txt
 pip3 check
