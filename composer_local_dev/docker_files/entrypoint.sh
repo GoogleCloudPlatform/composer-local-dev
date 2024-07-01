@@ -16,53 +16,55 @@
 
 set -xe
 
-sudo chown airflow:airflow airflow
-sudo chown airflow:airflow .config
+init_airflow() {
+  sudo chown airflow:airflow airflow
+  sudo chown airflow:airflow .config
 
   mkdir -p ${AIRFLOW__CORE__DAGS_FOLDER}
   mkdir -p ${AIRFLOW__CORE__PLUGINS_FOLDER}
   mkdir -p ${AIRFLOW__CORE__DATA_FOLDER}
 
-# That file exists in Composer < 1.19.2 and is responsible for linking name
-# `python` to python3 exec, in Composer >= 1.19.2 name `python` is already
-# linked to python3 and file no longer exist.
-if [ -f /var/local/setup_python_command.sh ]; then
-  /var/local/setup_python_command.sh
-fi
+  # That file exists in Composer < 1.19.2 and is responsible for linking name
+  # `python` to python3 exec, in Composer >= 1.19.2 name `python` is already
+  # linked to python3 and file no longer exist.
+  if [ -f /var/local/setup_python_command.sh ]; then
+    /var/local/setup_python_command.sh
+  fi
 
-if [ -n "${PRIVATE_INDEX_URLS}" ]; then
-  echo "Adding private PyPI repository indexes: ${PRIVATE_INDEX_URLS}"
-  pip3 install keyring keyrings.google-artifactregistry-auth
+  if [ -n "${PRIVATE_INDEX_URLS}" ]; then
+    echo "Adding private PyPI repository indexes: ${PRIVATE_INDEX_URLS}"
+    pip3 install keyring keyrings.google-artifactregistry-auth
 
-  # Split PRIVATE_INDEX_URLS by comma and create a space-separated string of URLs
-  OLDIFS=$IFS
-  IFS=','
-  # shellcheck disable=SC2086
-  set -- $PRIVATE_INDEX_URLS
-  IFS=$OLDIFS
-  EXTRA_INDEX_URLS=""
-  for url; do
-    EXTRA_INDEX_URLS="${EXTRA_INDEX_URLS} ${url}"
-  done
-  # Export the URLs as an environment variable
-  export PIP_EXTRA_INDEX_URL="${EXTRA_INDEX_URLS}"
-  printf 'PIP_EXTRA_INDEX_URL='"${PIP_EXTRA_INDEX_URL}"
-fi
+    # Split PRIVATE_INDEX_URLS by comma and create a space-separated string of URLs
+    OLDIFS=$IFS
+    IFS=','
+    # shellcheck disable=SC2086
+    set -- $PRIVATE_INDEX_URLS
+    IFS=$OLDIFS
+    EXTRA_INDEX_URLS=""
+    for url; do
+      EXTRA_INDEX_URLS="${EXTRA_INDEX_URLS} ${url}"
+    done
+    # Export the URLs as an environment variable
+    export PIP_EXTRA_INDEX_URL="${EXTRA_INDEX_URLS}"
+    printf 'PIP_EXTRA_INDEX_URL='"${PIP_EXTRA_INDEX_URL}"
+  fi
 
-# Example usage of PIP_EXTRA_INDEX_URL in pip install
-if [ -n "${BUNNY_USER}" ]; then
-  pip3 install bunny==1.1.3 --extra-index-url=https://"${BUNNY_USER}":"${BUNNY_PASSWORD}"@"${BUNNY_URL}"
-fi
+  # Example usage of PIP_EXTRA_INDEX_URL in pip install
+  if [ -n "${BUNNY_USER}" ]; then
+    pip3 install bunny==1.1.3 --extra-index-url=https://"${BUNNY_USER}":"${BUNNY_PASSWORD}"@"${BUNNY_URL}"
+  fi
 
-pip3 install --upgrade -r composer_requirements.txt
-pip3 check
+  pip3 install --upgrade -r composer_requirements.txt
+  pip3 check
 
   airflow db init
 
-# Allow non-authenticated access to UI for Airflow 2.*
-if ! grep -Fxq "AUTH_ROLE_PUBLIC = 'Admin'" /home/airflow/airflow/webserver_config.py; then
-  echo "AUTH_ROLE_PUBLIC = 'Admin'" >>/home/airflow/airflow/webserver_config.py
-fi
+  # Allow non-authenticated access to UI for Airflow 2.*
+  if ! grep -Fxq "AUTH_ROLE_PUBLIC = 'Admin'" /home/airflow/airflow/webserver_config.py; then
+    echo "AUTH_ROLE_PUBLIC = 'Admin'" >> /home/airflow/airflow/webserver_config.py
+  fi
+}
 
 create_user() {
   local user_name="$1"
