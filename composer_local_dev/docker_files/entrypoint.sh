@@ -45,13 +45,13 @@ if [ -n "${PRIVATE_INDEX_URLS}" ]; then
   done
   # Export the URLs as an environment variable
   export PIP_EXTRA_INDEX_URL="${EXTRA_INDEX_URLS}"
-  printf 'PIP_EXTRA_INDEX_URL="%s"\n' "${PIP_EXTRA_INDEX_URL}"
+  printf 'PIP_EXTRA_INDEX_URL='"${PIP_EXTRA_INDEX_URL}"
 fi
 
 # Example usage of PIP_EXTRA_INDEX_URL in pip install
-pip3 install --upgrade -r composer_requirements.txt
+pip3 install --upgrade -r composer_requirements.txt 'extra_index_url='"${PIP_EXTRA_INDEX_URL}"
 
-pip3 install --upgrade -r composer_requirements.txt
+pip3 install --upgrade -r composer_requirements.txt 'extra_index_url='"${PIP_EXTRA_INDEX_URL}"
 pip3 check
 
 airflow db init
