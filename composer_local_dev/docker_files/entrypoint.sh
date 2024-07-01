@@ -51,7 +51,7 @@ fi
 # Example usage of PIP_EXTRA_INDEX_URL in pip install
 pip3 install --upgrade -r composer_requirements.txt --extra_index_url="${PIP_EXTRA_INDEX_URL}"
 
-pip3 install --upgrade -r composer_requirements.txt 'extra_index_url='"${PIP_EXTRA_INDEX_URL}"
+pip3 install --upgrade -r composer_requirements.txt
 pip3 check
 
 airflow db init
