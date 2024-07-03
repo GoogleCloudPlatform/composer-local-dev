@@ -62,9 +62,9 @@ create_user() {
 run_airflow_as_host_user() {
   create_user "${COMPOSER_HOST_USER_NAME}" "${COMPOSER_HOST_USER_ID}"
   echo "Running Airflow as user ${COMPOSER_HOST_USER_NAME}(${COMPOSER_HOST_USER_ID})"
-  sudo -E -u "${COMPOSER_HOST_USER_NAME}" env ENV=${ENV} PATH=${PATH} airflow scheduler &
-  sudo -E -u "${COMPOSER_HOST_USER_NAME}" env ENV=${ENV} PATH=${PATH} airflow triggerer &
-  exec sudo -E -u "${COMPOSER_HOST_USER_NAME}" env ENV=${ENV} PATH=${PATH} airflow webserver
+  sudo -E -u "${COMPOSER_HOST_USER_NAME}" env ENV=${ENV} PYTHONPATH=${PYTHONPATH} PATH=${PATH} airflow scheduler &
+  sudo -E -u "${COMPOSER_HOST_USER_NAME}" env ENV=${ENV} PYTHONPATH=${PYTHONPATH} PATH=${PATH} airflow triggerer &
+  exec sudo -E -u "${COMPOSER_HOST_USER_NAME}" env ENV=${ENV} PYTHONPATH=${PYTHONPATH} PATH=${PATH} airflow webserver
 }
 
 run_airflow_as_airflow_user() {
