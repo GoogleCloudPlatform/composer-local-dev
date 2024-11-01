@@ -124,28 +124,35 @@ def resolve_plugins_path(plugins_path: Optional[str], env_dir: pathlib.Path) -> 
     return str(plugins_path.resolve())
 
 
-def create_environment_directories(env_dir: pathlib.Path, dags_path: str):
+def create_environment_directories(env_dir: pathlib.Path, dags_path: str, plugins_path: str):
     """
     Create environment directories (overwriting existing ones).
     Environment directory is a directory which contains configuration files for
     composer local environment and files used by environment such as
     requirements.txt file, dags, data and plugins directories.
     """
-    env_dirs = ("data", "plugins")
+    data_dir = "data"
     LOG.info(
-        "Creating environment directories %s in " "%s environment directory.",
-        env_dirs,
+        "Creating environment directory %s in " "%s environment directory.",
+        data_dir,
         env_dir,
     )
     env_dir.mkdir(exist_ok=True, parents=True)
-    for sub_dir in env_dirs:
-        (env_dir / sub_dir).mkdir(exist_ok=True)
+    (env_dir / data_dir).mkdir(exist_ok=True)
+
     dags_path = pathlib.Path(dags_path)
     if not dags_path.is_dir():
         console.get_console().print(
             constants.CREATING_DAGS_PATH_WARN.format(dags_path=dags_path)
         )
         dags_path.mkdir(parents=True)
+
+    plugins_path = pathlib.Path(plugins_path)
+    if not plugins_path.is_dir():
+        console.get_console().print(
+            constants.CREATING_PLUGINS_PATH_WARN.format(plugins_path=plugins_path)
+        )
+        plugins_path.mkdir(parents=True)
 
 
 def get_available_environments(composer_dir: pathlib.Path):

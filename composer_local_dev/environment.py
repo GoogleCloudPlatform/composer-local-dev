@@ -680,9 +680,7 @@ class Environment:
         requirements.txt files.
         """
         assert_image_exists(self.image_version)
-        # TODO: See if this can be created with the same function call
-        files.create_environment_directories(self.env_dir_path, self.dags_path)
-        files.create_environment_directories(self.env_dir_path, self.plugins_path)
+        files.create_environment_directories(self.env_dir_path, self.dags_path, self.plugins_path)
         files.create_empty_file(self.airflow_db, skip_if_exist=False)
         self.write_environment_config_to_config_file()
         self.pypi_packages_to_requirements()
