@@ -107,6 +107,23 @@ def resolve_dags_path(dags_path: Optional[str], env_dir: pathlib.Path) -> str:
     return str(dags_path.resolve())
 
 
+def resolve_plugins_path(plugins_path: Optional[str], env_dir: pathlib.Path) -> str:
+    """
+    Provides and validates path to the plugins directory.
+    If ``plugins_path`` is None, the path is constructed from ``env_dir`` path
+    and ``plugins`` directory.
+    If ``plugins_path`` is not None, but it does not exist, a warning is raised.
+
+    Returns absolute ``plugins_path`` path.
+    """
+    if plugins_path is None:
+        console.get_console().print(constants.PLUGINS_PATH_NOT_PROVIDED_WARN)
+        plugins_path = env_dir / "plugins"
+    else:
+        plugins_path = pathlib.Path(plugins_path)
+    return str(plugins_path.resolve())
+
+
 def create_environment_directories(env_dir: pathlib.Path, dags_path: str):
     """
     Create environment directories (overwriting existing ones).
