@@ -46,6 +46,7 @@ def timeout_occurred(start_time):
 def get_image_mounts(
     env_path: pathlib.Path,
     dags_path: str,
+    plugins_path: str,
     gcloud_config_path: str,
     requirements: pathlib.Path,
 ) -> List[docker.types.Mount]:
@@ -60,7 +61,7 @@ def get_image_mounts(
     mount_paths = {
         requirements: "composer_requirements.txt",
         dags_path: "gcs/dags/",
-        env_path / "plugins": "gcs/plugins/",
+        plugins_path: "gcs/plugins/",
         env_path / "data": "gcs/data/",
         gcloud_config_path: ".config/gcloud",
         env_path / "airflow.db": "airflow/airflow.db",
@@ -355,6 +356,7 @@ class EnvironmentConfig:
         self.image_version = self.get_str_param("composer_image_version")
         self.location = self.get_str_param("composer_location")
         self.dags_path = self.get_str_param("dags_path")
+        self.plugins_path = self.get_str_param("plugins_path")
         self.dag_dir_list_interval = self.parse_int_param(
             "dag_dir_list_interval", allowed_range=(0,)
         )
@@ -437,6 +439,7 @@ class Environment:
         image_version: str,
         location: str,
         dags_path: Optional[str],
+        plugins_path: Optional[str],
         dag_dir_list_interval: int = 10,
         port: Optional[int] = None,
         pypi_packages: Optional[Dict] = None,
@@ -453,6 +456,8 @@ class Environment:
         self.image_tag = get_docker_image_tag_from_image_version(image_version)
         self.location = location
         self.dags_path = files.resolve_dags_path(dags_path, env_dir_path)
+        # TODO: Implement resolve_plugins_path
+        self.plugins_path = files.resolve_plugins_path(plugins_path, env_dir_path)
         self.dag_dir_list_interval = dag_dir_list_interval
         self.port: int = port if port is not None else 8080
         self.pypi_packages = (
@@ -504,6 +509,7 @@ class Environment:
             image_version=config.image_version,
             location=config.location,
             dags_path=config.dags_path,
+            plugins_path=config.plugins_path,
             dag_dir_list_interval=config.dag_dir_list_interval,
             port=config.port,
             environment_vars=environment_vars,
@@ -518,6 +524,7 @@ class Environment:
         env_dir_path: pathlib.Path,
         web_server_port: Optional[int],
         dags_path: Optional[str],
+        plugins_path: Optional[str],
     ):
         """
         Create Environment using configuration retrieved from Composer
@@ -539,6 +546,7 @@ class Environment:
             image_version=software_config.image_version,
             location=location,
             dags_path=dags_path,
+            plugins_path=plugins_path,
             dag_dir_list_interval=10,
             port=web_server_port,
             pypi_packages=pypi_packages,
@@ -578,6 +586,7 @@ class Environment:
             "composer_location": self.location,
             "composer_project_id": self.project_id,
             "dags_path": self.dags_path,
+            "plugins_path": self.plugins_path,
             "dag_dir_list_interval": int(self.dag_dir_list_interval),
             "port": int(self.port),
         }
@@ -593,6 +602,7 @@ class Environment:
         mounts = get_image_mounts(
             self.env_dir_path,
             self.dags_path,
+            self.plugins_path,
             utils.resolve_gcloud_config_path(),
             self.requirements_file,
         )
@@ -670,12 +680,15 @@ class Environment:
         requirements.txt files.
         """
         assert_image_exists(self.image_version)
+        # TODO: See if this can be created with the same function call
         files.create_environment_directories(self.env_dir_path, self.dags_path)
+        files.create_environment_directories(self.env_dir_path, self.plugins_path)
         files.create_empty_file(self.airflow_db, skip_if_exist=False)
         self.write_environment_config_to_config_file()
         self.pypi_packages_to_requirements()
         self.environment_vars_to_env_file()
         console.get_console().print(
+            # TODO: Update message template
             constants.CREATE_MESSAGE.format(
                 env_dir=self.env_dir_path,
                 env_name=self.name,
@@ -683,6 +696,7 @@ class Environment:
                 requirements_path=self.env_dir_path / "requirements.txt",
                 env_variables_path=self.env_dir_path / "variables.env",
                 dags_path=self.dags_path,
+                plugins_path=self.plugins_path,
             )
         )
 
@@ -744,6 +758,7 @@ class Environment:
         assert_image_exists(self.image_version)
         self.assert_requirements_exist()
         files.assert_dag_path_exists(self.dags_path)
+        files.assert_plugins_path_exists(self.plugins_path)
         files.create_empty_file(self.airflow_db)
         files.fix_file_permissions(
             self.entrypoint_file, self.requirements_file, self.airflow_db
@@ -779,9 +794,11 @@ class Environment:
     def print_start_message(self):
         """Print the start message after the environment is up and ready."""
         console.get_console().print(
+            # TODO: Update message template
             constants.START_MESSAGE.format(
                 env_name=self.name,
                 dags_path=self.dags_path,
+                plugins_path=self.plugins_path,
                 port=self.port,
             )
         )
@@ -881,12 +898,14 @@ class Environment:
             web_url = ""
         env_status = utils.wrap_status_in_color(env_status)
 
+        # TODO: Update message template
         return constants.DESCRIBE_ENV_MESSAGE.format(
             name=self.name,
             state=env_status,
             web_url=web_url,
             image_version=self.image_version,
             dags_path=self.dags_path,
+            plugins_path=self.plugins_path,
             gcloud_path=utils.resolve_gcloud_config_path(),
         )
 
