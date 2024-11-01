@@ -231,3 +231,10 @@ def assert_dag_path_exists(path: str) -> None:
     if pathlib.Path(path).is_dir():
         return
     raise errors.DAGPathNotExistError(path)
+
+
+def assert_plugins_path_exists(path: str) -> None:
+    """Raise an error if plugins path does not point to existing directory."""
+    if pathlib.Path(path).is_dir():
+        return
+    raise errors.PluginsPathNotExistError(path)
