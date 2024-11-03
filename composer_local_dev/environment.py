@@ -456,7 +456,6 @@ class Environment:
         self.image_tag = get_docker_image_tag_from_image_version(image_version)
         self.location = location
         self.dags_path = files.resolve_dags_path(dags_path, env_dir_path)
-        # TODO: Implement resolve_plugins_path
         self.plugins_path = files.resolve_plugins_path(plugins_path, env_dir_path)
         self.dag_dir_list_interval = dag_dir_list_interval
         self.port: int = port if port is not None else 8080
@@ -686,7 +685,6 @@ class Environment:
         self.pypi_packages_to_requirements()
         self.environment_vars_to_env_file()
         console.get_console().print(
-            # TODO: Update message template
             constants.CREATE_MESSAGE.format(
                 env_dir=self.env_dir_path,
                 env_name=self.name,
@@ -792,7 +790,6 @@ class Environment:
     def print_start_message(self):
         """Print the start message after the environment is up and ready."""
         console.get_console().print(
-            # TODO: Update message template
             constants.START_MESSAGE.format(
                 env_name=self.name,
                 dags_path=self.dags_path,
@@ -896,7 +893,6 @@ class Environment:
             web_url = ""
         env_status = utils.wrap_status_in_color(env_status)
 
-        # TODO: Update message template
         return constants.DESCRIBE_ENV_MESSAGE.format(
             name=self.name,
             state=env_status,
