@@ -93,6 +93,17 @@ def test_create_no_dags_path(mocked_env):
     assert exp_dags_path == env_kwargs.get("dags_path")
 
 
+@mock.patch("composer_local_dev.cli.composer_environment.Environment")
+def test_create_no_plugins_path(mocked_env):
+    run_composer_and_assert_exit_code(
+        f"create --project 123 --from-image-version composer-2.0.16-airflow-2.2.5 test",
+        exit_code=0,
+    )
+    _, env_kwargs = mocked_env.call_args
+    exp_plugins_path = None
+    assert exp_plugins_path == env_kwargs.get("plugins_path")
+
+
 class TestCreateCommandProjectId:
     @mock.patch("composer_local_dev.cli.utils.get_project_id", autospec=True)
     @mock.patch(
