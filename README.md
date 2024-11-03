@@ -127,6 +127,7 @@ composer-dev create \
   --project PROJECT_ID \
   --port WEB_SERVER_PORT \
   --dags-path LOCAL_DAGS_PATH \
+  --plugins-path LOCAL_PLUGINS_PATH \
   LOCAL_ENVIRONMENT_NAME
 ```
 
@@ -137,6 +138,8 @@ Replace:
 - `WEB_SERVER_PORT` with the port that Airflow web server must listen at.
 - `LOCAL_DAGS_PATH` with the path to a local directory where the DAG files are
     located.
+- `LOCAL_PLUGINS_PATH` with the path to a local directory where the plugins
+    files are located.
 - `LOCAL_ENVIRONMENT_NAME` with the name of this local Airflow environment.
 
 Example:
@@ -178,7 +181,8 @@ composer-dev create LOCAL_ENVIRONMENT_NAME \
     --location LOCATION \
     --project PROJECT_ID \
     --port WEB_SERVER_PORT \
-    --dags-path LOCAL_DAGS_PATH
+    --dags-path LOCAL_DAGS_PATH \
+    --plugins-path LOCAL_PLUGINS_PATH
 ```
 
 Replace:
@@ -191,6 +195,8 @@ Replace:
 - `WEB_SERVER_PORT` with a port for the local Airflow web server.
 - `LOCAL_DAGS_PATH` with a path to a local directory where the DAGs are
     located.
+- `LOCAL_PLUGINS_PATH` with a path to a local directory where the plugins are
+    located.
 
 Example:
 
@@ -200,7 +206,8 @@ composer-dev create example-local-environment \
   --location us-central1 \
   --project example-project \
   --port 8081 \
-  --dags-path example_directory/dags
+  --dags-path example_directory/dags \
+  --plugins-path example_directory/plugins
 ```
 
 ## Enable the container user to access mounted files and directories from the host
@@ -253,14 +260,17 @@ composer-dev stop LOCAL_ENVIRONMENT_NAME
 
 ## Add and update DAGs
 
-Dags are stored in the directory that you specified in the `--dags-path`
-parameter when you created your local Airflow environment. By default, this
-directory is `./composer/<local_environment_name>/dags`. You can get the
-directory used by your environment with the
+DAGs and plugins are stored in the directories that you specified in the
+`--dags-path` and `--plugins-path` parameters respectively when you created
+your local Airflow environment. By default, these directories are
+`./composer/<local_environment_name>/dags` and
+`./composer/<local_environment_name>/plugins`.
+
+You can get the directories used by your environment with the
 [`describe` command](#get-a-list-and-status-of-local-airflow-environments).
 
-To add and update DAGs, change files in this directory. You do not need to
-restart your local Airflow environment.
+To add and update DAGs and plugins, change files in these directories. You do
+not need to restart your local Airflow environment for changes to take effect.
 
 ## View local Airflow environment logs
 

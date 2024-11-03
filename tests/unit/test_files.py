@@ -164,7 +164,6 @@ class TestCreateEnvironmentDirectories:
             env_dir,
             env_dir / "dags",
             env_dir / "data",
-            env_dir / "plugins",
         ):
             assert path.is_dir()
 
@@ -183,7 +182,39 @@ class TestCreateEnvironmentDirectories:
             env_dir,
             env_dir / "dags",
             env_dir / "data",
+        ):
+            assert path.is_dir()
+        assert expected_output == output
+
+    def test_existing_plugins_path(self, temporary_env_dir):
+        env_dir = temporary_env_dir
+        plugins_path = env_dir / "plugins"
+        plugins_path.mkdir()
+        files.create_environment_directories(
+            env_dir=env_dir, plugins_path=plugins_path
+        )
+        for path in (
+            env_dir,
             env_dir / "plugins",
+            env_dir / "data",
+        ):
+            assert path.is_dir()
+
+    def test_not_existing_plugins_path(self, temporary_env_dir, capsys):
+        env_dir = temporary_env_dir
+        plugins_path = env_dir / "plugins"
+        files.create_environment_directories(
+            env_dir=env_dir, plugins_path=plugins_path
+        )
+        captured = capsys.readouterr()
+        output = clean_cli_output(captured.out)
+        expected_output = clean_cli_output(
+            constants.CREATING_PLUGINS_PATH_WARN.format(plugins_path=plugins_path)
+        )
+        for path in (
+            env_dir,
+            env_dir / "plugins",
+            env_dir / "data",
         ):
             assert path.is_dir()
         assert expected_output == output
@@ -207,6 +238,24 @@ class TestResolveDagsPath:
         assert expected_dags_str_path == dags_path
 
 
+class TestResolvePluginsPath:
+    def test_optional_plugins_path(self, tmpdir, capsys):
+        env_dir = pathlib.Path(tmpdir)
+        expected_plugins_path = str(env_dir / "plugins")
+        plugins_path = files.resolve_plugins_path(None, env_dir)
+        captured = capsys.readouterr()
+        output = "".join(captured.out.split("\n"))
+        assert expected_plugins_path == plugins_path
+        assert constants.PLUGINS_PATH_NOT_PROVIDED_WARN in output
+
+    def test_provided_plugins_path(self, tmpdir):
+        expected_plugins_path = pathlib.Path(tmpdir) / "plugins"
+        expected_plugins_path.mkdir(exist_ok=True)
+        expected_plugins_str_path = str(expected_plugins_path)
+        plugins_path = files.resolve_plugins_path(expected_plugins_str_path, tmpdir)
+        assert expected_plugins_str_path == plugins_path
+
+
 class TestAssertDagsPathExists:
     def test_existing_path(self, tmp_path):
         files.assert_dag_path_exists(str(tmp_path))
@@ -227,6 +276,29 @@ class TestAssertDagsPathExists:
         )
         with pytest.raises(errors.DAGPathNotExistError) as err:
             files.assert_dag_path_exists(str(file_path))
+            assert str(err) == error_msg
+
+
+class TestAssertPluginsPathExists:
+    def test_existing_path(self, tmp_path):
+        files.assert_plugins_path_exists(str(tmp_path))
+
+    def test_missing_path(self):
+        path = "i/dont/exist"
+        error_msg = f"Plugins path does not exist or is not a directory: {path}"
+        with pytest.raises(errors.PluginsPathNotExistError) as err:
+            files.assert_plugins_path_exists(path)
+            assert str(err) == error_msg
+
+    def test_path_is_file(self, tmp_path):
+        file_path = tmp_path / "file.ext"
+        with open(file_path, "w") as fp:
+            pass
+        error_msg = (
+            f"Plugins path does not exist or is not a directory: {file_path}"
+        )
+        with pytest.raises(errors.PluginsPathNotExistError) as err:
+            files.assert_plugins_path_exists(str(file_path))
             assert str(err) == error_msg
 
 
