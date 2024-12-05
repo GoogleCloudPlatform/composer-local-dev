@@ -33,7 +33,7 @@ init_airflow() {
   pip3 install --upgrade -r composer_requirements.txt
   pip3 check
 
-  airflow db init
+  airflow db migrate
 
   # Allow non-authenticated access to UI for Airflow 2.*
   if ! grep -Fxq "AUTH_ROLE_PUBLIC = 'Admin'" /home/airflow/airflow/webserver_config.py; then
