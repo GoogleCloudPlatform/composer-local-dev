@@ -283,13 +283,13 @@ def is_mount_permission_error(error: docker_errors.APIError) -> bool:
     )
 
 
-def copy_entrypoint_to_container(container, src: pathlib.Path) -> None:
+def copy_to_container(container, src: pathlib.Path) -> None:
     """Copy entrypoint file to Docker container."""
     logging.debug("Copying entrypoint file to Docker container.")
     stream = io.BytesIO()
     with tarfile.open(fileobj=stream, mode="w|") as tar, open(src, "rb") as f:
         info = tar.gettarinfo(fileobj=f)
-        info.name = "entrypoint.sh"
+        info.name = src.name
         tar.addfile(info, f)
     container.put_archive(constants.AIRFLOW_HOME, stream.getvalue())
 
@@ -447,6 +447,7 @@ class Environment:
         self.env_dir_path = env_dir_path
         self.airflow_db = self.env_dir_path / "airflow.db"
         self.entrypoint_file = DOCKER_FILES / "entrypoint.sh"
+        self.run_file = DOCKER_FILES / "run_as_user.sh"
         self.requirements_file = self.env_dir_path / "requirements.txt"
         self.project_id = project_id
         self.image_version = image_version
@@ -649,7 +650,8 @@ class Environment:
                     docs_faq_url=constants.COMPOSER_FAQ_MOUNTING_LINK
                 )
             raise errors.EnvironmentStartError(error)
-        copy_entrypoint_to_container(container, self.entrypoint_file)
+        copy_to_container(container, self.entrypoint_file)
+        copy_to_container(container, self.run_file)
         return container
 
     def pull_image(self):
@@ -746,9 +748,16 @@ class Environment:
         files.assert_dag_path_exists(self.dags_path)
         files.create_empty_file(self.airflow_db)
         files.fix_file_permissions(
-            self.entrypoint_file, self.requirements_file, self.airflow_db
+            entrypoint=self.entrypoint_file,
+            run=self.run_file,
+            requirements=self.requirements_file,
+            airflow_db=self.airflow_db,
         )
-        files.fix_line_endings(self.entrypoint_file, self.requirements_file)
+        files.fix_line_endings(
+            entrypoint=self.entrypoint_file,
+            run=self.run_file,
+            requirements=self.requirements_file,
+        )
         container = self.get_or_create_container()
         if (
             assert_not_running
@@ -858,6 +867,7 @@ class Environment:
         """
         container = self.get_container(assert_running=True)
         command.insert(0, "airflow")
+        command.insert(0, "/home/airflow/run_as_user.sh")
         result = container.exec_run(cmd=command)
         console.get_console().print(result.output.decode())
 
