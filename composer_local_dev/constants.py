@@ -47,7 +47,7 @@ class DatabaseEngine:
 COMPOSER_VERSIONING_DOCS_LINK = "https://cloud.google.com/composer/docs/concepts/versioning/composer-versions"
 COMPOSER_FAQ_MOUNTING_LINK = "https://cloud.google.com/composer/docs/composer-2/run-local-airflow-environments#troubleshooting-homebrew"
 IMAGE_VERSION_PATTERN = (
-    "composer-([1-9]+\.[0-9]+\.[0-9]+)-airflow-([1-9]+[\.|-][0-9]+[\.|-][0-9]+)"
+    r"composer-([1-9]+\.[0-9]+\.[0-9]+)-airflow-([1-9]+[\.|-][0-9]+[\.|-][0-9]+)"
 )
 ARTIFACT_REGISTRY_IMAGE_URL = (
     "projects/cloud-airflow-releaser/"
