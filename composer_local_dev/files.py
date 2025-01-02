@@ -14,7 +14,7 @@
 
 import logging
 import pathlib
-import stat
+
 from typing import List, Optional
 
 from composer_local_dev import console, constants, errors, utils
@@ -147,7 +147,7 @@ def get_available_environments(composer_dir: pathlib.Path):
 def fix_file_permissions(
     entrypoint: pathlib.Path,
     requirements: pathlib.Path,
-    airflow_db: pathlib.Path,
+    db_path: pathlib.Path,
 ) -> None:
     """
     Fix file permissions for files used in Docker container when running under
@@ -156,14 +156,14 @@ def fix_file_permissions(
         entrypoint: Init script of the container. It needs to be executable.
         requirements: List of PyPi packages to be installed in the container.
         It needs to be readable by all users.
-        airflow_db: path to Airflow Sqlite database file.
+        db_path: path to Airflow Sqlite database file or PostgreSQL data folder.
         It needs to be writeable.
     """
     if not utils.is_linux_os():
         return
     make_file_readable_and_executable(entrypoint)
     make_file_writeable(requirements)
-    make_file_writeable(airflow_db)
+    make_file_writeable(db_path)
 
 
 def make_file_readable_and_executable(file_path: pathlib.Path) -> None:
@@ -200,6 +200,10 @@ def create_empty_file(path: pathlib.Path, skip_if_exist: bool = True):
         return
     with open(path, "w"):
         pass
+
+
+def create_empty_folder(path: pathlib.Path, parents: bool = True, exist_ok: bool = True):
+    return path.mkdir(parents=parents, exist_ok=exist_ok)
 
 
 def assert_dag_path_exists(path: str) -> None:

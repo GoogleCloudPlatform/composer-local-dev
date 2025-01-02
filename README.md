@@ -127,6 +127,7 @@ composer-dev create \
   --project PROJECT_ID \
   --port WEB_SERVER_PORT \
   --dags-path LOCAL_DAGS_PATH \
+  --database DATABASE_ENGINE \
   LOCAL_ENVIRONMENT_NAME
 ```
 
@@ -137,7 +138,13 @@ Replace:
 - `WEB_SERVER_PORT` with the port that Airflow web server must listen at.
 - `LOCAL_DAGS_PATH` with the path to a local directory where the DAG files are
     located.
+- `DATABASE_ENGINE` with the database engine you wanted to use. You can use 
+    `sqlite` or `postgresql`. 
 - `LOCAL_ENVIRONMENT_NAME` with the name of this local Airflow environment.
+
+> If you want to use `LocalExecutor` as Airflow's Core Executor, you need 
+> to use the `DATABASE_ENGINE` variable as `postgresql`. This is required 
+> for the `LocalExecutor` to work properly.
 
 Example:
 

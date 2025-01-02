@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import enum
+from dataclasses import dataclass
 
 # The name of environment variable with custom configuration path
 CLOUD_CLI_CONFIG_PATH_ENV = "CLOUDSDK_CONFIG"
@@ -31,6 +32,16 @@ SERVER_ERROR_CODE = 500
 class ContainerStatus(str, enum.Enum):
     RUNNING = "running"
     CREATED = "created"
+
+
+@dataclass
+class DatabaseEngine:
+    sqlite3 = "sqlite3"
+    postgresql = "postgresql"
+
+    @classmethod
+    def choices(cls):
+        return [cls.sqlite3, cls.postgresql]
 
 
 COMPOSER_VERSIONING_DOCS_LINK = "https://cloud.google.com/composer/docs/concepts/versioning/composer-versions"
@@ -105,6 +116,8 @@ WEBSERVER_URL_MESSAGE = (
 )
 
 CONTAINER_NAME = "composer-local-dev"
+DB_CONTAINER_NAME = "composer-local-dev-db"
+DOCKER_NETWORK_NAME = "composer-local-dev-network"
 IMAGE_TAG_PERMISSION_DENIED_WARN = (
     "Received permission denied when checking "
     "image existence for {image_tag}"
@@ -218,6 +231,9 @@ AUTH_INVALID_ERROR = (
 )
 PULL_IMAGE_MSG = (
     "[bold green]Pulling Composer image. It can take a few minutes."
+)
+DB_PULL_IMAGE_MSG = (
+    "[bold green]Pulling the Database image. It can take a few minutes."
 )
 DOCKER_NOT_AVAILABLE_ERROR = (
     "Docker not available or failed to start. Please ensure docker service "
