@@ -161,7 +161,7 @@ def fix_file_permissions(
         db_path: path to Airflow Sqlite database file or PostgreSQL data folder.
         It needs to be writeable.
     """
-    if not utils.is_linux_os():
+    if utils.is_windows_os():
         return
     make_file_readable_and_executable(entrypoint)
     make_file_readable_and_executable(run)
