@@ -1,5 +1,25 @@
 # Release notes
 
+## 0.9.3
+
+#### New:
+
+- Add LocalExecutor support as core executor
+- Add PostgreSQL support (needed for LocalExecutor)
+- Option to mount KUBECONFIG to easily support KubernetesPodOperator
+
+#### Changes:
+
+- Bump docker sdk constraints
+
+#### Fixes:
+
+- fix: keep ENV and PYTHONPATH when Composer is started as local user (#48)
+- Fix container not restarting once stopped when started as local user (#49)
+- Avoid SyntaxWarning by making IMAGE_VERSION_PATTERN a raw string (#73)
+- fix: update file permission check to support Windows OS (#83)
+- Change `airflow db init` to `airflow db migrate` in entrypoint script (#77)
+
 ## 0.9.2
 
 #### New:
