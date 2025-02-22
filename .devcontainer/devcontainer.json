@@ -1,0 +1,6 @@
+{
+  "tasks": {
+    "test": "nox",
+    "build": "pyenv install 3.11.5 && pyenv global 3.11.5 && pip install -e . && pip install pre-commit && pre-commit install"
+  }
+}
