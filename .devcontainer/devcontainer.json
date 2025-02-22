@@ -8,24 +8,7 @@
       "NODE_VERSION": "14"
     }
   },
-  "settings": {
-    "terminal.integrated.shell.linux": "/bin/bash",
-    "editor.formatOnSave": true,
-    "python.linting.enabled": true,
-    "python.linting.pylintEnabled": true,
-    "python.linting.flake8Enabled": true,
-    "python.formatting.provider": "black",
-    "python.linting.mypyEnabled": true
-  },
-  "extensions": [
-    "ms-python.python",
-    "ms-azuretools.vscode-docker",
-    "ms-python.vscode-pylance",
-    "ms-python.black-formatter",
-    "ms-python.mypy-type-checker"
-  ],
   "postCreateCommand": "pip install -e . && pip install pre-commit && pre-commit install",
-  "postStartCommand": "python manage.py migrate",
   "remoteUser": "vscode",
   "features": {
     "ghcr.io/devcontainers/features/python:1": {
