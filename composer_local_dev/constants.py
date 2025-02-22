@@ -277,3 +277,6 @@ MALFORMED_CONFIG_REMOVING_CONTAINER = (
     "Failed to load environment configuration. Environment Docker container "
     "could not be removed."
 )
+# Constants related to symlinking and updating the requirements.txt file
+REQUIREMENTS_SYMLINK_PATH = "requirements.txt"
+RELOAD_REQUIREMENTS_COMMAND = "reload-requirements"

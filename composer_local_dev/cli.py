@@ -47,7 +47,7 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Environment options",
-            "options": ["--web-server-port", "--dags-path"],
+            "options": ["--web-server-port", "--dags-path", "--variables", "--requirements-path"],
         },
     ],
     "composer-dev start": [COMMON_OPTIONS],
@@ -73,6 +73,7 @@ click.rich_click.COMMAND_GROUPS = {
                 "list",
                 "describe",
                 "remove",
+                "reload-requirements",
             ],
         },
         {
@@ -234,6 +235,18 @@ option_location = click.option(
     type=click.Choice(constants.DatabaseEngine.choices(), case_sensitive=False),
     metavar="DATABASE_ENGINE"
 )
+@click.option(
+    "--variables",
+    help="Path to variables.json file.",
+    metavar="PATH",
+    type=click.Path(file_okay=True),
+)
+@click.option(
+    "--requirements-path",
+    help="Path to requirements.txt file.",
+    metavar="PATH",
+    type=click.Path(file_okay=True),
+)
 @required_environment
 @verbose_mode
 @debug_mode
@@ -249,6 +262,8 @@ def create(
     debug: bool,
     database_engine: str,
     dags_path: Optional[pathlib.Path] = None,
+    variables: Optional[pathlib.Path] = None,
+    requirements_path: Optional[pathlib.Path] = None,
 ):
     """
     Create local Composer development environment.
@@ -315,6 +330,10 @@ def create(
             database_engine=database_engine,
         )
     env.create()
+    if variables:
+        env.create_symlink(variables)
+    if requirements_path:
+        env.create_symlink(requirements_path)
 
 
 @cli.command()
@@ -387,6 +406,24 @@ def restart(
 @optional_environment
 @verbose_mode
 @debug_mode
+@errors.catch_exceptions()
+def reload_requirements(environment: Optional[str], verbose: bool, debug: bool):
+    """
+    Reload requirements for Composer environment.
+
+    The local environment docker container will be stopped and restarted with updated packages.
+    """
+    utils.setup_logging(verbose, debug)
+    env_path = files.resolve_environment_path(environment)
+    env = composer_environment.Environment.load_from_config(env_path, None)
+    env.reload_requirements()
+
+
+@cli.command()
+@optional_environment
+@verbose_mode
+@debug_mode
+@errors.catch_exceptions()
 @click.option(
     "-f", "--follow", is_flag=True, default=False, help="Follow log output."
 )
@@ -477,6 +514,24 @@ def describe(environment: Optional[str], verbose: bool, debug: bool):
 @optional_environment
 @verbose_mode
 @debug_mode
+@errors.catch_exceptions()
+def reload_requirements(environment: Optional[str], verbose: bool, debug: bool):
+    """
+    Reload requirements for Composer environment.
+
+    The local environment docker container will be stopped and restarted with updated packages.
+    """
+    utils.setup_logging(verbose, debug)
+    env_path = files.resolve_environment_path(environment)
+    env = composer_environment.Environment.load_from_config(env_path, None)
+    env.reload_requirements()
+
+
+@cli.command()
+@optional_environment
+@verbose_mode
+@debug_mode
+@errors.catch_exceptions()
 @click.option(
     "--skip-confirmation",
     is_flag=True,

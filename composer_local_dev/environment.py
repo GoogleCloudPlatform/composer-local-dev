@@ -108,6 +108,10 @@ def get_default_environment_variables(
                                              f"extra__google_cloud_platform__scope="
                                              f"https://www.googleapis.com/auth/cloud-platform",
         **default_db_variables,
+        "AIRFLOW__WEBSERVER__NAVBAR_COLOR": "red",
+        "AIRFLOW__WEBSERVER__BACKGROUND_COLOR": "dark",
+        "AIRFLOW__WEBSERVER__DAG_STATUS_COLORS": '{"success": "green", "failed": "red", "running": "blue"}',
+        "AIRFLOW__WEBSERVER__TASK_STATUS_COLORS": '{"success": "green", "failed": "red", "running": "blue"}',
     }
 
 
@@ -604,7 +608,7 @@ class Environment:
         Write fetched environment variables keys to `variables.env` file.
         """
         env_vars = sorted(
-            f"# {key}=" for key, _ in self.environment_vars.items()
+            f"{key}={value}" for key, value in self.environment_vars.items()
         )
         env_vars_lines = "\n".join(env_vars)
         with open(self.env_dir_path / "variables.env", "w") as fp:
@@ -925,7 +929,7 @@ class Environment:
         try:
             return self.get_container(container_name)
         except errors.EnvironmentNotRunningError:
-            if container_name == self.container_name:  # if the given container name is the main container
+            if (container_name == self.container_name):  # if the given container name is the main container
                 return self.create_docker_container()
             else:  # if the given container name is db container
                 return self.create_db_docker_container()
@@ -1155,3 +1159,20 @@ class Environment:
 
         network = self.get_docker_network()
         network.remove()
+
+    def create_symlink(self, source_path: pathlib.Path):
+        """Create a symlink for requirements.txt with a local requirements.txt at a specified PATH."""
+        symlink_path = self.env_dir_path / constants.REQUIREMENTS_SYMLINK_PATH
+        if symlink_path.exists():
+            if not console.get_console().confirm(
+                f"File '{symlink_path}' already exists. Do you want to overwrite it?",
+                default=False,
+            ):
+                return
+            symlink_path.unlink()
+        symlink_path.symlink_to(source_path)
+
+    def reload_requirements(self):
+        """Reload the requirements by restarting the container."""
+        self.stop(remove_container=True)
+        self.start(assert_not_running=False)

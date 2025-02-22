@@ -1289,3 +1289,39 @@ class TestEnvironmentConfig:
         with pytest.raises(errors.FailedToParseConfigParamIntRangeError) as err:
             environment.EnvironmentConfig(tmp_path, None)
             assert str(err) == exp_error
+
+
+class TestSymlinkAndReloadRequirements:
+    @mock.patch("composer_local_dev.environment.docker.from_env")
+    def test_create_symlink(self, mocked_docker, tmp_path):
+        env_dir_path = tmp_path / ".compose" / "my_env"
+        env = environment.Environment(
+            env_dir_path=env_dir_path,
+            project_id="",
+            image_version="composer-2.0.8-airflow-2.2.3",
+            location="location",
+            dags_path=str(pathlib.Path("path")),
+            dag_dir_list_interval=10,
+        )
+        target_path = tmp_path / "requirements.txt"
+        target_path.touch()
+        env.create_symlink(target_path)
+        assert env_dir_path.joinpath("requirements.txt").is_symlink()
+        assert env_dir_path.joinpath("requirements.txt").resolve() == target_path
+
+    @mock.patch("composer_local_dev.environment.docker.from_env")
+    def test_reload_requirements(self, mocked_docker, tmp_path):
+        env_dir_path = tmp_path / ".compose" / "my_env"
+        env = environment.Environment(
+            env_dir_path=env_dir_path,
+            project_id="",
+            image_version="composer-2.0.8-airflow-2.2.3",
+            location="location",
+            dags_path=str(pathlib.Path("path")),
+            dag_dir_list_interval=10,
+        )
+        env.stop = mock.Mock()
+        env.start = mock.Mock()
+        env.reload_requirements()
+        env.stop.assert_called_once_with(remove_container=True)
+        env.start.assert_called_once_with(assert_not_running=False)

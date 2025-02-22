@@ -266,6 +266,16 @@ composer-dev stop LOCAL_ENVIRONMENT_NAME
 
 **Note:** The `stop` command does not [delete the local Airflow environment](#delete-a-local-airflow-environment).
 
+## Reload requirements for a local Airflow environment
+
+To reload the requirements for a local Airflow environment, run:
+
+```bash
+composer-dev reload-requirements LOCAL_ENVIRONMENT_NAME
+```
+
+This command stops the local environment, updates the requirements, and restarts the environment with the updated packages.
+
 ## Add and update DAGs
 
 Dags are stored in the directory that you specified in the `--dags-path`

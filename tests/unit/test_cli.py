@@ -363,3 +363,20 @@ class TestListAvailableVersionsCommand:
         )
         output = reformat_cli_output(result.output)
         assert "Image version" in output
+
+
+class TestReloadRequirementsCommand:
+    @mock.patch("composer_local_dev.cli.files.resolve_environment_path")
+    @mock.patch(
+        "composer_local_dev.cli.composer_environment.Environment", autospec=True
+    )
+    def test_reload_requirements(self, mocked_env, mocked_resolve_env):
+        env_path = pathlib.Path("path/env_name")
+        mock_load_from_config = mock.Mock()
+        mocked_env.load_from_config.return_value = mock_load_from_config
+        mocked_resolve_env.return_value = env_path
+        run_composer_and_assert_exit_code(
+            "reload-requirements env_name",
+            exit_code=0,
+        )
+        mock_load_from_config.reload_requirements.assert_called_once()
