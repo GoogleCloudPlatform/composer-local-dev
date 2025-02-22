@@ -8,7 +8,24 @@
       "NODE_VERSION": "14"
     }
   },
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash",
+    "editor.formatOnSave": true,
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.formatting.provider": "black",
+    "python.linting.mypyEnabled": true
+  },
+  "extensions": [
+    "ms-python.python",
+    "ms-azuretools.vscode-docker",
+    "ms-python.vscode-pylance",
+    "ms-python.black-formatter",
+    "ms-python.mypy-type-checker"
+  ],
   "postCreateCommand": "pip install -e . && pip install pre-commit && pre-commit install",
+  "postStartCommand": "python manage.py migrate",
   "remoteUser": "vscode",
   "features": {
     "ghcr.io/devcontainers/features/python:1": {
@@ -36,5 +53,8 @@
     "source=${localWorkspaceFolder}/.devcontainer/.bashrc,target=/home/${localEnv:USER}/.bashrc,type=bind,consistency=cached"
   ],
   "postAttachCommand": "/bin/bash python -m venv .venv && source ./.venv/bin/activate && pip install -e . && composer-dev create --force --from-image-version composer-2.8.8-airflow-2.9.1 --project leo-goldrush-data-sandbox --port 8084 cc-d-bi-europe-west1 --verbose --debug && composer-dev restart cc-d-bi-europe-west1",
-  "postStartCommand": "/bin/bash -c 'gcloud auth login --key-file=/home/${localEnv:USER}/.config/gcloud/credentials.json"
+  "postStartCommand": "/bin/bash -c 'gcloud auth login --key-file=/home/${localEnv:USER}/.config/gcloud/credentials.json",
+  "tasks": {
+    "build": "pip install -e . && pip install pre-commit && pre-commit install"
+  }
 }
