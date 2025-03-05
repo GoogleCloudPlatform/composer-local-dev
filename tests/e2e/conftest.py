@@ -49,7 +49,7 @@ def get_env_var(name: str) -> str:
 
 @pytest.fixture(scope="session")
 def composer_image_version_older() -> str:
-    return "composer-2.6.5-airflow-2.7.3"
+    return "composer-2.6.5-airflow-2.6.3"
 
 
 @pytest.fixture(scope="session")
