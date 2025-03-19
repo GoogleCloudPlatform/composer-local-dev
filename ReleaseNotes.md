@@ -1,5 +1,12 @@
 # Release notes
 
+## 0.9.4
+
+#### Fixes:
+
+- Fix `/home/airflow/run_as_user.sh: Permission denied` on Windows
+- Fix support for Airflow <= 2.6 (#92)
+
 ## 0.9.3
 
 #### New:
