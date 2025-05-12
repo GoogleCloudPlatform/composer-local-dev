@@ -87,6 +87,11 @@ main() {
   fi
 
   init_airflow
+
+  if [ ${AIRFLOW__SCHEDULER__STANDALONE_DAG_PROCESSOR} = "True" ]; then
+    $run_as_user airflow dag-processor &
+  fi
+
   $run_as_user airflow scheduler &
   $run_as_user airflow triggerer &
   exec $run_as_user airflow webserver

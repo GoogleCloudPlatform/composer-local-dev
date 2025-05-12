@@ -5,7 +5,7 @@
 ## Overview
 
 Composer Local Development CLI tool streamlines Apache Airflow DAG development
-for Cloud Composer 2 by running an Airflow environment locally. This local
+for Cloud Composer 2 and 3 by running an Airflow environment locally. This local
 Airflow environment uses an image of a specific Cloud Composer version.
 
 You can create a local Airflow environments based on an existing Cloud Composer
@@ -21,9 +21,13 @@ options.
 development purposes**. Cloud Composer does not support using locally
 deployed Cloud Composer images for production purposes.
 
-- Composer Local Development CLI tool supports only Cloud Composer 2 images.
-    You can use any version of Cloud Composer 2 with Composer Local
-    Development CLI tool.
+- Composer Local Development CLI tool supports only Cloud Composer 2 and 3 images.
+
+  - You can use any version of Cloud Composer 2 with Composer Local Development CLI tool.
+
+  - Composer 3 support starts from image versions `composer-3-airflow-2.9.3-build.20`,
+    `composer-3-airflow-2.10.2-build.13` and `composer-3-airflow-2.10.5-build.0`,
+    including all images of Airflow versions greater than `2.10.5`.
 
 - Composer Local Development CLI tool creates local Airflow environments in a
     directory where you run the `composer-dev create` command. To access your

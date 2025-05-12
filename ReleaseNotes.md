@@ -1,5 +1,11 @@
 # Release notes
 
+## TODO
+
+### New
+
+- Support for Composer 3
+
 ## 0.9.4
 
 ### Fixes

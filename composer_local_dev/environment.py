@@ -83,36 +83,6 @@ def get_image_mounts(
     ]
 
 
-def get_default_environment_variables(
-    dag_dir_list_interval: int,
-    project_id: str,
-    default_db_variables: Dict[str, str],
-) -> Dict:
-    """Return environment variables that will be set inside container."""
-    return {
-        "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default",
-        "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
-        "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
-        "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": dag_dir_list_interval,
-        "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
-        "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
-        "AIRFLOW__CORE__DATA_FOLDER": "/home/airflow/gcs/data",
-        "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
-        "COMPOSER_PYTHON_VERSION": "3",
-        # By default, the container runs as the user `airflow` with UID 999. Set
-        # this env variable to "True" to make it run as the current host user.
-        "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
-        "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
-        "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
-        "AIRFLOW_HOME": "/home/airflow/airflow",
-        "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": f"google-cloud-platform://?"
-        f"extra__google_cloud_platform__project={project_id}&"
-        f"extra__google_cloud_platform__scope="
-        f"https://www.googleapis.com/auth/cloud-platform",
-        **default_db_variables,
-    }
-
-
 def parse_env_variable(
     line: str, env_file_path: pathlib.Path
 ) -> Tuple[str, str]:
@@ -266,9 +236,12 @@ def assert_image_exists(image_version: str):
     """
     airflow_v, composer_v = utils.get_airflow_composer_versions(image_version)
     image_tag = utils.get_image_version_tag(airflow_v, composer_v)
+    dashed_airflow_v = airflow_v.replace(".", "-").split("-build")[0]
     LOG.info("Asserting that %s composer image version exists", image_tag)
     image_url = constants.ARTIFACT_REGISTRY_IMAGE_URL.format(
-        airflow_v=airflow_v, composer_v=composer_v
+        dashed_airflow_v=dashed_airflow_v,
+        composer_v=composer_v,
+        image_tag=image_tag,
     )
     client = artifactregistry_v1.ArtifactRegistryClient()
     request = artifactregistry_v1.GetTagRequest(name=image_url)
@@ -302,8 +275,12 @@ def get_docker_image_tag_from_image_version(image_version: str) -> str:
         Composer image tag in Artifact Registry
     """
     airflow_v, composer_v = utils.get_airflow_composer_versions(image_version)
+    dashed_airflow_v = airflow_v.replace(".", "-").split("-build")[0]
+    image_tag = utils.get_image_version_tag(airflow_v, composer_v)
     return constants.DOCKER_REGISTRY_IMAGE_TAG.format(
-        airflow_v=airflow_v, composer_v=composer_v
+        dashed_airflow_v=dashed_airflow_v,
+        composer_v=composer_v,
+        image_tag=image_tag,
     )
 
 
@@ -356,8 +333,7 @@ def get_image_version(env):
     tag = container.image.tags[0]
     image_tag = tag.split(":")[-1]
     airflow_v, composer_v = utils.get_airflow_composer_versions(image_tag)
-    airflow_v = utils.format_airflow_version_dotted(airflow_v)
-    return utils.get_image_version_tag(airflow_v, composer_v)
+    return f"composer-{composer_v}-airflow-{airflow_v}"
 
 
 def get_environments_status(
@@ -544,10 +520,24 @@ class Environment:
                 raise errors.EnvironmentNotFoundError() from None
 
     @classmethod
+    def assert_valid_environment_configuration(
+        cls, config: EnvironmentConfig, environment_vars: Dict
+    ):
+        """Checks if the configuration + env_vars are valid, raises an InvalidConfigurationError otherwise."""
+        if environment_vars.get("AIRFLOW__CORE__EXECUTOR") == "LocalExecutor":
+            if config.database_engine == constants.DatabaseEngine.sqlite3:
+                raise errors.InvalidConfigurationError(
+                    constants.LOCAL_EXECUTOR_REQUIRES_POSTGRESQL
+                )
+
+    @classmethod
     def load_from_config(cls, env_dir_path: pathlib.Path, port: Optional[int]):
         """Create local environment using 'config.json' configuration file."""
         config = EnvironmentConfig(env_dir_path, port)
         environment_vars = load_environment_variables(env_dir_path)
+        Environment.assert_valid_environment_configuration(
+            config, environment_vars
+        )
 
         return cls(
             env_dir_path=env_dir_path,
@@ -618,6 +608,47 @@ class Environment:
         env_vars_lines = "\n".join(env_vars)
         with open(self.env_dir_path / "variables.env", "w") as fp:
             fp.write(env_vars_lines)
+
+    def get_default_environment_variables(
+        self, default_db_variables: Dict[str, str]
+    ) -> Dict:
+        """Return environment variables that will be set inside container."""
+        return {
+            "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default",
+            "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
+            "AIRFLOW__CORE__DATA_FOLDER": "/home/airflow/gcs/data",
+            "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
+            "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
+            "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": self.dag_dir_list_interval,
+            "AIRFLOW__SCHEDULER__STANDALONE_DAG_PROCESSOR": str(
+                self.image_version.startswith("composer-3")
+            ),
+            "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
+            "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
+            "COMPOSER_IMAGE_VERSION": self.image_version,
+            "COMPOSER_PYTHON_VERSION": "3",
+            # By default, the container runs as the user `airflow` with UID 999. Set
+            # this env variable to "True" to make it run as the current host user.
+            "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
+            "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
+            "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
+            "AIRFLOW_HOME": "/home/airflow/airflow",
+            "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": (
+                f"google-cloud-platform://?"
+                f"extra__google_cloud_platform__project={self.project_id}&"
+                f"extra__google_cloud_platform__scope="
+                f"https://www.googleapis.com/auth/cloud-platform"
+            ),
+            **default_db_variables,
+        }
+
+    def assert_valid_environment_options(self):
+        """Checks if the configuration is valid, raises an InvalidConfigurationError otherwise."""
+        if self.image_version.startswith("composer-3"):
+            if self.database_engine == constants.DatabaseEngine.sqlite3:
+                raise errors.InvalidConfigurationError(
+                    constants.COMPOSER_3_REQUIRES_POSTGRESQL
+                )
 
     def assert_requirements_exist(self):
         """Asserts that PyPi requirements file exist in environment directory."""
@@ -713,9 +744,7 @@ class Environment:
             db_mounts,
         )
         db_vars = db_extras["env_vars"]
-        default_vars = get_default_environment_variables(
-            self.dag_dir_list_interval, self.project_id, db_vars
-        )
+        default_vars = self.get_default_environment_variables(db_vars)
         env_vars = {**default_vars, **self.environment_vars}
         if (
             platform.system() == "Windows"
@@ -863,6 +892,7 @@ class Environment:
         requirements.txt files.
         """
         assert_image_exists(self.image_version)
+        self.assert_valid_environment_options()
         files.create_environment_directories(self.env_dir_path, self.dags_path)
         self.create_database_files()
         self.write_environment_config_to_config_file()

@@ -109,13 +109,30 @@ class TestEnvironment:
                 dags_path=dags_path,
             )
 
-    def test_get_docker_image_tag_from_image_version(self):
-        image_version = "composer-2.0.8-airflow-2.2.3"
-        expected_image = (
-            "us-docker.pkg.dev/cloud-airflow-releaser/"
-            "airflow-worker-scheduler-2-2-3/airflow-worker-scheduler-2-2-3:"
-            "composer-2.0.8-airflow-2-2-3"
-        )
+    @pytest.mark.parametrize(
+        "image_version, expected_image",
+        [
+            (
+                "composer-2.0.8-airflow-2.2.3",
+                (
+                    "us-docker.pkg.dev/cloud-airflow-releaser/"
+                    "airflow-worker-scheduler-2-2-3/airflow-worker-scheduler-2-2-3:"
+                    "composer-2.0.8-airflow-2-2-3"
+                ),
+            ),
+            (
+                "composer-3-airflow-2.10.2-build.4",
+                (
+                    "us-docker.pkg.dev/cloud-airflow-releaser/"
+                    "airflow-worker-scheduler-2-10-2/airflow-worker-scheduler-2-10-2:"
+                    "composer-3-airflow-2.10.2-build.4"
+                ),
+            ),
+        ],
+    )
+    def test_get_docker_image_tag_from_image_version(
+        self, image_version, expected_image
+    ):
         parsed_image = environment.get_docker_image_tag_from_image_version(
             image_version
         )
@@ -643,13 +660,15 @@ class TestEnvironment:
         }
         environment = {
             "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default",
-            "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
-            "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
-            "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": default_env.dag_dir_list_interval,
             "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
-            "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
             "AIRFLOW__CORE__DATA_FOLDER": "/home/airflow/gcs/data",
+            "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
+            "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
+            "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": default_env.dag_dir_list_interval,
+            "AIRFLOW__SCHEDULER__STANDALONE_DAG_PROCESSOR": "False",
+            "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
             "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
+            "COMPOSER_IMAGE_VERSION": default_env.image_version,
             "COMPOSER_PYTHON_VERSION": "3",
             "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
             "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
@@ -971,6 +990,56 @@ class TestEnvironment:
         container.stop.assert_called()
         assert container.remove.call_count == int(remove_container) * 2
 
+    @mock.patch("composer_local_dev.environment.docker.from_env")
+    def test_get_environment_variables(self, mocked_docker):
+        project_id = "123"
+        dag_interval = 105
+        extra_vars = {"VAR_1": "123", "VAR_2": "a"}
+        db_vars = {
+            "PGDATA": "/var/lib/postgresql/data/pgdata",
+            "POSTGRES_USER": "airflow",
+            "POSTGRES_PASSWORD": "airflow",
+        }
+        expected_vars = {
+            "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default",
+            "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
+            "AIRFLOW__CORE__DATA_FOLDER": "/home/airflow/gcs/data",
+            "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
+            "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
+            "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": 105,
+            "AIRFLOW__SCHEDULER__STANDALONE_DAG_PROCESSOR": "True",
+            "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
+            "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
+            "COMPOSER_IMAGE_VERSION": "composer-3-airflow-2.10.5-build.0",
+            "COMPOSER_PYTHON_VERSION": "3",
+            "AIRFLOW_HOME": "/home/airflow/airflow",
+            "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
+            "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
+            "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
+            "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": "google-cloud-platform://?"
+            "extra__google_cloud_platform__project=123&"
+            "extra__google_cloud_platform__scope="
+            "https://www.googleapis.com/auth/cloud-platform",
+            **db_vars,
+            **extra_vars,
+        }
+
+        env = environment.Environment(
+            env_dir_path=pathlib.Path("composer", "env_name"),
+            project_id=project_id,
+            image_version="composer-3-airflow-2.10.5-build.0",
+            location="eu-west",
+            dags_path=str(pathlib.Path("dags", "folder")),
+            dag_dir_list_interval=dag_interval,
+            port=8080,
+            pypi_packages={},
+            environment_vars=None,
+            database_engine=constants.DatabaseEngine.postgresql,
+        )
+        default_vars = env.get_default_environment_variables(db_vars)
+        actual_vars = {**default_vars, **extra_vars}
+        assert expected_vars == actual_vars
+
 
 def get_container_logs_mock(log_lines, status="running"):
     container = mock.Mock()
@@ -1076,43 +1145,6 @@ class TestLogs:
             default_env.logs(10, False)
 
 
-def test_get_environment_variables():
-    project_id = "123"
-    dag_interval = 105
-    extra_vars = {"VAR_1": "123", "VAR_2": "a"}
-    db_vars = {
-        "PGDATA": "/var/lib/postgresql/data/pgdata",
-        "POSTGRES_USER": "airflow",
-        "POSTGRES_PASSWORD": "airflow",
-    }
-    expected_vars = {
-        "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default",
-        "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
-        "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
-        "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": 105,
-        "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
-        "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
-        "AIRFLOW__CORE__DATA_FOLDER": "/home/airflow/gcs/data",
-        "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
-        "COMPOSER_PYTHON_VERSION": "3",
-        "AIRFLOW_HOME": "/home/airflow/airflow",
-        "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
-        "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
-        "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
-        "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": "google-cloud-platform://?"
-        "extra__google_cloud_platform__project=123&"
-        "extra__google_cloud_platform__scope="
-        "https://www.googleapis.com/auth/cloud-platform",
-        **db_vars,
-        **extra_vars,
-    }
-    default_vars = environment.get_default_environment_variables(
-        dag_interval, project_id, db_vars
-    )
-    actual_vars = {**default_vars, **extra_vars}
-    assert expected_vars == actual_vars
-
-
 @mock.patch("composer_local_dev.environment.docker.types.Mount", autospec=True)
 def test_get_image_mounts(mocked_mount):
     path = pathlib.Path("path/dir")
@@ -1212,7 +1244,7 @@ class TestGetImageVersion:
 
     def test_get_image_version(self):
         image_version_in_config = "composer-2.0.8-airflow-2.2.30"
-        image_version_in_container = "composer-2.0.8-airflow-2-2-3"
+        image_version_in_container = "composer-2.0.8-airflow-2.2.3"
         expected_image_version = "composer-2.0.8-airflow-2.2.3"
         tag = f"container-name:{image_version_in_container}"
         env = mock.Mock()

@@ -68,7 +68,7 @@ def test_create_default(image_exists_mock, tmp_path):
     env_name = "fooenv"
     cmd = (
         f"create "
-        f"--from-image-version composer-2.0.15-airflow-2.2.5 "
+        f"--from-image-version composer-3-airflow-2.9.3-build.20 "
         f"--project 123 "
         f"{env_name}"
     )
@@ -83,7 +83,7 @@ def test_create_provide_dags_path(image_exists_mock, tmp_path):
     dags_path = tmp_path / "test" / "dags"
     cmd = (
         f"create "
-        f"--from-image-version composer-2.0.15-airflow-2.2.5 "
+        f"--from-image-version composer-3-airflow-2.9.3-build.20 "
         f"--project 123 "
         f"--dags-path {dags_path} "
         f"{env_name}"

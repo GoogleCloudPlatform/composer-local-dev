@@ -46,19 +46,19 @@ class DatabaseEngine:
 
 COMPOSER_VERSIONING_DOCS_LINK = "https://cloud.google.com/composer/docs/concepts/versioning/composer-versions"
 COMPOSER_FAQ_MOUNTING_LINK = "https://cloud.google.com/composer/docs/composer-2/run-local-airflow-environments#troubleshooting-homebrew"
-IMAGE_VERSION_PATTERN = r"composer-([1-9]+\.[0-9]+\.[0-9]+)-airflow-([1-9]+[\.|-][0-9]+[\.|-][0-9]+)"
+IMAGE_VERSION_PATTERN = r"composer-([1-9]+(?:\.[0-9]+\.[0-9]+)?)-airflow-([1-9]+\.[0-9]+\.[0-9]+(?:-build\.[0-9]+)?)"
 ARTIFACT_REGISTRY_IMAGE_URL = (
     "projects/cloud-airflow-releaser/"
     "locations/us/repositories/"
-    "airflow-worker-scheduler-{airflow_v}/packages/"
-    "airflow-worker-scheduler-{airflow_v}/tags/"
-    "composer-{composer_v}-airflow-{airflow_v}"
+    "airflow-worker-scheduler-{dashed_airflow_v}/packages/"
+    "airflow-worker-scheduler-{dashed_airflow_v}/tags/"
+    "{image_tag}"
 )
 DOCKER_REGISTRY_IMAGE_TAG = (
     "us-docker.pkg.dev/cloud-airflow-releaser/"
-    "airflow-worker-scheduler-{airflow_v}/"
-    "airflow-worker-scheduler-{airflow_v}:"
-    "composer-{composer_v}-airflow-{airflow_v}"
+    "airflow-worker-scheduler-{dashed_airflow_v}/"
+    "airflow-worker-scheduler-{dashed_airflow_v}:"
+    "{image_tag}"
 )
 
 AIRFLOW_HOME = "/home/airflow"
@@ -210,9 +210,7 @@ INVALID_INT_RANGE_VALUE_ERROR = (
     "Invalid value for '{param_name}' configuration value. "
     "{value} is not in the range {allowed_range}."
 )
-INVALID_IMAGE_VERSION_ERROR = (
-    "Composer version must match `composer-x.y.z-airflow-a.b.c` pattern."
-)
+INVALID_IMAGE_VERSION_ERROR = "Composer version must match `composer-(2.y.z|3)-airflow-a.b.c[-build.d]` pattern."
 IMAGE_TAG_DOES_NOT_EXIST_ERROR = (
     "Composer version {image_tag} seems not to be valid. Please make sure to "
     "use existing Cloud Composer version. You can see the list of "
@@ -277,4 +275,12 @@ USE_FORCE_TO_REMOVE_ERROR = (
 MALFORMED_CONFIG_REMOVING_CONTAINER = (
     "Failed to load environment configuration. Environment Docker container "
     "could not be removed."
+)
+COMPOSER_3_REQUIRES_POSTGRESQL = (
+    "Composer 3 requires postgresql for the standalone Dag Processor to run. Please "
+    "use `--database postgresql`."
+)
+LOCAL_EXECUTOR_REQUIRES_POSTGRESQL = (
+    "Using LocalExecutor requires postgresql for the standalone Dag Processor to run. "
+    "Please use `--database postgresql`."
 )
