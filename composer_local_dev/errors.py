@@ -117,9 +117,7 @@ class FailedToParseConfigParamIntRangeError(InvalidConfigurationError):
         self,
         param_name: str,
         value: int,
-        int_range: Tuple[
-            int,
-        ],
+        int_range: Tuple[int,],
     ):
         if len(int_range) == 1:
             allowed_range = f"x>={int_range[0]}"

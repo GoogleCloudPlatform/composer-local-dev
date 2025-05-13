@@ -15,6 +15,10 @@
 Contributing
 ===============
 
+Destination branch
+----------------------
+Pull requests should be merged to the `development` branch.
+
 Configure pre-commits
 ----------------------
 Install Composer with the 'dev' profile to include pre-commit dependency::

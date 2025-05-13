@@ -116,7 +116,7 @@ def assert_example_dag_listed():
     for _ in range(60):
         time.sleep(1)
         result = run_app("run-airflow-cmd testenv dags list")
-        if "example_dag | example_dag.py" in result.output:
+        if "example_dag | " in result.output and "example_dag.py | " in result.output:
             return
     else:
         raise AssertionError("Example DAG was not found")

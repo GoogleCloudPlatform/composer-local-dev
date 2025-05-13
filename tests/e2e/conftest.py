@@ -49,7 +49,7 @@ def get_env_var(name: str) -> str:
 
 @pytest.fixture(scope="session")
 def composer_image_version_older() -> str:
-    return "composer-2.0.8-airflow-2.2.3"
+    return "composer-2.6.5-airflow-2.6.3"
 
 
 @pytest.fixture(scope="session")
@@ -57,7 +57,7 @@ def composer_image_version() -> str:
     try:
         return os.environ["COMPOSER_TESTS_IMAGE_VERSION"]
     except KeyError:
-        default = "composer-2.0.24-airflow-2.2.5"
+        default = "composer-2.9.7-airflow-2.9.3"
         warnings.warn(
             f"COMPOSER_TESTS_IMAGE_VERSION is not set. "
             f"Using default Composer image version: {default}"

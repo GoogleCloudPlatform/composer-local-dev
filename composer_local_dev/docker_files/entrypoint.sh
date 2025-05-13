@@ -1,4 +1,4 @@
-#!/bin/sh"
+#!/bin/sh
 
 # Copyright 2022 Google LLC
 #
@@ -16,28 +16,43 @@
 
 set -xe
 
-init_airflow() {
-  sudo chown airflow:airflow airflow
+run_as_user=/home/airflow/run_as_user.sh
 
-  mkdir -p ${AIRFLOW__CORE__DAGS_FOLDER}
-  mkdir -p ${AIRFLOW__CORE__PLUGINS_FOLDER}
-  mkdir -p ${AIRFLOW__CORE__DATA_FOLDER}
+init_airflow() {
+
+  $run_as_user mkdir -p ${AIRFLOW__CORE__DAGS_FOLDER}
+  $run_as_user mkdir -p ${AIRFLOW__CORE__PLUGINS_FOLDER}
+  $run_as_user mkdir -p ${AIRFLOW__CORE__DATA_FOLDER}
 
   # That file exists in Composer < 1.19.2 and is responsible for linking name
   # `python` to python3 exec, in Composer >= 1.19.2 name `python` is already
   # linked to python3 and file no longer exist.
   if [ -f /var/local/setup_python_command.sh ]; then
-      /var/local/setup_python_command.sh
+      $run_as_user /var/local/setup_python_command.sh
   fi
 
-  pip3 install --upgrade -r composer_requirements.txt
-  pip3 check
+  $run_as_user pip3 install --upgrade -r composer_requirements.txt
+  $run_as_user pip3 check
 
-  airflow db init
+  airflow_version=$(${run_as_user} airflow version | grep -o "^[0-9\.]*")
+
+  original_ifs="$IFS"
+  IFS='.'
+  set -- $airflow_version
+  major="$1"
+  minor="$2"
+  patch="$3"
+  IFS="$original_ifs"
+
+  if [ "$major" -eq "2" ] && [ "$minor" -lt "7" ]; then
+    $run_as_user airflow db init
+  else
+    $run_as_user airflow db migrate
+  fi
 
   # Allow non-authenticated access to UI for Airflow 2.*
   if ! grep -Fxq "AUTH_ROLE_PUBLIC = 'Admin'" /home/airflow/airflow/webserver_config.py; then
-    echo "AUTH_ROLE_PUBLIC = 'Admin'" >> /home/airflow/airflow/webserver_config.py
+    $run_as_user sh -c "echo \"AUTH_ROLE_PUBLIC = 'Admin'\" >> /home/airflow/airflow/webserver_config.py"
   fi
 }
 
@@ -59,29 +74,22 @@ create_user() {
   sudo find /var -user "${old_user_id}" -exec chown -h "${user_name}" {} \;
 }
 
-run_airflow_as_host_user() {
-  create_user "${COMPOSER_HOST_USER_NAME}" "${COMPOSER_HOST_USER_ID}"
-  echo "Running Airflow as user ${COMPOSER_HOST_USER_NAME}(${COMPOSER_HOST_USER_ID})"
-  sudo -E -u "${COMPOSER_HOST_USER_NAME}" env PATH=${PATH} airflow scheduler &
-  sudo -E -u "${COMPOSER_HOST_USER_NAME}" env PATH=${PATH} airflow triggerer &
-  exec sudo -E -u "${COMPOSER_HOST_USER_NAME}" env PATH=${PATH} airflow webserver
-}
-
-run_airflow_as_airflow_user() {
-  echo "Running Airflow as user airflow(999)"
-  airflow scheduler &
-  airflow triggerer &
-  exec airflow webserver
-}
-
 main() {
-  init_airflow
+  sudo chown airflow:airflow airflow
 
   if [ "${COMPOSER_CONTAINER_RUN_AS_HOST_USER}" = "True" ]; then
-    run_airflow_as_host_user
+    # Do not recreate user if it already exists
+    create_user "${COMPOSER_HOST_USER_NAME}" "${COMPOSER_HOST_USER_ID}" || true
+
+    echo "Running Airflow as user ${COMPOSER_HOST_USER_NAME}(${COMPOSER_HOST_USER_ID})"
   else
-    run_airflow_as_airflow_user
+    echo "Running Airflow as user airflow(999)"
   fi
+
+  init_airflow
+  $run_as_user airflow scheduler &
+  $run_as_user airflow triggerer &
+  exec $run_as_user airflow webserver
 }
 
 main "$@"

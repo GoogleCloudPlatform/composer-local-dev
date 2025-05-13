@@ -128,6 +128,7 @@ composer-dev create \
   --port WEB_SERVER_PORT \
   --dags-path LOCAL_DAGS_PATH \
   --plugins-path LOCAL_PLUGINS_PATH \
+  --database DATABASE_ENGINE \
   LOCAL_ENVIRONMENT_NAME
 ```
 
@@ -140,7 +141,13 @@ Replace:
     located.
 - `LOCAL_PLUGINS_PATH` with the path to a local directory where the plugins
     files are located.
+- `DATABASE_ENGINE` with the database engine you wanted to use. You can use 
+    `sqlite` or `postgresql`. 
 - `LOCAL_ENVIRONMENT_NAME` with the name of this local Airflow environment.
+
+> If you want to use `LocalExecutor` as Airflow's Core Executor, you need 
+> to use the `DATABASE_ENGINE` variable as `postgresql`. This is required 
+> for the `LocalExecutor` to work properly.
 
 Example:
 
@@ -228,6 +235,14 @@ On Linux or MacOS, it's recommended that you run the container as the current ho
 `COMPOSER_CONTAINER_RUN_AS_HOST_USER=True` in `composer/<LOCAL_ENVIRONMENT_NAME>/variables.env`. But the feature is not
 available on Windows, so you might need to update the permissions of the mounted files and directories on the host to
 allow access by the user inside of the container.
+
+## Interaction with Kubernetes clusters
+
+By default, the file `~/.kube/config` is not mounted. The user can specify path to Kubernetes configuration file by 
+exporting `KUBECONFIG` environment variable before starting environment. 
+```bash
+export KUBECONFIG=~/.kube/config
+```
 
 ## Start a local Airflow environment
 

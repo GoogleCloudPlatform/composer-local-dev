@@ -12,9 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import enum
+from dataclasses import dataclass
 
 # The name of environment variable with custom configuration path
 CLOUD_CLI_CONFIG_PATH_ENV = "CLOUDSDK_CONFIG"
+
+# The name of environment variable with custom k8s configuration path
+KUBECONFIG_PATH_ENV = "KUBECONFIG"
 
 OPERATION_TIMEOUT_SECONDS = (
     300  # TODO: Check if we need such timeout, or any timeout at all
@@ -30,10 +34,20 @@ class ContainerStatus(str, enum.Enum):
     CREATED = "created"
 
 
+@dataclass
+class DatabaseEngine:
+    sqlite3 = "sqlite3"
+    postgresql = "postgresql"
+
+    @classmethod
+    def choices(cls):
+        return [cls.sqlite3, cls.postgresql]
+
+
 COMPOSER_VERSIONING_DOCS_LINK = "https://cloud.google.com/composer/docs/concepts/versioning/composer-versions"
 COMPOSER_FAQ_MOUNTING_LINK = "https://cloud.google.com/composer/docs/composer-2/run-local-airflow-environments#troubleshooting-homebrew"
 IMAGE_VERSION_PATTERN = (
-    "composer-([1-9]+\.[0-9]+\.[0-9]+)-airflow-([1-9]+[\.|-][0-9]+[\.|-][0-9]+)"
+    r"composer-([1-9]+\.[0-9]+\.[0-9]+)-airflow-([1-9]+[\.|-][0-9]+[\.|-][0-9]+)"
 )
 ARTIFACT_REGISTRY_IMAGE_URL = (
     "projects/cloud-airflow-releaser/"
@@ -92,7 +106,11 @@ Image version: {image_version}
 Dags directory: {dags_path}.
 Plugins directory: {plugins_path}.
 The environment is using credentials from gcloud located at {gcloud_path}.
-
+"""
+KUBECONFIG_PATH_MESSAGE = """
+The environment is using K8S credentials located at {kube_config_path}.
+"""
+FINAL_ENV_MESSAGE = """
 This information is based on the data available in the
 environments configurations.
 """
@@ -101,6 +119,8 @@ WEBSERVER_URL_MESSAGE = (
 )
 
 CONTAINER_NAME = "composer-local-dev"
+DB_CONTAINER_NAME = "composer-local-dev-db"
+DOCKER_NETWORK_NAME = "composer-local-dev-network"
 IMAGE_TAG_PERMISSION_DENIED_WARN = (
     "Received permission denied when checking "
     "image existence for {image_tag}"
@@ -224,6 +244,9 @@ AUTH_INVALID_ERROR = (
 PULL_IMAGE_MSG = (
     "[bold green]Pulling Composer image. It can take a few minutes."
 )
+DB_PULL_IMAGE_MSG = (
+    "[bold green]Pulling the Database image. It can take a few minutes."
+)
 DOCKER_NOT_AVAILABLE_ERROR = (
     "Docker not available or failed to start. Please ensure docker service "
     "is installed and running. Error: {error}"
@@ -231,7 +254,10 @@ DOCKER_NOT_AVAILABLE_ERROR = (
 DOCKER_CONTAINER_MEMORY_LIMIT = "4g"
 NOT_MODIFIABLE_ENVIRONMENT_VARIABLES = {
     "AIRFLOW_HOME",
-    "AIRFLOW__CORE__EXECUTOR",
+}
+# The following environment variables can only be used with the given possible values
+STRICT_ENVIRONMENT_VARIABLES = {
+    "AIRFLOW__CORE__EXECUTOR": ["LocalExecutor", "SequentialExecutor",],
 }
 LIST_COMMAND_EPILOG = (
     "\nRun describe command with the environment name to see the detailed "
