@@ -170,6 +170,15 @@ class DAGPathNotExistError(ComposerCliError):
         )
 
 
+class PluginsPathNotExistError(ComposerCliError):
+    """Plugins path does not exist or is not a directory."""
+
+    def __init__(self, plugins_path):
+        super().__init__(
+            constants.PLUGINS_PATH_NOT_EXISTS_ERROR.format(plugins_path=plugins_path)
+        )
+
+
 def catch_exceptions(func=None):
     """
     Catch exceptions and print user friendly message for common issues.

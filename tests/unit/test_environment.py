@@ -1087,6 +1087,7 @@ def test_get_environment_variables():
 def test_get_image_mounts(mocked_mount):
     path = pathlib.Path("path/dir")
     dags_path = "path/to/dags"
+    plugins_path = "path/to/plugins"
     gcloud_path = "config/path"
     kubeconfig_path = "/kube"
     requirements = path / "requirements.txt"
@@ -1098,10 +1099,12 @@ def test_get_image_mounts(mocked_mount):
             type="bind",
         ),
         mock.call(
-            source=dags_path, target="/home/airflow/gcs/dags/", type="bind"
+            source=dags_path,
+            target="/home/airflow/gcs/dags/",
+            type="bind",
         ),
         mock.call(
-            source=str(path / "plugins"),
+            source=plugins_path,
             target="/home/airflow/gcs/plugins/",
             type="bind",
         ),
@@ -1127,7 +1130,13 @@ def test_get_image_mounts(mocked_mount):
         ),
     ]
     actual_mounts = environment.get_image_mounts(
-        path, dags_path, gcloud_path, kubeconfig_path, requirements, {airflow_db_path: 'airflow/airflow.db'}
+        path,
+        dags_path,
+        plugins_path,
+        gcloud_path,
+        kubeconfig_path,
+        requirements,
+        {airflow_db_path: 'airflow/airflow.db'},
     )
     assert len(expected_mounts) == len(actual_mounts)
     mocked_mount.assert_has_calls(expected_mounts)
