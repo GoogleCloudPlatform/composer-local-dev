@@ -5,3 +5,6 @@ steps:
       - '-c'
       - |
         gsutil -m cp -r composer/composer_local/dags/*.py gs://us-central1-composer-poc-fb15c6a6-bucket/dags/
+
+options:
+  logging: CLOUD_LOGGING_ONLY
