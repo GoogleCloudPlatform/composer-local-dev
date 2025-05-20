@@ -1,0 +1,7 @@
+steps:
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gsutil -m cp -r composer/composer_local/dags/*.py gs://us-central1-composer-poc-fb15c6a6-bucket/dags/
