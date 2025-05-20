@@ -14,7 +14,6 @@
 
 import logging
 import pathlib
-
 from typing import List, Optional
 
 from composer_local_dev import console, constants, errors, utils
@@ -208,7 +207,9 @@ def create_empty_file(path: pathlib.Path, skip_if_exist: bool = True):
         pass
 
 
-def create_empty_folder(path: pathlib.Path, parents: bool = True, exist_ok: bool = True):
+def create_empty_folder(
+    path: pathlib.Path, parents: bool = True, exist_ok: bool = True
+):
     return path.mkdir(parents=parents, exist_ok=exist_ok)
 
 

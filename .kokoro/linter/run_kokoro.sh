@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Copyright 2022 Google LLC
 #
@@ -14,10 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -xe
+set -ex
 
-if [ "${COMPOSER_CONTAINER_RUN_AS_HOST_USER}" = "True" ]; then
-    sudo -E -u ${COMPOSER_HOST_USER_NAME} env ENV=${ENV} PYTHONPATH=${PYTHONPATH} PATH=${PATH} "$@"
-else
-    exec "$@"
-fi
+readonly PRE_COMMIT_VERSION="4.2.0"
+
+pyenv install --skip-existing 3.11.5
+pyenv global 3.11.5
+pip install pre-commit==$PRE_COMMIT_VERSION
+
+git config --global --add safe.directory /tmpfs/src/git/composer-local-development
+cd git/composer-local-development
+FILES=$(git diff --diff-filter=AM --name-only HEAD~1 HEAD)
+echo "Running pre-commit on the following files:"
+echo "$FILES"
+echo "$FILES" | xargs pre-commit run \
+ --config=.pre-commit-config.yaml --show-diff-on-failure \
+ --files

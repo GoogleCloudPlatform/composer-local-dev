@@ -226,13 +226,13 @@ option_location = click.option(
     type=click.Path(file_okay=False),
 )
 @click.option(
-     "--database-engine",
+    "--database-engine",
     "--database",
     help="Database engine for airflow metadata.",
     default=constants.DatabaseEngine.sqlite3,
     show_default=True,
     type=click.Choice(constants.DatabaseEngine.choices(), case_sensitive=False),
-    metavar="DATABASE_ENGINE"
+    metavar="DATABASE_ENGINE",
 )
 @required_environment
 @verbose_mode
@@ -522,7 +522,10 @@ def remove(
         )
         console.get_console().print(md)
     else:
-        env.remove(force, force_error=click.UsageError(constants.USE_FORCE_TO_REMOVE_ERROR))
+        env.remove(
+            force,
+            force_error=click.UsageError(constants.USE_FORCE_TO_REMOVE_ERROR),
+        )
     shutil.rmtree(env_path)
 
 

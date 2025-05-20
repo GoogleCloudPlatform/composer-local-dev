@@ -81,7 +81,9 @@ setuptools.setup(
     python_requires=">=3.9,<3.12",
     install_requires=dependencies,
     extras_require=extras,
-    package_data={"": ["docker_files/entrypoint.sh", "docker_files/run_as_user.sh"]},
+    package_data={
+        "": ["docker_files/entrypoint.sh", "docker_files/run_as_user.sh"]
+    },
     zip_safe=False,
     entry_points={
         "console_scripts": "{name}={module_name}.__main__:cli".format(

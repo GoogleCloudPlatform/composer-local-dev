@@ -138,12 +138,12 @@ Replace:
 - `WEB_SERVER_PORT` with the port that Airflow web server must listen at.
 - `LOCAL_DAGS_PATH` with the path to a local directory where the DAG files are
     located.
-- `DATABASE_ENGINE` with the database engine you wanted to use. You can use 
-    `sqlite` or `postgresql`. 
+- `DATABASE_ENGINE` with the database engine you wanted to use. You can use
+    `sqlite` or `postgresql`.
 - `LOCAL_ENVIRONMENT_NAME` with the name of this local Airflow environment.
 
-> If you want to use `LocalExecutor` as Airflow's Core Executor, you need 
-> to use the `DATABASE_ENGINE` variable as `postgresql`. This is required 
+> If you want to use `LocalExecutor` as Airflow's Core Executor, you need
+> to use the `DATABASE_ENGINE` variable as `postgresql`. This is required
 > for the `LocalExecutor` to work properly.
 
 Example:
@@ -231,8 +231,9 @@ allow access by the user inside of the container.
 
 ## Interaction with Kubernetes clusters
 
-By default, the file `~/.kube/config` is not mounted. The user can specify path to Kubernetes configuration file by 
-exporting `KUBECONFIG` environment variable before starting environment. 
+By default, the file `~/.kube/config` is not mounted. The user can specify path to Kubernetes configuration file by
+exporting `KUBECONFIG` environment variable before starting environment.
+
 ```bash
 export KUBECONFIG=~/.kube/config
 ```
