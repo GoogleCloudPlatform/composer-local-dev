@@ -15,6 +15,7 @@ docs/_build
 .pytest_cache/
 cert_path
 key_path
+.kokoro/
 
 # Coverage files
 .coverage
@@ -34,5 +35,9 @@ pytype_output/
 
 .DS_Store
 
-# Composer CLI
-composer/
+# Composer CLI and config files
+composer_local_dev/
+composer/composer_local/airflow.db
+composer/composer_local/variables.env
+composer/composer_local/config.json
+composer/composer_local/requirements.txt
