@@ -678,6 +678,11 @@ class TestEnvironment:
             f"extra__google_cloud_platform__project={default_env.project_id}&"
             f"extra__google_cloud_platform__scope="
             f"https://www.googleapis.com/auth/cloud-platform",
+            "PGDATA": "/var/lib/postgresql/data/pgdata",
+            "POSTGRES_USER": "postgres",
+            "POSTGRES_PASSWORD": "airflow",
+            "POSTGRES_DB": "airflow",
+            "AIRFLOW__DATABASE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://postgres:airflow@composer-local-dev-db-my_env:5432/airflow",
         }
         default_env.docker_client.containers.create.assert_called_with(
             image=default_env.image_tag,
@@ -749,11 +754,16 @@ class TestEnvironment:
                 errors.EnvironmentNotRunningError()
             )
         default_env.create_docker_container = mock.Mock()
+        default_env.create_db_docker_container = mock.Mock()
         default_env.wait_for_start = mock.Mock()
+        default_env.wait_for_db_start = mock.Mock()
         default_env.start()
         default_env.assert_requirements_exist.assert_called_once()
         # do not create container if it exists
         assert default_env.create_docker_container.call_count == int(
+            create_container
+        )
+        assert default_env.create_db_docker_container.call_count == int(
             create_container
         )
         default_env.wait_for_start.assert_called_once()
@@ -774,6 +784,7 @@ class TestEnvironment:
     ):
         default_env.assert_requirements_exist = mock.Mock()
         default_env.wait_for_start = mock.Mock()
+        default_env.wait_for_db_start = mock.Mock()
         container = mock.Mock()
         container.status = "running"
         default_env.get_container = mock.Mock(return_value=container)
@@ -799,6 +810,7 @@ class TestEnvironment:
     ):
         default_env.assert_requirements_exist = mock.Mock()
         default_env.wait_for_start = mock.Mock()
+        default_env.wait_for_db_start = mock.Mock()
         container = mock.Mock()
         container.status = "running"
         default_env.get_container = mock.Mock(return_value=container)

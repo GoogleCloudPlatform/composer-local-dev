@@ -1,10 +1,16 @@
 # Release notes
 
-## TODO
+## 0.10.0
 
 ### New
 
 - Support for Composer 3
+- Make PostgreSQL the default `database`.
+
+### Fixes
+
+- composer-dev start fails - unable to start worker due to SQLAlchemy SQLite Uniqueness constraint errors (#88)
+- Can't launch a Composer 3 image (#68)
 
 ## 0.9.4
 

@@ -229,7 +229,7 @@ option_location = click.option(
     "--database-engine",
     "--database",
     help="Database engine for airflow metadata.",
-    default=constants.DatabaseEngine.sqlite3,
+    default=constants.DatabaseEngine.postgresql,
     show_default=True,
     type=click.Choice(constants.DatabaseEngine.choices(), case_sensitive=False),
     metavar="DATABASE_ENGINE",

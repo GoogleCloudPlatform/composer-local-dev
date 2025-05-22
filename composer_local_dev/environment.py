@@ -448,7 +448,7 @@ class Environment:
         location: str,
         dags_path: Optional[str],
         dag_dir_list_interval: int = 10,
-        database_engine: str = constants.DatabaseEngine.sqlite3,
+        database_engine: str = constants.DatabaseEngine.postgresql,
         port: Optional[int] = None,
         pypi_packages: Optional[Dict] = None,
         environment_vars: Optional[Dict] = None,
@@ -709,7 +709,7 @@ class Environment:
         if self.database_engine in extras:
             return extras[self.database_engine]
 
-        return extras[constants.DatabaseEngine.sqlite3]
+        return extras[constants.DatabaseEngine.postgresql]
 
     def create_container(self, **kwargs):
         try:

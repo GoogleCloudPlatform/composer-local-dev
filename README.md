@@ -143,7 +143,7 @@ Replace:
 - `LOCAL_DAGS_PATH` with the path to a local directory where the DAG files are
     located.
 - `DATABASE_ENGINE` with the database engine you wanted to use. You can use
-    `sqlite` or `postgresql`.
+    `sqlite` or `postgresql` (default).
 - `LOCAL_ENVIRONMENT_NAME` with the name of this local Airflow environment.
 
 > If you want to use `LocalExecutor` as Airflow's Core Executor, you need
