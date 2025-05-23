@@ -1257,7 +1257,7 @@ class TestGetImageVersion:
     def test_get_image_version(self):
         image_version_in_config = "composer-2.0.8-airflow-2.2.30"
         image_version_in_container = "composer-2.0.8-airflow-2.2.3"
-        expected_image_version = "composer-2.0.8-airflow-2.2.3"
+        expected_image_version = "composer-2.0.8-airflow-2.2.30"
         tag = f"container-name:{image_version_in_container}"
         env = mock.Mock()
         env.image_version = image_version_in_config

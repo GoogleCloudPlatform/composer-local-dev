@@ -11,7 +11,7 @@
 
 - composer-dev start fails - unable to start worker due to SQLAlchemy SQLite Uniqueness constraint errors (#88)
 - Can't launch a Composer 3 image (#68)
-- Fix `home/airflow/run_as_user.sh: Permission denied` On Windows
+- Fix `home/airflow/run_as_user.sh: Permission denied` On Windows (#94)
 
 ## 0.9.4
 
