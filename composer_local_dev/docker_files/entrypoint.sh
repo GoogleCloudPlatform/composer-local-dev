@@ -77,6 +77,8 @@ create_user() {
 main() {
   sudo chown airflow:airflow airflow
 
+  sudo chmod +x $run_as_user
+
   if [ "${COMPOSER_CONTAINER_RUN_AS_HOST_USER}" = "True" ]; then
     # Do not recreate user if it already exists
     create_user "${COMPOSER_HOST_USER_NAME}" "${COMPOSER_HOST_USER_ID}" || true
