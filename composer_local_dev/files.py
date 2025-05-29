@@ -165,7 +165,10 @@ def fix_file_permissions(
     make_file_readable_and_executable(entrypoint)
     make_file_readable_and_executable(run)
     make_file_writeable(requirements)
-    make_file_writeable(db_path)
+    if db_path.is_dir():
+        make_file_readable_and_executable(db_path)
+    else:
+        make_file_writeable(db_path)
 
 
 def make_file_readable_and_executable(file_path: pathlib.Path) -> None:
