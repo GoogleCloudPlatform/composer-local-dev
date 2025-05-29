@@ -1164,7 +1164,9 @@ def test_get_image_mounts(mocked_mount):
     gcloud_path = "config/path"
     kubeconfig_path = "/kube"
     requirements = path / "requirements.txt"
-    airflow_db_path = path / "airflow.db"
+    sqlite_db_path = path / "airflow.db"
+    postgresql_data_path = path / "postgresql_data"
+    postgresql_keep_path = path / ".keep"
     expected_mounts = [
         mock.call(
             source=str(requirements),
@@ -1190,8 +1192,18 @@ def test_get_image_mounts(mocked_mount):
             type="bind",
         ),
         mock.call(
-            source=str(airflow_db_path),
+            source=str(sqlite_db_path),
             target="/home/airflow/airflow/airflow.db",
+            type="bind",
+        ),
+        mock.call(
+            source=str(postgresql_data_path),
+            target="/var/lib/postgresql/data",
+            type="bind",
+        ),
+        mock.call(
+            source=str(postgresql_keep_path),
+            target="/home/airflow/airflow/.keep",
             type="bind",
         ),
         mock.call(
@@ -1206,7 +1218,14 @@ def test_get_image_mounts(mocked_mount):
         gcloud_path,
         kubeconfig_path,
         requirements,
-        {airflow_db_path: "airflow/airflow.db"},
+        {
+            # There is no situation where we would specify both sqlite and
+            # postgresql mounts, but this lets us test the logic for both
+            # types of database driver at once.
+            sqlite_db_path: "airflow/airflow.db",
+            postgresql_data_path: "/var/lib/postgresql/data",
+            postgresql_keep_path: "airflow/.keep",
+        },
     )
     assert len(expected_mounts) == len(actual_mounts)
     mocked_mount.assert_has_calls(expected_mounts)
