@@ -76,7 +76,12 @@ def get_image_mounts(
     return [
         docker.types.Mount(
             source=str(source),
-            target=f"{constants.AIRFLOW_HOME}/{target}",
+            # If target is absolute path, use it as is.
+            # Otherwise, prepend AIRFLOW_HOME to the target.
+            target=(
+                target if target.startswith("/")
+                else f"{constants.AIRFLOW_HOME}/{target}"
+            ),
             type="bind",
         )
         for source, target in mount_paths.items()
