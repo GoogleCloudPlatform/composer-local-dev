@@ -859,11 +859,11 @@ class Environment:
             )
             raise errors.ImageNotFoundError(self.db_image_tag) from None
 
-    def create_database_files(self):
+    def create_database_files(self, skip_if_exist=True):
         db_extras = self.database_extras
         db_mounts = db_extras["mounts"]
         for host_path in db_mounts["files"].keys():
-            files.create_empty_file(host_path, skip_if_exist=False)
+            files.create_empty_file(host_path, skip_if_exist=skip_if_exist)
         for host_path in db_mounts["folders"].keys():
             files.create_empty_folder(host_path)
 
@@ -877,7 +877,7 @@ class Environment:
         assert_image_exists(self.image_version)
         self.assert_valid_environment_options()
         files.create_environment_directories(self.env_dir_path, self.dags_path)
-        self.create_database_files()
+        self.create_database_files(skip_if_exist=False)
         self.write_environment_config_to_config_file()
         self.pypi_packages_to_requirements()
         self.environment_vars_to_env_file()
