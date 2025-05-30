@@ -76,7 +76,13 @@ def get_image_mounts(
     return [
         docker.types.Mount(
             source=str(source),
-            target=f"{constants.AIRFLOW_HOME}/{target}",
+            # If target is absolute path, use it as is.
+            # Otherwise, prepend AIRFLOW_HOME to the target.
+            target=(
+                target
+                if target.startswith("/")
+                else f"{constants.AIRFLOW_HOME}/{target}"
+            ),
             type="bind",
         )
         for source, target in mount_paths.items()
@@ -865,7 +871,9 @@ class Environment:
         for host_path in db_mounts["files"].keys():
             files.create_empty_file(host_path, skip_if_exist=skip_if_exist)
         for host_path in db_mounts["folders"].keys():
-            files.create_empty_folder(host_path)
+            files.create_empty_folder(
+                host_path, delete_if_exist=not skip_if_exist
+            )
 
     def create(self):
         """Creates Composer local environment.

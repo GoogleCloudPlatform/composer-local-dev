@@ -240,3 +240,77 @@ def test_dos2unix_file(tmp_path):
     with open(tmp_file, "rb") as fp:
         content = fp.read()
     assert content == linux_string
+
+
+class TestFixFilePermissions:
+    @mock.patch("pathlib.Path.chmod")
+    @mock.patch("composer_local_dev.utils.is_windows_os", return_value=True)
+    def test_fix_file_permissions_windows(
+        self, mocked_is_windows, mocked_chmod
+    ):
+        """Test that no permission changes are made on Windows."""
+        files.fix_file_permissions(
+            entrypoint=pathlib.Path("entrypoint.sh"),
+            run=pathlib.Path("run.sh"),
+            requirements=pathlib.Path("requirements.txt"),
+            db_path=pathlib.Path("airflow.db"),
+        )
+        mocked_chmod.assert_not_called()
+
+    @mock.patch("pathlib.Path.chmod")
+    @mock.patch("composer_local_dev.utils.is_windows_os", return_value=False)
+    def test_fix_file_permissions_linux_sqlite(
+        self, mocked_is_windows, mocked_chmod, tmp_path
+    ):
+        """Test permission changes on Linux with SQLite database."""
+        entrypoint = tmp_path / "entrypoint.sh"
+        run = tmp_path / "run.sh"
+        requirements = tmp_path / "requirements.txt"
+        db_path = tmp_path / "airflow.db"
+
+        # Create the files
+        entrypoint.touch()
+        run.touch()
+        requirements.touch()
+        db_path.touch()
+
+        files.fix_file_permissions(entrypoint, run, requirements, db_path)
+
+        # Check that chmod was called with correct permissions
+        mocked_chmod.assert_has_calls(
+            [
+                mock.call(0o0755),  # entrypoint.sh
+                mock.call(0o0755),  # run.sh
+                mock.call(0o0666),  # requirements.txt
+                mock.call(0o0666),  # airflow.db
+            ]
+        )
+
+    @mock.patch("pathlib.Path.chmod")
+    @mock.patch("composer_local_dev.utils.is_windows_os", return_value=False)
+    def test_fix_file_permissions_linux_postgresql(
+        self, mocked_is_windows, mocked_chmod, tmp_path
+    ):
+        """Test permission changes on Linux with PostgreSQL database directory."""
+        entrypoint = tmp_path / "entrypoint.sh"
+        run = tmp_path / "run.sh"
+        requirements = tmp_path / "requirements.txt"
+        db_path = tmp_path / "postgresql_data"
+
+        # Create the files and directory
+        entrypoint.touch()
+        run.touch()
+        requirements.touch()
+        db_path.mkdir()
+
+        files.fix_file_permissions(entrypoint, run, requirements, db_path)
+
+        # Check that chmod was called with correct permissions
+        mocked_chmod.assert_has_calls(
+            [
+                mock.call(0o0755),  # entrypoint.sh
+                mock.call(0o0755),  # run.sh
+                mock.call(0o0666),  # requirements.txt
+                mock.call(0o0755),  # postgresql_data directory
+            ]
+        )
