@@ -1,5 +1,13 @@
 # Release notes
 
+## 0.10.1
+
+### Fixes
+
+- Variables got removed after restart on version 0.9.3 #95
+- Postgres Data volume bind-mounted to wrong target location #98
+- Fix sqlite persistence.
+
 ## 0.10.0
 
 ### New
