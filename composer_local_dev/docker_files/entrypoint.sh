@@ -31,8 +31,8 @@ init_airflow() {
       $run_as_user /var/local/setup_python_command.sh
   fi
 
-  $run_as_user pip3 install --upgrade -r composer_requirements.txt
-  $run_as_user pip3 check
+  sudo pip3 install --upgrade -r composer_requirements.txt
+  sudo pip3 check
 
   airflow_version=$(${run_as_user} airflow version | grep -o "^[0-9\.]*")
 
