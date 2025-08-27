@@ -79,7 +79,9 @@ class TestEnvironment:
     def compare_envs(expected_env, actual_env):
         expected_env.docker_client = None
         actual_env.docker_client = None
-        assert expected_env.database_extras == actual_env.database_extras  # to be sure that this cached properties calculated
+        assert (
+            expected_env.database_extras == actual_env.database_extras
+        )  # to be sure that this cached properties calculated
         assert actual_env.__dict__ == expected_env.__dict__
 
     @mock.patch("composer_local_dev.environment.docker.from_env")
@@ -107,13 +109,30 @@ class TestEnvironment:
                 dags_path=dags_path,
             )
 
-    def test_get_docker_image_tag_from_image_version(self):
-        image_version = "composer-2.0.8-airflow-2.2.3"
-        expected_image = (
-            "us-docker.pkg.dev/cloud-airflow-releaser/"
-            "airflow-worker-scheduler-2-2-3/airflow-worker-scheduler-2-2-3:"
-            "composer-2.0.8-airflow-2-2-3"
-        )
+    @pytest.mark.parametrize(
+        "image_version, expected_image",
+        [
+            (
+                "composer-2.0.8-airflow-2.2.3",
+                (
+                    "us-docker.pkg.dev/cloud-airflow-releaser/"
+                    "airflow-worker-scheduler-2-2-3/airflow-worker-scheduler-2-2-3:"
+                    "composer-2.0.8-airflow-2-2-3"
+                ),
+            ),
+            (
+                "composer-3-airflow-2.10.2-build.4",
+                (
+                    "us-docker.pkg.dev/cloud-airflow-releaser/"
+                    "airflow-worker-scheduler-2-10-2/airflow-worker-scheduler-2-10-2:"
+                    "composer-3-airflow-2.10.2-build.4"
+                ),
+            ),
+        ],
+    )
+    def test_get_docker_image_tag_from_image_version(
+        self, image_version, expected_image
+    ):
         parsed_image = environment.get_docker_image_tag_from_image_version(
             image_version
         )
@@ -176,7 +195,11 @@ class TestEnvironment:
         constants.DatabaseEngine.choices(),
     )
     def test_from_source_with_empty_pypi_packages(
-        self, mocked_fn, mocked_dags, mocked_docker, db_engine,
+        self,
+        mocked_fn,
+        mocked_dags,
+        mocked_docker,
+        db_engine,
     ):
         image_version = "composer-2.0.8-airflow-2.2.3"
         mocked_sw = mock.Mock()
@@ -219,7 +242,12 @@ class TestEnvironment:
         constants.DatabaseEngine.choices(),
     )
     def test_from_source_with_pypi_packages(
-        self, mocked_sw_config, mocked_parse_image, mocked_dags, mocked_docker, db_engine
+        self,
+        mocked_sw_config,
+        mocked_parse_image,
+        mocked_dags,
+        mocked_docker,
+        db_engine,
     ):
         image_version = "composer-2.0.8-airflow-2.2.3"
         packages = {
@@ -269,7 +297,12 @@ class TestEnvironment:
         constants.DatabaseEngine.choices(),
     )
     def test_from_source_with_env_variables(
-        self, mocked_sw_config, mocked_parse_image, mocked_dags, mocked_docker, db_engine
+        self,
+        mocked_sw_config,
+        mocked_parse_image,
+        mocked_dags,
+        mocked_docker,
+        db_engine,
     ):
         image_version = "composer-2.0.8-airflow-2.2.3"
         airflow_overrides_from_api = {
@@ -421,11 +454,19 @@ class TestEnvironment:
         ],
     )
     @pytest.mark.parametrize("port", [None, 8090])
-    @pytest.mark.parametrize("database_engine", constants.DatabaseEngine.choices())
+    @pytest.mark.parametrize(
+        "database_engine", constants.DatabaseEngine.choices()
+    )
     @mock.patch("composer_local_dev.environment.docker.from_env")
     @mock.patch("composer_local_dev.environment.assert_image_exists")
     def test_create_and_load_from_config(
-        self, mocked_docker, mocked_assert, pypi_packages, database_engine, port, tmp_path
+        self,
+        mocked_docker,
+        mocked_assert,
+        pypi_packages,
+        database_engine,
+        port,
+        tmp_path,
     ):
         env_dir_path = tmp_path / ".compose" / "my_env"
         image_version = "composer-2.0.8-airflow-2.2.3"
@@ -558,7 +599,9 @@ class TestEnvironment:
         default_env.docker_client.containers.get = mock.Mock(
             return_value=container
         )
-        actual_container = default_env.get_container(default_env.container_name, assert_running=True)
+        actual_container = default_env.get_container(
+            default_env.container_name, assert_running=True
+        )
         assert actual_container == container
 
     @mock.patch("composer_local_dev.environment.docker.from_env")
@@ -573,7 +616,9 @@ class TestEnvironment:
         with pytest.raises(
             errors.EnvironmentNotRunningError, match=constants.ENV_NOT_RUNNING
         ):
-            default_env.get_container(default_env.container_name, assert_running=True)
+            default_env.get_container(
+                default_env.container_name, assert_running=True
+            )
 
     @mock.patch("composer_local_dev.environment.docker.from_env")
     def test_get_container_not_started(self, mocked_docker, default_env):
@@ -601,11 +646,11 @@ class TestEnvironment:
     @mock.patch("composer_local_dev.utils.resolve_kube_config_path")
     @mock.patch("composer_local_dev.environment.get_image_mounts")
     def test_create_docker_container(
-            self,
-            mocked_mounts,
-            mocked_resolve_kube_config_path,
-            mocked_resolve_gcloud_config_path,
-            default_env
+        self,
+        mocked_mounts,
+        mocked_resolve_kube_config_path,
+        mocked_resolve_gcloud_config_path,
+        default_env,
     ):
         mocked_resolve_kube_config_path.return_value = mock.Mock()
         mocked_resolve_gcloud_config_path.return_value = mock.Mock()
@@ -615,13 +660,15 @@ class TestEnvironment:
         }
         environment = {
             "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default",
-            "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
-            "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
-            "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": default_env.dag_dir_list_interval,
             "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
-            "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
             "AIRFLOW__CORE__DATA_FOLDER": "/home/airflow/gcs/data",
+            "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
+            "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
+            "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": default_env.dag_dir_list_interval,
+            "AIRFLOW__SCHEDULER__STANDALONE_DAG_PROCESSOR": "False",
+            "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
             "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
+            "COMPOSER_IMAGE_VERSION": default_env.image_version,
             "COMPOSER_PYTHON_VERSION": "3",
             "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
             "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
@@ -631,6 +678,11 @@ class TestEnvironment:
             f"extra__google_cloud_platform__project={default_env.project_id}&"
             f"extra__google_cloud_platform__scope="
             f"https://www.googleapis.com/auth/cloud-platform",
+            "PGDATA": "/var/lib/postgresql/data/pgdata",
+            "POSTGRES_USER": "postgres",
+            "POSTGRES_PASSWORD": "airflow",
+            "POSTGRES_DB": "airflow",
+            "AIRFLOW__DATABASE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://postgres:airflow@composer-local-dev-db-my_env:5432/airflow",
         }
         default_env.docker_client.containers.create.assert_called_with(
             image=default_env.image_tag,
@@ -647,11 +699,11 @@ class TestEnvironment:
     @mock.patch("composer_local_dev.utils.resolve_kube_config_path")
     @mock.patch("composer_local_dev.environment.get_image_mounts")
     def test_create_db_docker_container(
-            self,
-            mocked_mounts,
-            mocked_resolve_kube_config_path,
-            mocked_resolve_gcloud_config_path,
-            default_env_postgresql,
+        self,
+        mocked_mounts,
+        mocked_resolve_kube_config_path,
+        mocked_resolve_gcloud_config_path,
+        default_env_postgresql,
     ):
         mocked_resolve_kube_config_path.return_value = mock.Mock()
         mocked_resolve_gcloud_config_path.return_value = mock.Mock()
@@ -660,11 +712,11 @@ class TestEnvironment:
             f"5432/tcp": "25432",
         }
         environment = {
-            'PGDATA': '/var/lib/postgresql/data/pgdata',
-            'POSTGRES_USER': 'postgres',
-            'POSTGRES_PASSWORD': 'airflow',
-            'POSTGRES_DB': 'airflow',
-            'AIRFLOW__DATABASE__SQL_ALCHEMY_CONN': 'postgresql+psycopg2://postgres:airflow@composer-local-dev-db-my_env:5432/airflow'
+            "PGDATA": "/var/lib/postgresql/data/pgdata",
+            "POSTGRES_USER": "postgres",
+            "POSTGRES_PASSWORD": "airflow",
+            "POSTGRES_DB": "airflow",
+            "AIRFLOW__DATABASE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://postgres:airflow@composer-local-dev-db-my_env:5432/airflow",
         }
         default_env_postgresql.docker_client.containers.create.assert_called_with(
             image=default_env_postgresql.db_image_tag,
@@ -677,7 +729,7 @@ class TestEnvironment:
         )
 
     @pytest.mark.parametrize(
-    "container_exists, create_container", [(False, True), (True, False)]
+        "container_exists, create_container", [(False, True), (True, False)]
     )
     @mock.patch("composer_local_dev.files.assert_dag_path_exists")
     @mock.patch("composer_local_dev.environment.assert_image_exists")
@@ -702,11 +754,16 @@ class TestEnvironment:
                 errors.EnvironmentNotRunningError()
             )
         default_env.create_docker_container = mock.Mock()
+        default_env.create_db_docker_container = mock.Mock()
         default_env.wait_for_start = mock.Mock()
+        default_env.wait_for_db_start = mock.Mock()
         default_env.start()
         default_env.assert_requirements_exist.assert_called_once()
         # do not create container if it exists
         assert default_env.create_docker_container.call_count == int(
+            create_container
+        )
+        assert default_env.create_db_docker_container.call_count == int(
             create_container
         )
         default_env.wait_for_start.assert_called_once()
@@ -727,6 +784,7 @@ class TestEnvironment:
     ):
         default_env.assert_requirements_exist = mock.Mock()
         default_env.wait_for_start = mock.Mock()
+        default_env.wait_for_db_start = mock.Mock()
         container = mock.Mock()
         container.status = "running"
         default_env.get_container = mock.Mock(return_value=container)
@@ -752,6 +810,7 @@ class TestEnvironment:
     ):
         default_env.assert_requirements_exist = mock.Mock()
         default_env.wait_for_start = mock.Mock()
+        default_env.wait_for_db_start = mock.Mock()
         container = mock.Mock()
         container.status = "running"
         default_env.get_container = mock.Mock(return_value=container)
@@ -767,7 +826,9 @@ class TestEnvironment:
 
     @mock.patch("composer_local_dev.utils.resolve_gcloud_config_path")
     @mock.patch("composer_local_dev.utils.resolve_kube_config_path")
-    def test_prepare_env_description_running(self, mocked_kube_config, mocked_gcloud, default_env):
+    def test_prepare_env_description_running(
+        self, mocked_kube_config, mocked_gcloud, default_env
+    ):
         env_state = "running"
         formatted_state = "[bold green]running[/]"
         port = 8081
@@ -823,10 +884,10 @@ class TestEnvironment:
     @mock.patch("composer_local_dev.utils.resolve_gcloud_config_path")
     @mock.patch("composer_local_dev.utils.resolve_kube_config_path")
     def test_create_docker_container_duplicate(
-            self,
-            mocked_resolve_kube_config_path,
-            mocked_resolve_gcloud_config_path,
-            default_env
+        self,
+        mocked_resolve_kube_config_path,
+        mocked_resolve_gcloud_config_path,
+        default_env,
     ):
         mocked_resolve_kube_config_path.return_value = mock.Mock()
         mocked_resolve_gcloud_config_path.return_value = mock.Mock()
@@ -847,10 +908,10 @@ class TestEnvironment:
     @mock.patch("composer_local_dev.utils.resolve_gcloud_config_path")
     @mock.patch("composer_local_dev.utils.resolve_kube_config_path")
     def test_create_docker_container_mount_permission(
-            self,
-            mocked_resolve_kube_config_path,
-            mocked_resolve_gcloud_config_path,
-            default_env
+        self,
+        mocked_resolve_kube_config_path,
+        mocked_resolve_gcloud_config_path,
+        default_env,
     ):
         mocked_resolve_kube_config_path.return_value = mock.Mock()
         mocked_resolve_gcloud_config_path.return_value = mock.Mock()
@@ -879,10 +940,10 @@ class TestEnvironment:
     @mock.patch("composer_local_dev.utils.resolve_gcloud_config_path")
     @mock.patch("composer_local_dev.utils.resolve_kube_config_path")
     def test_create_docker_container_pull_not_existing_image(
-            self,
-            mocked_resolve_kube_config_path,
-            mocked_resolve_gcloud_config_path,
-            default_env
+        self,
+        mocked_resolve_kube_config_path,
+        mocked_resolve_gcloud_config_path,
+        default_env,
     ):
         mocked_resolve_kube_config_path.return_value = mock.Mock()
         mocked_resolve_gcloud_config_path.return_value = mock.Mock()
@@ -940,6 +1001,56 @@ class TestEnvironment:
         default_env.stop(remove_container=remove_container)
         container.stop.assert_called()
         assert container.remove.call_count == int(remove_container) * 2
+
+    @mock.patch("composer_local_dev.environment.docker.from_env")
+    def test_get_environment_variables(self, mocked_docker):
+        project_id = "123"
+        dag_interval = 105
+        extra_vars = {"VAR_1": "123", "VAR_2": "a"}
+        db_vars = {
+            "PGDATA": "/var/lib/postgresql/data/pgdata",
+            "POSTGRES_USER": "airflow",
+            "POSTGRES_PASSWORD": "airflow",
+        }
+        expected_vars = {
+            "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default",
+            "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
+            "AIRFLOW__CORE__DATA_FOLDER": "/home/airflow/gcs/data",
+            "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
+            "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
+            "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": 105,
+            "AIRFLOW__SCHEDULER__STANDALONE_DAG_PROCESSOR": "True",
+            "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
+            "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
+            "COMPOSER_IMAGE_VERSION": "composer-3-airflow-2.10.5-build.0",
+            "COMPOSER_PYTHON_VERSION": "3",
+            "AIRFLOW_HOME": "/home/airflow/airflow",
+            "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
+            "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
+            "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
+            "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": "google-cloud-platform://?"
+            "extra__google_cloud_platform__project=123&"
+            "extra__google_cloud_platform__scope="
+            "https://www.googleapis.com/auth/cloud-platform",
+            **db_vars,
+            **extra_vars,
+        }
+
+        env = environment.Environment(
+            env_dir_path=pathlib.Path("composer", "env_name"),
+            project_id=project_id,
+            image_version="composer-3-airflow-2.10.5-build.0",
+            location="eu-west",
+            dags_path=str(pathlib.Path("dags", "folder")),
+            dag_dir_list_interval=dag_interval,
+            port=8080,
+            pypi_packages={},
+            environment_vars=None,
+            database_engine=constants.DatabaseEngine.postgresql,
+        )
+        default_vars = env.get_default_environment_variables(db_vars)
+        actual_vars = {**default_vars, **extra_vars}
+        assert expected_vars == actual_vars
 
 
 def get_container_logs_mock(log_lines, status="running"):
@@ -1046,43 +1157,6 @@ class TestLogs:
             default_env.logs(10, False)
 
 
-def test_get_environment_variables():
-    project_id = "123"
-    dag_interval = 105
-    extra_vars = {"VAR_1": "123", "VAR_2": "a"}
-    db_vars = {
-        "PGDATA": "/var/lib/postgresql/data/pgdata",
-        "POSTGRES_USER": "airflow",
-        "POSTGRES_PASSWORD": "airflow",
-    }
-    expected_vars = {
-        "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default",
-        "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
-        "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
-        "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": 105,
-        "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
-        "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
-        "AIRFLOW__CORE__DATA_FOLDER": "/home/airflow/gcs/data",
-        "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
-        "COMPOSER_PYTHON_VERSION": "3",
-        "AIRFLOW_HOME": "/home/airflow/airflow",
-        "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
-        "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
-        "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
-        "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": "google-cloud-platform://?"
-        "extra__google_cloud_platform__project=123&"
-        "extra__google_cloud_platform__scope="
-        "https://www.googleapis.com/auth/cloud-platform",
-        **db_vars,
-        **extra_vars,
-    }
-    default_vars = environment.get_default_environment_variables(
-        dag_interval, project_id, db_vars
-    )
-    actual_vars = {**default_vars, **extra_vars}
-    assert expected_vars == actual_vars
-
-
 @mock.patch("composer_local_dev.environment.docker.types.Mount", autospec=True)
 def test_get_image_mounts(mocked_mount):
     path = pathlib.Path("path/dir")
@@ -1091,7 +1165,9 @@ def test_get_image_mounts(mocked_mount):
     gcloud_path = "config/path"
     kubeconfig_path = "/kube"
     requirements = path / "requirements.txt"
-    airflow_db_path = path / "airflow.db"
+    sqlite_db_path = path / "airflow.db"
+    postgresql_data_path = path / "postgresql_data"
+    postgresql_keep_path = path / ".keep"
     expected_mounts = [
         mock.call(
             source=str(requirements),
@@ -1119,8 +1195,18 @@ def test_get_image_mounts(mocked_mount):
             type="bind",
         ),
         mock.call(
-            source=str(airflow_db_path),
+            source=str(sqlite_db_path),
             target="/home/airflow/airflow/airflow.db",
+            type="bind",
+        ),
+        mock.call(
+            source=str(postgresql_data_path),
+            target="/var/lib/postgresql/data",
+            type="bind",
+        ),
+        mock.call(
+            source=str(postgresql_keep_path),
+            target="/home/airflow/airflow/.keep",
             type="bind",
         ),
         mock.call(
@@ -1136,7 +1222,14 @@ def test_get_image_mounts(mocked_mount):
         gcloud_path,
         kubeconfig_path,
         requirements,
-        {airflow_db_path: 'airflow/airflow.db'},
+        {
+            # There is no situation where we would specify both sqlite and
+            # postgresql mounts, but this lets us test the logic for both
+            # types of database driver at once.
+            sqlite_db_path: "airflow/airflow.db",
+            postgresql_data_path: "/var/lib/postgresql/data",
+            postgresql_keep_path: "airflow/.keep",
+        },
     )
     assert len(expected_mounts) == len(actual_mounts)
     mocked_mount.assert_has_calls(expected_mounts)
@@ -1186,8 +1279,8 @@ class TestGetImageVersion:
 
     def test_get_image_version(self):
         image_version_in_config = "composer-2.0.8-airflow-2.2.30"
-        image_version_in_container = "composer-2.0.8-airflow-2-2-3"
-        expected_image_version = "composer-2.0.8-airflow-2.2.3"
+        image_version_in_container = "composer-2.0.8-airflow-2.2.3"
+        expected_image_version = "composer-2.0.8-airflow-2.2.30"
         tag = f"container-name:{image_version_in_container}"
         env = mock.Mock()
         env.image_version = image_version_in_config

@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,4 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "0.10.1"
+set -ex
+
+readonly PRE_COMMIT_VERSION="4.2.0"
+
+pyenv install --skip-existing 3.11.5
+pyenv global 3.11.5
+pip install pre-commit==$PRE_COMMIT_VERSION
+
+git config --global --add safe.directory /tmpfs/src/git/composer-local-development
+cd git/composer-local-development
+FILES=$(git diff --diff-filter=AM --name-only HEAD~1 HEAD)
+echo "Running pre-commit on the following files:"
+echo "$FILES"
+echo "$FILES" | xargs pre-commit run \
+ --config=.pre-commit-config.yaml --show-diff-on-failure \
+ --files

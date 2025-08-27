@@ -14,7 +14,7 @@
 
 import logging
 import pathlib
-
+import shutil
 from typing import List, Optional
 
 from composer_local_dev import console, constants, errors, utils
@@ -190,7 +190,10 @@ def fix_file_permissions(
     make_file_readable_and_executable(entrypoint)
     make_file_readable_and_executable(run)
     make_file_writeable(requirements)
-    make_file_writeable(db_path)
+    if db_path.is_dir():
+        make_file_readable_and_executable(db_path)
+    else:
+        make_file_writeable(db_path)
 
 
 def make_file_readable_and_executable(file_path: pathlib.Path) -> None:
@@ -232,8 +235,10 @@ def create_empty_file(path: pathlib.Path, skip_if_exist: bool = True):
         pass
 
 
-def create_empty_folder(path: pathlib.Path, parents: bool = True, exist_ok: bool = True):
-    return path.mkdir(parents=parents, exist_ok=exist_ok)
+def create_empty_folder(path: pathlib.Path, delete_if_exist: bool = False):
+    if delete_if_exist and path.exists():
+        shutil.rmtree(path)
+    return path.mkdir(parents=True, exist_ok=True)
 
 
 def assert_dag_path_exists(path: str) -> None:

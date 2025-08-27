@@ -24,9 +24,9 @@ release_status = (
     "Development Status :: 4 - Beta"  # see https://pypi.org/classifiers/
 )
 dependencies = [
-    "click>=7.0",
-    "docker==7.*",
-    "google-auth==2.27.*",
+    "click>=7.0,<8.2",
+    "docker>=7.0.0",
+    "google-auth>=2.27.0",
     "google-cloud-orchestration-airflow>=1.2.0",
     "google-cloud-artifact-registry>=1.2.0",
     "rich_click==1.4.0",
@@ -81,7 +81,9 @@ setuptools.setup(
     python_requires=">=3.9,<3.12",
     install_requires=dependencies,
     extras_require=extras,
-    package_data={"": ["docker_files/entrypoint.sh", "docker_files/run_as_user.sh"]},
+    package_data={
+        "": ["docker_files/entrypoint.sh", "docker_files/run_as_user.sh"]
+    },
     zip_safe=False,
     entry_points={
         "console_scripts": "{name}={module_name}.__main__:cli".format(

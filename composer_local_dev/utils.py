@@ -187,17 +187,16 @@ def get_airflow_composer_versions(image_version: str) -> Tuple[str, str]:
     Get airflow and composer versions from image_version.
 
     Args:
-        image_version: Image version in format of 'composer-x.y.z-airflow-a.b.c'
+        image_version: Image version in format of 'composer-(2.b.c|3)-airflow-x.y.z[-build.w]'
 
     Returns:
-        airflow_v: Airflow version (in x-y-z format).
-        composer_v: Composer version (in a.b.c format).
+        airflow_v: Airflow version (in x.y.z[-build.w] format).
+        composer_v: Composer version (in (2.b.c|3) format).
     """
     version_match = re.match(constants.IMAGE_VERSION_PATTERN, image_version)
     if not version_match:
         raise errors.ComposerCliError(constants.INVALID_IMAGE_VERSION_ERROR)
     composer_v, airflow_v = version_match.group(1), version_match.group(2)
-    airflow_v = airflow_v.replace(".", "-")
     return airflow_v, composer_v
 
 
@@ -211,6 +210,9 @@ def get_image_version_tag(airflow_v: str, composer_v: str) -> str:
     Returns Composer image version tag created from
     Airflow and Composer versions.
     """
+    # In Composer 2, image tags have Airflow version dashified
+    if composer_v != "3":
+        airflow_v = airflow_v.replace(".", "-")
     return f"composer-{composer_v}-airflow-{airflow_v}"
 
 
@@ -225,13 +227,28 @@ def get_environment_status_table(envs_status: List) -> rich.table.Table:
 
 
 def filter_image_versions(image_versions: List) -> List:
-    """
-    Filter out Composer 1 versions out of list of image versions.
-    """
+    """Filter out Composer 1 versions and Composer 3 with no image tags"""
+
+    def _supported_image_version(image_version):
+        if image_version.startswith("composer-1"):
+            return False
+        if image_version.startswith("composer-2"):
+            return True
+        if image_version.startswith("composer-3"):
+            airflow, build = image_version.split("airflow-")[1].split("-build.")
+            airflow_version_arr = list(map(int, airflow.split(".")))
+            if airflow_version_arr >= [2, 10, 5]:
+                return True
+            if airflow_version_arr == [2, 10, 2]:
+                return int(build) >= 13
+            if airflow_version_arr == [2, 9, 3]:
+                return int(build) >= 20
+        return False
+
     return [
         version
         for version in image_versions
-        if not version.image_version_id.startswith("composer-1")
+        if _supported_image_version(version.image_version_id)
     ]
 
 

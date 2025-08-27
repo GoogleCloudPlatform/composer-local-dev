@@ -31,8 +31,8 @@ init_airflow() {
       $run_as_user /var/local/setup_python_command.sh
   fi
 
-  $run_as_user pip3 install --upgrade -r composer_requirements.txt
-  $run_as_user pip3 check
+  sudo pip3 install --upgrade -r composer_requirements.txt
+  sudo pip3 check
 
   airflow_version=$(${run_as_user} airflow version | grep -o "^[0-9\.]*")
 
@@ -77,6 +77,8 @@ create_user() {
 main() {
   sudo chown airflow:airflow airflow
 
+  sudo chmod +x $run_as_user
+
   if [ "${COMPOSER_CONTAINER_RUN_AS_HOST_USER}" = "True" ]; then
     # Do not recreate user if it already exists
     create_user "${COMPOSER_HOST_USER_NAME}" "${COMPOSER_HOST_USER_ID}" || true
@@ -87,6 +89,11 @@ main() {
   fi
 
   init_airflow
+
+  if [ ${AIRFLOW__SCHEDULER__STANDALONE_DAG_PROCESSOR} = "True" ]; then
+    $run_as_user airflow dag-processor &
+  fi
+
   $run_as_user airflow scheduler &
   $run_as_user airflow triggerer &
   exec $run_as_user airflow webserver
