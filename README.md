@@ -55,6 +55,10 @@ deployed Cloud Composer images for production purposes.
     `airflow triggerer` was released in Airflow 2.2.0 and thus won't
     work with older versions.
 
+- You can access the host machine services via `host.docker.internal`
+    instead of `localhost`. For more information please go to
+    [Interaction with other service on the host machine](#interaction-with-other-service-on-the-host-machine)
+
 ## Google Cloud documentation page
 
 See [Google Cloud documentation][1] for more information about using Composer
@@ -241,6 +245,21 @@ exporting `KUBECONFIG` environment variable before starting environment.
 ```bash
 export KUBECONFIG=~/.kube/config
 ```
+
+## Interaction with other service on the host machine
+
+Please note that the `localhost` in composer environment is pointing the container itself, not the host machine
+due to how network works on docker containers. For convenience, we configure the container's network to access
+the machine via `host.docker.internal` domain alias. Here are some example;
+
+- for `Redis` you can use `host.docker.internal:6379` instead of
+  `localhost:6379` assuming the `Redis` is running on port `6379`.
+- for `PostgreSQL` you can use `host.docker.internal:25432` instead of
+  `localhost:25432` assuming `PostgreSQL` is running on port `25432`.
+- or any other service by following this pattern: `host.docker.internal:<PORT>`
+
+> If you are running your target service inside another docker container
+> make sure that the port is also exposed to the host machine.
 
 ## Start a local Airflow environment
 

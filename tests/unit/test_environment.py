@@ -693,6 +693,7 @@ class TestEnvironment:
             ports=ports,
             mem_limit=constants.DOCKER_CONTAINER_MEMORY_LIMIT,
             detach=True,
+            extra_hosts={"host.docker.internal": "host-gateway"},
         )
 
     @mock.patch("composer_local_dev.utils.resolve_gcloud_config_path")

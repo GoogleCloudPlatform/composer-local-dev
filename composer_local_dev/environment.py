@@ -759,6 +759,7 @@ class Environment:
                 ports=ports,
                 mem_limit=memory_limit,
                 detach=True,
+                extra_hosts={"host.docker.internal": "host-gateway"},
             )
         except docker_errors.ImageNotFound:
             LOG.debug(
@@ -775,6 +776,7 @@ class Environment:
                 ports=ports,
                 mem_limit=memory_limit,
                 detach=True,
+                extra_hosts={"host.docker.internal": "host-gateway"},
             )
         except docker_errors.APIError as err:
             error = f"Failed to create container with an error: {err}"
