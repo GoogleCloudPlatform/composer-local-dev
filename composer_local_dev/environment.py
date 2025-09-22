@@ -943,7 +943,7 @@ class Environment:
         ):
             self.assert_container_is_active(self.container_name)
             for line in self.get_container(self.container_name).logs(
-                stream=True, timestamps=True
+                stream=True, timestamps=True, since=start_time
             ):
                 line = line.decode("utf-8").strip()
                 console.get_console().print(line)
