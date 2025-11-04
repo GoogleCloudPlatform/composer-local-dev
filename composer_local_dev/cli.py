@@ -47,7 +47,7 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Environment options",
-            "options": ["--web-server-port", "--dags-path"],
+            "options": ["--web-server-port", "--dags-path", "--plugins-path"],
         },
     ],
     "composer-dev start": [COMMON_OPTIONS],
@@ -249,6 +249,7 @@ def create(
     debug: bool,
     database_engine: str,
     dags_path: Optional[pathlib.Path] = None,
+    plugins_path: Optional[pathlib.Path] = None,
 ):
     """
     Create local Composer development environment.
@@ -302,6 +303,7 @@ def create(
             env_dir_path=env_dir,
             web_server_port=web_server_port,
             dags_path=dags_path,
+            plugins_path=plugins_path,
             database_engine=database_engine,
         )
     else:
@@ -312,6 +314,7 @@ def create(
             env_dir_path=env_dir,
             port=web_server_port,
             dags_path=dags_path,
+            plugins_path=plugins_path,
             database_engine=database_engine,
         )
     env.create()

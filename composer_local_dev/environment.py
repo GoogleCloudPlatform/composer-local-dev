@@ -47,6 +47,7 @@ def timeout_occurred(start_time):
 def get_image_mounts(
     env_path: pathlib.Path,
     dags_path: str,
+    plugins_path: str,
     gcloud_config_path: str,
     kube_config_path: Optional[str],
     requirements: pathlib.Path,
@@ -65,7 +66,7 @@ def get_image_mounts(
     mount_paths = {
         requirements: "composer_requirements.txt",
         dags_path: "gcs/dags/",
-        env_path / "plugins": "gcs/plugins/",
+        plugins_path: "gcs/plugins/",
         env_path / "data": "gcs/data/",
         gcloud_config_path: ".config/gcloud",
         **database_mounts,
@@ -353,6 +354,11 @@ class EnvironmentConfig:
         self.image_version = self.get_str_param("composer_image_version")
         self.location = self.get_str_param("composer_location")
         self.dags_path = self.get_str_param("dags_path")
+        # Backwards compatibility: don't fail on missing plugins_path
+        if "plugins_path" in self.config:
+            self.plugins_path = self.get_str_param("plugins_path")
+        else:
+            self.plugins_path = files.resolve_plugins_path(None, env_dir_path)
         self.dag_dir_list_interval = self.parse_int_param(
             "dag_dir_list_interval", allowed_range=(0,)
         )
@@ -436,6 +442,7 @@ class Environment:
         image_version: str,
         location: str,
         dags_path: Optional[str],
+        plugins_path: Optional[str] = None,
         dag_dir_list_interval: int = 10,
         database_engine: str = constants.DatabaseEngine.postgresql,
         port: Optional[int] = None,
@@ -460,6 +467,9 @@ class Environment:
         self.airflow_db_folder = self.env_dir_path / "postgresql_data"
         self.location = location
         self.dags_path = files.resolve_dags_path(dags_path, env_dir_path)
+        self.plugins_path = files.resolve_plugins_path(
+            plugins_path, env_dir_path
+        )
         self.dag_dir_list_interval = dag_dir_list_interval
         self.database_engine = database_engine
         self.is_database_sqlite3 = (
@@ -534,6 +544,7 @@ class Environment:
             image_version=config.image_version,
             location=config.location,
             dags_path=config.dags_path,
+            plugins_path=config.plugins_path,
             dag_dir_list_interval=config.dag_dir_list_interval,
             port=config.port,
             database_engine=config.database_engine,
@@ -549,6 +560,7 @@ class Environment:
         env_dir_path: pathlib.Path,
         web_server_port: Optional[int],
         dags_path: Optional[str],
+        plugins_path: Optional[str],
         database_engine: str,
     ):
         """
@@ -571,6 +583,7 @@ class Environment:
             image_version=software_config.image_version,
             location=location,
             dags_path=dags_path,
+            plugins_path=plugins_path,
             dag_dir_list_interval=10,
             port=web_server_port,
             pypi_packages=pypi_packages,
@@ -652,6 +665,7 @@ class Environment:
             "composer_location": self.location,
             "composer_project_id": self.project_id,
             "dags_path": self.dags_path,
+            "plugins_path": self.plugins_path,
             "dag_dir_list_interval": int(self.dag_dir_list_interval),
             "port": int(self.port),
             "database_engine": self.database_engine,
@@ -727,6 +741,7 @@ class Environment:
         mounts = get_image_mounts(
             self.env_dir_path,
             self.dags_path,
+            self.plugins_path,
             utils.resolve_gcloud_config_path(),
             utils.resolve_kube_config_path(),
             self.requirements_file,
@@ -803,6 +818,7 @@ class Environment:
         mounts = get_image_mounts(
             self.env_dir_path,
             self.dags_path,
+            self.plugins_path,
             utils.resolve_gcloud_config_path(),
             utils.resolve_kube_config_path(),
             self.requirements_file,
@@ -886,7 +902,9 @@ class Environment:
         """
         assert_image_exists(self.image_version)
         self.assert_valid_environment_options()
-        files.create_environment_directories(self.env_dir_path, self.dags_path)
+        files.create_environment_directories(
+            self.env_dir_path, self.dags_path, self.plugins_path
+        )
         self.create_database_files(skip_if_exist=False)
         self.write_environment_config_to_config_file()
         self.pypi_packages_to_requirements()
@@ -899,6 +917,7 @@ class Environment:
                 requirements_path=self.env_dir_path / "requirements.txt",
                 env_variables_path=self.env_dir_path / "variables.env",
                 dags_path=self.dags_path,
+                plugins_path=self.plugins_path,
             )
         )
 
@@ -1019,6 +1038,7 @@ class Environment:
         assert_image_exists(self.image_version)
         self.assert_requirements_exist()
         files.assert_dag_path_exists(self.dags_path)
+        files.assert_plugins_path_exists(self.plugins_path)
 
         self.create_database_files()
         db_path = (
@@ -1067,6 +1087,7 @@ class Environment:
             constants.START_MESSAGE.format(
                 env_name=self.name,
                 dags_path=self.dags_path,
+                plugins_path=self.plugins_path,
                 port=self.port,
             )
         )
@@ -1191,6 +1212,7 @@ class Environment:
                 web_url=web_url,
                 image_version=self.image_version,
                 dags_path=self.dags_path,
+                plugins_path=self.plugins_path,
                 gcloud_path=utils.resolve_gcloud_config_path(),
             )
             + (

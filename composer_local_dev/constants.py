@@ -82,6 +82,7 @@ Airflow overrides and environment variables are stored in {env_variables_path}.
 You can put your plugins and data to plugins and data directories 
 available at {env_dir}.
 DAGs can be updated at {dags_path} path.
+Plugins can be updated at {plugins_path} path.
 
 To apply changes done to environment config and PyPI dependencies 
 restart environment using following command:
@@ -92,7 +93,8 @@ START_MESSAGE = """
 Started [bold]{env_name}[/] environment.
 
 1. You can put your DAGs in {dags_path}
-2. Access Airflow at http://localhost:{port}
+2. You can put your plugins in {plugins_path}
+3. Access Airflow at http://localhost:{port}
 """
 # TODO: Fill source environment info
 DESCRIBE_ENV_MESSAGE = """
@@ -100,6 +102,7 @@ Composer [bold]{name}[/] environment is in state: {state}.
 {web_url}
 Image version: {image_version}
 Dags directory: {dags_path}.
+Plugins directory: {plugins_path}.
 The environment is using credentials from gcloud located at {gcloud_path}.
 """
 KUBECONFIG_PATH_MESSAGE = """
@@ -120,15 +123,24 @@ IMAGE_TAG_PERMISSION_DENIED_WARN = (
     "Received permission denied when checking "
     "image existence for {image_tag}"
 )
+ADD_DEBUG_ON_ERROR_INFO = "\n\nTo print debug messages please add --debug flag."
 CREATING_DAGS_PATH_WARN = (
     "Dags path '{dags_path}' does not exist. It will be created."
 )
 DAGS_PATH_NOT_PROVIDED_WARN = (
     "No dags directory provided, using default dags directory."
 )
-ADD_DEBUG_ON_ERROR_INFO = "\n\nTo print debug messages please add --debug flag."
 DAGS_PATH_NOT_EXISTS_ERROR = (
     "Dags path does not exist or is not a directory: {dags_path}"
+)
+CREATING_PLUGINS_PATH_WARN = (
+    "Plugins path '{plugins_path}' does not exist. It will be created."
+)
+PLUGINS_PATH_NOT_PROVIDED_WARN = (
+    "No plugins directory provided, using default plugins directory."
+)
+PLUGINS_PATH_NOT_EXISTS_ERROR = (
+    "Plugins path does not exist or is not a directory: {plugins_path}"
 )
 FAILED_TO_GET_DOCKER_PORT_WARN = (
     "Failed to retrieve used port from the Docker daemon, "

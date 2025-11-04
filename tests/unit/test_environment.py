@@ -33,7 +33,8 @@ TEST_DATA_DIR = pathlib.Path(__file__).parent.parent / "test_data"
 @pytest.fixture
 @mock.patch("composer_local_dev.environment.docker.from_env")
 @mock.patch("composer_local_dev.environment.files.resolve_dags_path")
-def default_env(mocked_docker, mocked_dags, tmp_path):
+@mock.patch("composer_local_dev.environment.files.resolve_plugins_path")
+def default_env(mocked_docker, mocked_dags, mocked_plugins, tmp_path):
     env_dir_path = tmp_path / ".compose" / "my_env"
     env = environment.Environment(
         env_dir_path=env_dir_path,
@@ -41,6 +42,7 @@ def default_env(mocked_docker, mocked_dags, tmp_path):
         image_version="composer-2.0.8-airflow-2.2.3",
         location="location",
         dags_path=str(pathlib.Path("path")),
+        plugins_path=str(pathlib.Path("path")),
         dag_dir_list_interval=10,
     )
     return env
@@ -49,7 +51,10 @@ def default_env(mocked_docker, mocked_dags, tmp_path):
 @pytest.fixture
 @mock.patch("composer_local_dev.environment.docker.from_env")
 @mock.patch("composer_local_dev.environment.files.resolve_dags_path")
-def default_env_postgresql(mocked_docker, mocked_dags, tmp_path):
+@mock.patch("composer_local_dev.environment.files.resolve_plugins_path")
+def default_env_postgresql(
+    mocked_docker, mocked_dags, mocked_plugins, tmp_path
+):
     env_dir_path = tmp_path / ".compose" / "my_env"
     env = environment.Environment(
         env_dir_path=env_dir_path,
@@ -57,6 +62,7 @@ def default_env_postgresql(mocked_docker, mocked_dags, tmp_path):
         image_version="composer-2.0.8-airflow-2.2.3",
         location="location",
         dags_path=str(pathlib.Path("path")),
+        plugins_path=str(pathlib.Path("path")),
         dag_dir_list_interval=10,
         database_engine=constants.DatabaseEngine.postgresql,
     )
@@ -215,6 +221,7 @@ class TestEnvironment:
             pathlib.Path("composer", "env_dir"),
             8082,
             str(pathlib.Path("dags")),
+            str(pathlib.Path("plugins")),
             database_engine=db_engine,
         )
         expected_env = environment.Environment(
@@ -223,6 +230,7 @@ class TestEnvironment:
             image_version=image_version,
             location="us-central1",
             dags_path=str(pathlib.Path("dags")),
+            plugins_path=str(pathlib.Path("plugins")),
             dag_dir_list_interval=10,
             port=8082,
             database_engine=db_engine,
@@ -269,6 +277,7 @@ class TestEnvironment:
             pathlib.Path("composer", "env_name"),
             None,
             str(pathlib.Path("dags", "folder")),
+            str(pathlib.Path("plugins", "folder")),
             database_engine=db_engine,
         )
         expected_env = environment.Environment(
@@ -277,6 +286,7 @@ class TestEnvironment:
             image_version=image_version,
             location="eu-west",
             dags_path=str(pathlib.Path("dags", "folder")),
+            plugins_path=str(pathlib.Path("plugins", "folder")),
             dag_dir_list_interval=10,
             port=8080,
             pypi_packages=packages,
@@ -333,6 +343,7 @@ class TestEnvironment:
             pathlib.Path("composer", "env_name"),
             None,
             str(pathlib.Path("dags", "folder")),
+            str(pathlib.Path("plugins", "folder")),
             database_engine=db_engine,
         )
         expected_env = environment.Environment(
@@ -341,6 +352,7 @@ class TestEnvironment:
             image_version=image_version,
             location="eu-west",
             dags_path=str(pathlib.Path("dags", "folder")),
+            plugins_path=str(pathlib.Path("plugins", "folder")),
             dag_dir_list_interval=10,
             port=8080,
             pypi_packages={},
@@ -387,6 +399,7 @@ class TestEnvironment:
             pathlib.Path("composer", "env_name"),
             None,
             str(pathlib.Path("dags", "folder")),
+            str(pathlib.Path("plugins", "folder")),
             database_engine=constants.DatabaseEngine.sqlite3,
         )
         expected_env = environment.Environment(
@@ -395,6 +408,7 @@ class TestEnvironment:
             image_version=image_version,
             location="eu-west",
             dags_path=str(pathlib.Path("dags", "folder")),
+            plugins_path=str(pathlib.Path("plugins", "folder")),
             dag_dir_list_interval=10,
             port=8080,
             pypi_packages={},
@@ -733,6 +747,7 @@ class TestEnvironment:
         "container_exists, create_container", [(False, True), (True, False)]
     )
     @mock.patch("composer_local_dev.files.assert_dag_path_exists")
+    @mock.patch("composer_local_dev.files.assert_plugins_path_exists")
     @mock.patch("composer_local_dev.environment.assert_image_exists")
     @mock.patch("composer_local_dev.environment.files.create_empty_file")
     @mock.patch("composer_local_dev.environment.files.fix_file_permissions")
@@ -741,6 +756,7 @@ class TestEnvironment:
         self,
         mocked_assert,
         mocked_dag_assert,
+        mocked_plugins_assert,
         mocked_create,
         mocked_fix,
         mocked_line_fix,
@@ -770,6 +786,7 @@ class TestEnvironment:
         default_env.wait_for_start.assert_called_once()
 
     @mock.patch("composer_local_dev.files.assert_dag_path_exists")
+    @mock.patch("composer_local_dev.files.assert_plugins_path_exists")
     @mock.patch("composer_local_dev.environment.assert_image_exists")
     @mock.patch("composer_local_dev.environment.files.create_empty_file")
     @mock.patch("composer_local_dev.environment.files.fix_file_permissions")
@@ -778,6 +795,7 @@ class TestEnvironment:
         self,
         mocked_assert,
         mocked_dag_assert,
+        mocked_plugins_assert,
         mocked_create,
         mocked_fix,
         mocked_line_endings,
@@ -796,6 +814,7 @@ class TestEnvironment:
             default_env.start()
 
     @mock.patch("composer_local_dev.files.assert_dag_path_exists")
+    @mock.patch("composer_local_dev.files.assert_plugins_path_exists")
     @mock.patch("composer_local_dev.environment.assert_image_exists")
     @mock.patch("composer_local_dev.environment.files.create_empty_file")
     @mock.patch("composer_local_dev.environment.files.fix_file_permissions")
@@ -804,6 +823,7 @@ class TestEnvironment:
         self,
         mocked_assert,
         mocked_dag_assert,
+        mocked_plugins_assert,
         mocked_create,
         mocked_fix,
         mocked_line_endings,
@@ -842,6 +862,7 @@ class TestEnvironment:
             web_url=web_url,
             image_version=default_env.image_version,
             dags_path=default_env.dags_path,
+            plugins_path=default_env.plugins_path,
             gcloud_path="path",
         )
         kub_desc = constants.KUBECONFIG_PATH_MESSAGE.format(
@@ -870,6 +891,7 @@ class TestEnvironment:
             web_url=web_url,
             image_version=default_env.image_version,
             dags_path=default_env.dags_path,
+            plugins_path=default_env.plugins_path,
             gcloud_path="path",
             kube_config_path="path/kube",
         )
@@ -963,6 +985,7 @@ class TestEnvironment:
         default_env.pull_image.assert_called_once()
 
     @mock.patch("composer_local_dev.files.assert_dag_path_exists")
+    @mock.patch("composer_local_dev.files.assert_plugins_path_exists")
     @mock.patch("composer_local_dev.environment.assert_image_exists")
     @mock.patch("composer_local_dev.environment.files.create_empty_file")
     @mock.patch("composer_local_dev.environment.files.fix_file_permissions")
@@ -971,6 +994,7 @@ class TestEnvironment:
         self,
         mocked_assert,
         mocked_dag_assert,
+        mocked_plugins_assert,
         mocked_create,
         mocked_fix,
         mocked_line_fix,
@@ -1162,6 +1186,7 @@ class TestLogs:
 def test_get_image_mounts(mocked_mount):
     path = pathlib.Path("path/dir")
     dags_path = "path/to/dags"
+    plugins_path = "path/to/plugins"
     gcloud_path = "config/path"
     kubeconfig_path = "/kube"
     requirements = path / "requirements.txt"
@@ -1175,10 +1200,12 @@ def test_get_image_mounts(mocked_mount):
             type="bind",
         ),
         mock.call(
-            source=dags_path, target="/home/airflow/gcs/dags/", type="bind"
+            source=dags_path,
+            target="/home/airflow/gcs/dags/",
+            type="bind",
         ),
         mock.call(
-            source=str(path / "plugins"),
+            source=plugins_path,
             target="/home/airflow/gcs/plugins/",
             type="bind",
         ),
@@ -1216,6 +1243,7 @@ def test_get_image_mounts(mocked_mount):
     actual_mounts = environment.get_image_mounts(
         path,
         dags_path,
+        plugins_path,
         gcloud_path,
         kubeconfig_path,
         requirements,
@@ -1347,6 +1375,7 @@ class TestEnvironmentConfig:
             "composer_location": "us-central1",
             "composer_project_id": "project",
             "dags_path": "/dags/",
+            "plugins_path": "/plugins/",
             "dag_dir_list_interval": 10,
             "port": 8080,
         }
