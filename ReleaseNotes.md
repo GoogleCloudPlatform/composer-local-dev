@@ -1,5 +1,22 @@
 # Release notes
 
+## 0.10.2
+
+### New
+
+- Add extra_hosts section to access host machine from the composer container via `host.docker.internal`. Please refer to
+"Interaction with other service on the host machine" in the README file.
+- feat: Enable supplying and mounting plugins path (#70)
+
+### Fixes
+
+- use since in logs() when waiting for the env to start (#109)
+- install python packages system-wide (#105)
+
+### Changes
+
+- relax google-auth constraints (#101)
+
 ## 0.10.1
 
 ### Fixes
