@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Copyright 2022 Google LLC
 #
@@ -16,7 +16,21 @@
 
 set -xe
 
+FAST_API_DIR=/opt/python3.11/lib/python3.11/site-packages/airflow/api_fastapi/
+
 run_as_user=/home/airflow/run_as_user.sh
+
+get_airflow_version() {
+  airflow_version=$(${run_as_user} airflow version | grep -o "^[0-9\.]*")
+  original_ifs="$IFS"
+  IFS='.'
+  set -- $airflow_version
+  major="$1"
+  minor="$2"
+  patch="$3"
+  IFS="$original_ifs"
+  echo "$major" "$minor" "$patch"
+}
 
 init_airflow() {
 
@@ -34,25 +48,23 @@ init_airflow() {
   sudo pip3 install --upgrade -r composer_requirements.txt
   sudo pip3 check
 
-  airflow_version=$(${run_as_user} airflow version | grep -o "^[0-9\.]*")
+  airflow_version=($(get_airflow_version))
+  major="${airflow_version[0]}"
+  minor="${airflow_version[1]}"
 
-  original_ifs="$IFS"
-  IFS='.'
-  set -- $airflow_version
-  major="$1"
-  minor="$2"
-  patch="$3"
-  IFS="$original_ifs"
+  if [ "$major" -eq "3" ]; then
+    $run_as_user cp -r /etc/airflow/config /home/airflow/airflow/config
+  else
+    # Allow non-authenticated access to UI for Airflow 2.*
+    if ! grep -Fxq "AUTH_ROLE_PUBLIC = 'Admin'" /home/airflow/airflow/webserver_config.py; then
+      $run_as_user sh -c "echo \"AUTH_ROLE_PUBLIC = 'Admin'\" >> /home/airflow/airflow/webserver_config.py"
+    fi
+  fi
 
   if [ "$major" -eq "2" ] && [ "$minor" -lt "7" ]; then
     $run_as_user airflow db init
   else
     $run_as_user airflow db migrate
-  fi
-
-  # Allow non-authenticated access to UI for Airflow 2.*
-  if ! grep -Fxq "AUTH_ROLE_PUBLIC = 'Admin'" /home/airflow/airflow/webserver_config.py; then
-    $run_as_user sh -c "echo \"AUTH_ROLE_PUBLIC = 'Admin'\" >> /home/airflow/airflow/webserver_config.py"
   fi
 }
 
@@ -72,35 +84,51 @@ create_user() {
   echo "Updating the owner of the dirs owned by ${old_user_name}(${old_user_id}) to ${user_name}(${user_id})"
   sudo find /home -user "${old_user_id}" -exec chown -h "${user_name}" {} \;
   sudo find /var -user "${old_user_id}" -exec chown -h "${user_name}" {} \;
+  if [ -d "$FAST_API_DIR" ]; then
+  sudo find $FAST_API_DIR -user "${old_user_id}" \
+    -exec chown -h -R "${user_name}" {} \;
+  fi
 }
 
 main() {
   sudo chown airflow:airflow airflow
-
   sudo chmod +x $run_as_user
 
   if [[ -n "$PGDATA" ]]; then
     sudo chmod -R o+xrw $PGDATA
   fi
 
-  if [ "${COMPOSER_CONTAINER_RUN_AS_HOST_USER}" = "True" ]; then
-    # Do not recreate user if it already exists
-    create_user "${COMPOSER_HOST_USER_NAME}" "${COMPOSER_HOST_USER_ID}" || true
+  # In Airflow 3, the airflow process needs access to create files in FAST_API_DIR
+  # when using the SimpleAuthManager
+  if [ -d "$FAST_API_DIR" ]; then
+    sudo chown -R airflow:airflow "$FAST_API_DIR"
+  fi
 
+  if [ "${COMPOSER_CONTAINER_RUN_AS_HOST_USER}" = "True" ]; then
+    create_user "${COMPOSER_HOST_USER_NAME}" "${COMPOSER_HOST_USER_ID}" || true
     echo "Running Airflow as user ${COMPOSER_HOST_USER_NAME}(${COMPOSER_HOST_USER_ID})"
   else
     echo "Running Airflow as user airflow(999)"
   fi
 
-  init_airflow
+  airflow_version=($(get_airflow_version))
+  major="${airflow_version[0]}"
 
-  if [ ${AIRFLOW__SCHEDULER__STANDALONE_DAG_PROCESSOR} = "True" ]; then
-    $run_as_user airflow dag-processor &
-  fi
+  init_airflow
 
   $run_as_user airflow scheduler &
   $run_as_user airflow triggerer &
-  exec $run_as_user airflow webserver
+
+  if [[ "$major" -eq "3" || ${AIRFLOW__SCHEDULER__STANDALONE_DAG_PROCESSOR} = "True" ]]; then
+    $run_as_user airflow dag-processor &
+  fi
+
+  if [ "$major" -eq "3" ]; then
+    $run_as_user airflow api-server --apps execution -p 8081 --workers 1 &
+    exec $run_as_user airflow api-server --apps core
+  else
+    exec $run_as_user airflow webserver
+  fi
 }
 
 main "$@"

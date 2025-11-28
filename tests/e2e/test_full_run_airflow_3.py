@@ -11,28 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pathlib
 
-from datetime import datetime
+import pytest
 
-from airflow import DAG
-
-# pylint: disable=g-import-not-at-top
-try:
-    from airflow.providers.standard.operators.bash import BashOperator
-except ImportError:
-    from airflow.operators.bash import BashOperator
-# pylint: enable=g-import-not-at-top
-
-DAG_ID = "example_dag"
-RANDOM_FILE_NAME = "random.bin"
+from tests.e2e import assert_example_dag_listed, run_app
 
 
-with DAG(
-    dag_id=DAG_ID,
-    schedule="@once",
-    start_date=datetime(2021, 1, 1),
-) as dag:
-    op = BashOperator(
-        task_id="task",
-        bash_command=f"cat /dev/urandom | head -c $((1 * 1024 * 1024)) > {RANDOM_FILE_NAME}",
+@pytest.mark.e2e
+def test_full_run_airflow_3(
+    composer_image_version_airflow_3, valid_project_id, env_name
+):
+    dags_dir = pathlib.Path(__file__).parent / "example_dag"
+    run_app(
+        f"create --from-image-version {composer_image_version_airflow_3} "
+        f"-p {valid_project_id} --dags-path {dags_dir} {env_name}"
     )
+    run_app(f"start {env_name}")
+    assert_example_dag_listed()
+    run_app(f"stop {env_name}")

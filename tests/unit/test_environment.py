@@ -694,8 +694,12 @@ class TestEnvironment:
             "AIRFLOW__SCHEDULER__STANDALONE_DAG_PROCESSOR": "False",
             "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
             "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
+            "COMPOSER_LOCAL_DEV": "True",
             "COMPOSER_IMAGE_VERSION": default_env.image_version,
             "COMPOSER_PYTHON_VERSION": "3",
+            "GCP_PROJECT": "test-project",
+            "COMPOSER_LOCATION": "test-location",
+            "COMPOSER_ENVIRONMENT": "my_env",
             "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
             "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
             "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
@@ -713,7 +717,7 @@ class TestEnvironment:
         default_env.docker_client.containers.create.assert_called_with(
             image=default_env.image_tag,
             name="composer-local-dev-my_env",
-            entrypoint="sh /home/airflow/entrypoint.sh",
+            entrypoint="bash /home/airflow/entrypoint.sh",
             environment=environment,
             mounts=mocked_mounts(),
             ports=ports,
@@ -1059,8 +1063,12 @@ class TestEnvironment:
             "AIRFLOW__SCHEDULER__STANDALONE_DAG_PROCESSOR": "True",
             "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
             "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
+            "COMPOSER_LOCAL_DEV": "True",
             "COMPOSER_IMAGE_VERSION": "composer-3-airflow-2.10.5-build.0",
             "COMPOSER_PYTHON_VERSION": "3",
+            "GCP_PROJECT": "test-project",
+            "COMPOSER_LOCATION": "test-location",
+            "COMPOSER_ENVIRONMENT": "env_name",
             "AIRFLOW_HOME": "/home/airflow/airflow",
             "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
             "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
@@ -1077,6 +1085,61 @@ class TestEnvironment:
             env_dir_path=pathlib.Path("composer", "env_name"),
             project_id=project_id,
             image_version="composer-3-airflow-2.10.5-build.0",
+            location="eu-west",
+            dags_path=str(pathlib.Path("dags", "folder")),
+            dag_dir_list_interval=dag_interval,
+            port=8080,
+            pypi_packages={},
+            environment_vars=None,
+            database_engine=constants.DatabaseEngine.postgresql,
+        )
+        default_vars = env.get_default_environment_variables(db_vars)
+        actual_vars = {**default_vars, **extra_vars}
+        assert expected_vars == actual_vars
+
+    @mock.patch("composer_local_dev.environment.docker.from_env")
+    def test_get_environment_variables_airflow_3(self, mocked_docker):
+        project_id = "123"
+        dag_interval = 105
+        extra_vars = {"VAR_1": "123", "VAR_2": "a"}
+        db_vars = {
+            "PGDATA": "/var/lib/postgresql/data/pgdata",
+            "POSTGRES_USER": "airflow",
+            "POSTGRES_PASSWORD": "airflow",
+        }
+        expected_vars = {
+            "AIRFLOW__API__EXPOSE_CONFIG": "True",
+            "AIRFLOW__CORE__AUTH_MANAGER": "airflow.api_fastapi.auth.managers.simple.simple_auth_manager.SimpleAuthManager",
+            "AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS": "True",
+            "AIRFLOW__CORE__EXECUTION_API_SERVER_URL": "http://localhost:8081/execution/",
+            "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
+            "AIRFLOW__CORE__DATA_FOLDER": "/home/airflow/gcs/data",
+            "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
+            "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
+            "AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL": 105,
+            "AIRFLOW__DAG_PROCESSOR__PARSING_PRE_IMPORT_MODULES": "False",
+            "COMPOSER_LOCAL_DEV": "True",
+            "COMPOSER_IMAGE_VERSION": "composer-3-airflow-3.1.0-build.8",
+            "COMPOSER_PYTHON_VERSION": "3",
+            "GCP_PROJECT": "test-project",
+            "COMPOSER_LOCATION": "test-location",
+            "COMPOSER_ENVIRONMENT": "env_name",
+            "AIRFLOW_HOME": "/home/airflow/airflow",
+            "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
+            "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
+            "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
+            "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": "google-cloud-platform://?"
+            "extra__google_cloud_platform__project=123&"
+            "extra__google_cloud_platform__scope="
+            "https://www.googleapis.com/auth/cloud-platform",
+            **db_vars,
+            **extra_vars,
+        }
+
+        env = environment.Environment(
+            env_dir_path=pathlib.Path("composer", "env_name"),
+            project_id=project_id,
+            image_version="composer-3-airflow-3.1.0-build.8",
             location="eu-west",
             dags_path=str(pathlib.Path("dags", "folder")),
             dag_dir_list_interval=dag_interval,

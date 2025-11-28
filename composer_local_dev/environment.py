@@ -622,22 +622,44 @@ class Environment:
         with open(self.env_dir_path / "variables.env", "w") as fp:
             fp.write(env_vars_lines)
 
+    def get_environment_variables_for_image_version(self) -> Dict:
+        env_vars = {}
+        if "airflow-3" in self.image_version:
+            env_vars.update(
+                {
+                    "AIRFLOW__API__EXPOSE_CONFIG": "True",
+                    "AIRFLOW__CORE__AUTH_MANAGER": "airflow.api_fastapi.auth.managers.simple.simple_auth_manager.SimpleAuthManager",
+                    "AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS": "True",
+                    "AIRFLOW__CORE__EXECUTION_API_SERVER_URL": "http://localhost:8081/execution/",
+                    "AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL": self.dag_dir_list_interval,
+                    "AIRFLOW__DAG_PROCESSOR__PARSING_PRE_IMPORT_MODULES": "False",
+                }
+            )
+        else:
+            env_vars.update(
+                {
+                    "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default",
+                    "AIRFLOW__SCHEDULER__STANDALONE_DAG_PROCESSOR": str(
+                        self.image_version.startswith("composer-3")
+                    ),
+                    "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": self.dag_dir_list_interval,
+                    "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
+                    "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
+                }
+            )
+
+        return env_vars
+
     def get_default_environment_variables(
         self, default_db_variables: Dict[str, str]
     ) -> Dict:
         """Return environment variables that will be set inside container."""
         return {
-            "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default",
             "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
             "AIRFLOW__CORE__DATA_FOLDER": "/home/airflow/gcs/data",
             "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
             "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
-            "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": self.dag_dir_list_interval,
-            "AIRFLOW__SCHEDULER__STANDALONE_DAG_PROCESSOR": str(
-                self.image_version.startswith("composer-3")
-            ),
-            "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
-            "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
+            "COMPOSER_LOCAL_DEV": "True",
             "COMPOSER_IMAGE_VERSION": self.image_version,
             "COMPOSER_PYTHON_VERSION": "3",
             # By default, the container runs as the user `airflow` with UID 999. Set
@@ -652,7 +674,11 @@ class Environment:
                 f"extra__google_cloud_platform__scope="
                 f"https://www.googleapis.com/auth/cloud-platform"
             ),
+            "GCP_PROJECT": "test-project",
+            "COMPOSER_LOCATION": "test-location",
+            "COMPOSER_ENVIRONMENT": self.name,
             **default_db_variables,
+            **self.get_environment_variables_for_image_version(),
         }
 
     def assert_valid_environment_options(self):
@@ -772,7 +798,7 @@ class Environment:
         ports = {
             f"8080/tcp": self.port,
         }
-        entrypoint = f"sh {constants.ENTRYPOINT_PATH}"
+        entrypoint = f"bash {constants.ENTRYPOINT_PATH}"
         memory_limit = constants.DOCKER_CONTAINER_MEMORY_LIMIT
 
         try:
