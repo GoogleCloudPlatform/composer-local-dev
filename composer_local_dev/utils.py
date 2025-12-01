@@ -227,7 +227,7 @@ def get_environment_status_table(envs_status: List) -> rich.table.Table:
 
 
 def filter_image_versions(image_versions: List) -> List:
-    """Filter out Composer 1 versions and Composer 3 with no image tags"""
+    """Filter out Composer 1, Composer 3 with no image tags and Airflow 3"""
 
     def _supported_image_version(image_version):
         if image_version.startswith("composer-1"):
@@ -235,6 +235,8 @@ def filter_image_versions(image_versions: List) -> List:
         if image_version.startswith("composer-2"):
             return True
         if image_version.startswith("composer-3"):
+            if "airflow-3" in image_version:
+                return False
             airflow, build = image_version.split("airflow-")[1].split("-build.")
             airflow_version_arr = list(map(int, airflow.split(".")))
             if airflow_version_arr >= [2, 10, 5]:
@@ -243,6 +245,7 @@ def filter_image_versions(image_versions: List) -> List:
                 return int(build) >= 13
             if airflow_version_arr == [2, 9, 3]:
                 return int(build) >= 20
+
         return False
 
     return [

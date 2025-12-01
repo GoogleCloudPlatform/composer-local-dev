@@ -49,6 +49,12 @@ click.rich_click.OPTION_GROUPS = {
             "name": "Environment options",
             "options": ["--web-server-port", "--dags-path", "--plugins-path"],
         },
+        {
+            "name": "Container Memory and CPUs limit",
+            "options": [
+                "--container-memory-limit", "--container-cpu-limit"
+            ],
+        },
     ],
     "composer-dev start": [COMMON_OPTIONS],
     "composer-dev stop": [COMMON_OPTIONS],
@@ -216,6 +222,18 @@ option_location = click.option(
     show_default="project ID set in Cloud CLI",
     metavar="PROJECT_ID",
 )
+@click.option(
+    "--container-memory-limit",
+    help="Memory limit for the container in MiB. "
+            "If not set, it will be set to 4 GiB.",
+    metavar="MEMORY_LIMIT", 
+)
+@click.option(
+    "--container-cpu-limit",
+    help="CPU limit for the container in cores. "
+            "If not set, it will be set to 2 cores.",
+    metavar="CPU_LIMIT",
+)
 @option_location
 @option_port
 @click.option(
@@ -250,6 +268,8 @@ def create(
     database_engine: str,
     dags_path: Optional[pathlib.Path] = None,
     plugins_path: Optional[pathlib.Path] = None,
+    container_memory_limit: Optional[str] = None,
+    container_cpu_limit: Optional[str] = None,
 ):
     """
     Create local Composer development environment.
@@ -305,6 +325,8 @@ def create(
             dags_path=dags_path,
             plugins_path=plugins_path,
             database_engine=database_engine,
+            memory_limit=container_memory_limit,
+            cpu_count=container_cpu_limit,
         )
     else:
         env = composer_environment.Environment(
@@ -316,6 +338,8 @@ def create(
             dags_path=dags_path,
             plugins_path=plugins_path,
             database_engine=database_engine,
+            memory_limit=container_memory_limit,
+            cpu_count=container_cpu_limit,
         )
     env.create()
 
