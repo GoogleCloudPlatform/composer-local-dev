@@ -226,6 +226,13 @@ option_location = click.option(
     type=click.Path(file_okay=False),
 )
 @click.option(
+    "--plugins-path",
+    help="Path to plugins folder. If it does not exist, it will be created.",
+    show_default="'plugins' directory in the environment directory",
+    metavar="PATH",
+    type=click.Path(file_okay=False),
+)
+@click.option(
     "--database-engine",
     "--database",
     help="Database engine for airflow metadata.",
