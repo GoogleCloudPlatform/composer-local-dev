@@ -226,32 +226,35 @@ def get_environment_status_table(envs_status: List) -> rich.table.Table:
     return table
 
 
+def is_image_version_supported(image_version):
+    """Is the image version supported."""
+    if image_version.startswith("composer-1"):
+        return False
+    if image_version.startswith("composer-2"):
+        return True
+    if image_version.startswith("composer-3"):
+        airflow, build = image_version.split("airflow-")[1].split("-build.")
+        airflow_version_arr = list(map(int, airflow.split(".")))
+        if airflow_version_arr >= [3, 0, 0]:
+            if airflow_version_arr > [3, 1, 0]:
+                return True
+            return airflow_version_arr == [3, 1, 0] and int(build) >= 8
+        if airflow_version_arr >= [2, 10, 5]:
+            return True
+        if airflow_version_arr == [2, 10, 2]:
+            return int(build) >= 13
+        if airflow_version_arr == [2, 9, 3]:
+            return int(build) >= 20
+
+    return False
+
+
 def filter_image_versions(image_versions: List) -> List:
     """Filter out Composer 1, Composer 3 with no image tags and Airflow 3"""
-
-    def _supported_image_version(image_version):
-        if image_version.startswith("composer-1"):
-            return False
-        if image_version.startswith("composer-2"):
-            return True
-        if image_version.startswith("composer-3"):
-            if "airflow-3" in image_version:
-                return False
-            airflow, build = image_version.split("airflow-")[1].split("-build.")
-            airflow_version_arr = list(map(int, airflow.split(".")))
-            if airflow_version_arr >= [2, 10, 5]:
-                return True
-            if airflow_version_arr == [2, 10, 2]:
-                return int(build) >= 13
-            if airflow_version_arr == [2, 9, 3]:
-                return int(build) >= 20
-
-        return False
-
     return [
         version
         for version in image_versions
-        if _supported_image_version(version.image_version_id)
+        if is_image_version_supported(version.image_version_id)
     ]
 
 

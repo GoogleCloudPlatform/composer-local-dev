@@ -41,6 +41,16 @@ class ComposerCliFatalError(Exception):
     pass
 
 
+class ImageNotSupportedError(ComposerCliError):
+    """Composer image not supported."""
+
+    def __init__(self, image_version):
+        msg = constants.IMAGE_VERSION_IS_NOT_SUPPORTED_ERROR.format(
+            image_version=image_version
+        )
+        super().__init__(msg)
+
+
 class ImageNotFoundError(ComposerCliError):
     """Composer image not found."""
 

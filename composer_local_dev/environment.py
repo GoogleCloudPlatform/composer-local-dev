@@ -233,6 +233,17 @@ def get_env_variables(software_config):
     return {k: "" for k, _ in software_config.env_variables.items()}
 
 
+def assert_image_is_supported(image_version: str):
+    """Asserts that image version is supported.
+
+    Raises if the image is not supported.
+    Args:
+        image_version: Image version in format of 'composer-x.y.z-airflow-a.b.c-[build.d]'
+    """
+    if not utils.is_image_version_supported(image_version):
+        raise errors.ImageNotSupportedError(image_version=image_version)
+
+
 def assert_image_exists(image_version: str):
     """Asserts that image version exists.
 
@@ -900,6 +911,7 @@ class Environment:
         and environment configuration will be saved to config.json and
         requirements.txt files.
         """
+        assert_image_is_supported(self.image_version)
         assert_image_exists(self.image_version)
         self.assert_valid_environment_options()
         files.create_environment_directories(
@@ -1035,6 +1047,7 @@ class Environment:
         is already allocated.
         Started environment is polled until Airflow scheduler starts.
         """
+        assert_image_is_supported(self.image_version)
         assert_image_exists(self.image_version)
         self.assert_requirements_exist()
         files.assert_dag_path_exists(self.dags_path)

@@ -144,6 +144,18 @@ class TestEnvironment:
         )
         assert expected_image == parsed_image
 
+    def test_assert_image_is_not_supported(self):
+        image_version = "composer-3-airflow-3.1.0-build.7"
+        with pytest.raises(
+            errors.ImageNotSupportedError,
+            match=re.escape(
+                constants.IMAGE_VERSION_IS_NOT_SUPPORTED_ERROR.format(
+                    image_version=image_version
+                )
+            ),
+        ):
+            environment.assert_image_is_supported(image_version)
+
     @mock.patch("composer_local_dev.environment.artifactregistry_v1")
     def test_assert_image_exists_not_found(self, mocked_artifact):
         mock_client = mock.Mock()

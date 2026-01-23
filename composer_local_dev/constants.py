@@ -223,6 +223,12 @@ INVALID_INT_RANGE_VALUE_ERROR = (
     "{value} is not in the range {allowed_range}."
 )
 INVALID_IMAGE_VERSION_ERROR = "Composer version must match `composer-(2.y.z|3)-airflow-a.b.c[-build.d]` pattern."
+IMAGE_VERSION_IS_NOT_SUPPORTED_ERROR = (
+    "Composer version {image_version} is not supported. Please make sure to "
+    "use existing Cloud Composer version. You can see the list of "
+    "supported versions by running:\n\n"
+    "    $ composer-dev list-available-versions"
+)
 IMAGE_TAG_DOES_NOT_EXIST_ERROR = (
     "Composer version {image_tag} seems not to be valid. Please make sure to "
     "use existing Cloud Composer version. You can see the list of "
