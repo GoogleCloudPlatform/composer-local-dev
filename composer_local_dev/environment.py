@@ -807,6 +807,7 @@ class Environment:
                 mounts=mounts,
                 ports=ports,
                 mem_limit=memory_limit,
+                cpu_count=cpu_count,
                 detach=True,
                 extra_hosts={"host.docker.internal": "host-gateway"},
             )

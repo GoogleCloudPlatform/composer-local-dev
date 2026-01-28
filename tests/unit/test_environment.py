@@ -706,6 +706,7 @@ class TestEnvironment:
             mounts=mocked_mounts(),
             ports=ports,
             mem_limit=constants.DOCKER_CONTAINER_MEMORY_LIMIT,
+            cpu_count=constants.DOCKER_CONTAINER_CPU_COUNT,
             detach=True,
             extra_hosts={"host.docker.internal": "host-gateway"},
         )
