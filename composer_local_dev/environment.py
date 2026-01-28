@@ -354,6 +354,9 @@ class EnvironmentConfig:
         self.image_version = self.get_str_param("composer_image_version")
         self.location = self.get_str_param("composer_location")
         self.dags_path = self.get_str_param("dags_path")
+        self.memory_limit = self.config.get("memory_limit") or None
+        cpu_raw = self.config.get("cpu_count")
+        self.cpu_count = int(cpu_raw) if cpu_raw is not None else None
         # Backwards compatibility: don't fail on missing plugins_path
         if "plugins_path" in self.config:
             self.plugins_path = self.get_str_param("plugins_path")
@@ -445,12 +448,16 @@ class Environment:
         plugins_path: Optional[str] = None,
         dag_dir_list_interval: int = 10,
         database_engine: str = constants.DatabaseEngine.postgresql,
+        memory_limit: Optional[str] = None,
+        cpu_count: Optional[int] = None,
         port: Optional[int] = None,
         pypi_packages: Optional[Dict] = None,
         environment_vars: Optional[Dict] = None,
     ):
         self.name = env_dir_path.name
         self.container_name = f"{constants.CONTAINER_NAME}-{self.name}"
+        self.container_memory_limit = memory_limit
+        self.container_cpu_count = cpu_count
         self.db_container_name = f"{constants.DB_CONTAINER_NAME}-{self.name}"
         self.docker_network_name = (
             f"{constants.DOCKER_NETWORK_NAME}-{self.name}"
@@ -548,6 +555,8 @@ class Environment:
             dag_dir_list_interval=config.dag_dir_list_interval,
             port=config.port,
             database_engine=config.database_engine,
+            memory_limit=config.memory_limit,
+            cpu_count=config.cpu_count,
             environment_vars=environment_vars,
         )
 
@@ -562,6 +571,8 @@ class Environment:
         dags_path: Optional[str],
         plugins_path: Optional[str],
         database_engine: str,
+        memory_limit: Optional[str] = None,
+        cpu_count: Optional[int] = None,
     ):
         """
         Create Environment using configuration retrieved from Composer
@@ -589,6 +600,8 @@ class Environment:
             pypi_packages=pypi_packages,
             environment_vars=env_variables,
             database_engine=database_engine,
+            memory_limit=memory_limit,
+            cpu_count=cpu_count,
         )
 
     def pypi_packages_to_requirements(self):
@@ -669,6 +682,8 @@ class Environment:
             "dag_dir_list_interval": int(self.dag_dir_list_interval),
             "port": int(self.port),
             "database_engine": self.database_engine,
+            "memory_limit": self.container_memory_limit,
+            "cpu_count": self.container_cpu_count,
         }
         with open(self.env_dir_path / "config.json", "w") as fp:
             json.dump(config, fp, indent=4)
@@ -762,7 +777,8 @@ class Environment:
             f"8080/tcp": self.port,
         }
         entrypoint = f"sh {constants.ENTRYPOINT_PATH}"
-        memory_limit = constants.DOCKER_CONTAINER_MEMORY_LIMIT
+        memory_limit = self.container_memory_limit or constants.DOCKER_CONTAINER_MEMORY_LIMIT
+        cpu_count = self.container_cpu_count or constants.DOCKER_CONTAINER_CPU_COUNT
 
         try:
             container = self.create_container(
@@ -773,6 +789,7 @@ class Environment:
                 mounts=mounts,
                 ports=ports,
                 mem_limit=memory_limit,
+                cpu_count=cpu_count,
                 detach=True,
                 extra_hosts={"host.docker.internal": "host-gateway"},
             )
@@ -790,6 +807,7 @@ class Environment:
                 mounts=mounts,
                 ports=ports,
                 mem_limit=memory_limit,
+                cpu_count=cpu_count,
                 detach=True,
                 extra_hosts={"host.docker.internal": "host-gateway"},
             )
