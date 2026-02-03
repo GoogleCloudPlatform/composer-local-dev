@@ -32,3 +32,5 @@ def test_run_in_killed_container(
         exit_code=1,
         expected_output="Failed to run command: environment not running.",
     )
+    run_app(f"stop {env_name}")
+    run_app(f"remove {env_name} --skip-confirmation")

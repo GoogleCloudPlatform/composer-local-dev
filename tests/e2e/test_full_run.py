@@ -30,6 +30,7 @@ def test_full_run(composer_image_version, valid_project_id, env_name):
         f"-p {valid_project_id} --dags-path {dags_dir} {env_name}"
     )
     run_app(f"start {env_name}")
-    assert_example_dag_listed()
+    assert_example_dag_listed(env_name)
     assert_example_dag_succeeded(env_name, airflow_major_version=2)
     run_app(f"stop {env_name}")
+    run_app(f"remove {env_name} --skip-confirmation")

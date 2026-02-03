@@ -37,6 +37,7 @@ def test_full_run_airflow_3(
     requirements_dst = pathlib.Path(f"composer/{env_name}/requirements.txt")
     shutil.copyfile(str(requirements_src), str(requirements_dst))
     run_app(f"start {env_name}")
-    assert_example_dag_listed()
+    assert_example_dag_listed(env_name)
     assert_example_dag_succeeded(env_name, airflow_major_version=3)
     run_app(f"stop {env_name}")
+    run_app(f"remove {env_name} --skip-confirmation")

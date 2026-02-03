@@ -112,10 +112,10 @@ def assert_env_dir_created(work_dir: pathlib.Path, env_name: str):
     assert config.exists()
 
 
-def assert_example_dag_listed():
+def assert_example_dag_listed(env_name):
     for _ in range(60):
         time.sleep(1)
-        result = run_app("run-airflow-cmd testenv dags list")
+        result = run_app(f"run-airflow-cmd {env_name} dags list")
         if (
             "example_dag | " in result.output
             and "example_dag.py | " in result.output
@@ -126,10 +126,10 @@ def assert_example_dag_listed():
 
 
 def assert_example_dag_succeeded(env_name: str, airflow_major_version: int):
-    run_app("run-airflow-cmd testenv dags unpause example_dag")
-    run_app("run-airflow-cmd testenv dags trigger example_dag")
+    run_app(f"run-airflow-cmd {env_name} dags unpause example_dag")
+    run_app(f"run-airflow-cmd {env_name} dags trigger example_dag")
     list_runs_cmd = (
-        "run-airflow-cmd testenv dags list-runs "
+        f"run-airflow-cmd {env_name} dags list-runs "
         + ("-d " if airflow_major_version == 2 else "")
         + "example_dag --state success"
     )

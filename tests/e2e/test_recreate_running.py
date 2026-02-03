@@ -65,3 +65,4 @@ def test_recreate_running_env(
     run_app("restart")
     run_app(f"describe {env_name}", expected_output=exp_describe_restarted)
     run_app(f"stop {env_name}")
+    run_app(f"remove {env_name} --skip-confirmation")

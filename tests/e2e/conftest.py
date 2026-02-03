@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import os
+import random
+import string
 import warnings
 
 import pytest
@@ -75,9 +77,9 @@ def valid_project_id() -> str:
     return get_env_var("COMPOSER_TESTS_PROJECT_ID")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def env_name() -> str:
-    return "testenv"
+    return "testenv-" + "".join(random.choices(string.ascii_letters, k=10))
 
 
 @pytest.fixture(autouse=True)

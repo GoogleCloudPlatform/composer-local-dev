@@ -42,3 +42,5 @@ def test_incompatible_deps(composer_image_version, valid_project_id, env_name):
         exit_code=1,
         expected_output="Environment failed to start.",
     )
+    run_app(f"stop {env_name}")
+    run_app(f"remove {env_name} --skip-confirmation")
