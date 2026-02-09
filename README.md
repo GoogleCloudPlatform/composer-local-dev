@@ -30,7 +30,7 @@ deployed Cloud Composer images for production purposes.
     and `composer-3-airflow-2.10.5-build.0`, and all versions of Airflow 2
     greater than `2.10.5`.
 
-  - Airflow 3 is currently not supported.
+  - Airflow 3 is supported for `composer-3-airflow-3.1.0-build.8` and greater.
 
 - Composer Local Development CLI tool creates local Airflow environments in a
     directory where you run the `composer-dev create` command. To access your

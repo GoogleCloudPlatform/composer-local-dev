@@ -250,7 +250,7 @@ def is_image_version_supported(image_version):
 
 
 def filter_image_versions(image_versions: List) -> List:
-    """Filter out Composer 1, Composer 3 with no image tags and Airflow 3"""
+    """Filter out unsupported versions"""
     return [
         version
         for version in image_versions
