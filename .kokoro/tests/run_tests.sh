@@ -26,16 +26,8 @@ if [[ ! -z "${KOKORO_BUILD_ID}" ]]; then # export vars only for Kokoro job
   export COMPOSER_TESTS_PROJECT_ID=PROJECT_ID
 fi
 
-if [[ "$OSTYPE" == "darwin"* ]]; then # Mac OSX
-  # Mac requires .13 fix versions (which is not available for other platforms)
-  pyenv install --skip-existing 3.8.10
-  pyenv global 3.8.10
-else
-  pyenv install --skip-existing 3.8.10
-  pyenv install --skip-existing 3.9.5
-  pyenv install --skip-existing 3.11.5
-  pyenv global 3.8.10 3.9.5 3.11.5
-fi
+pyenv install --skip-existing 3.11.14
+pyenv global 3.11.14
 
 # install nox for testing
 python -m pip install --require-hashes --upgrade --quiet -r .kokoro/tests/requirements.txt
