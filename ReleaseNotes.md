@@ -1,5 +1,17 @@
 # Release notes
 
+## 0.11.0
+
+### New
+
+- Airflow 3 is now supported starting from composer-3-airflow-3.1.0-build.8
+- Feature/configure container cpu and memory limits (#112)
+
+### Fixes
+
+- Fixes: pgdata folder is owned by root and non-readable (#114)
+- fix: add missing --plugins-path option to create command (#115)
+
 ## 0.10.2
 
 ### New

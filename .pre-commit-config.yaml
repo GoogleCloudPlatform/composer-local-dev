@@ -68,7 +68,7 @@ repos:
         language: node
         types: [markdown]
         files: \.(md|mdown|markdown)$
-        additional_dependencies: ['markdownlint-cli']
+        additional_dependencies: ['markdownlint-cli@0.46.0']
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.5
     hooks:
