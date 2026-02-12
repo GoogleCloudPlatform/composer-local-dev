@@ -45,7 +45,7 @@ init_airflow() {
       $run_as_user /var/local/setup_python_command.sh
   fi
 
-  sudo pip3 install --upgrade -r composer_requirements.txt
+  sudo -E pip3 install --upgrade -r composer_requirements.txt
   sudo pip3 check
 
   airflow_version=($(get_airflow_version))
