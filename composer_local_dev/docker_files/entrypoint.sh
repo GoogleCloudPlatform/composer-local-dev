@@ -21,7 +21,7 @@ FAST_API_DIR=/opt/python3.11/lib/python3.11/site-packages/airflow/api_fastapi/
 run_as_user=/home/airflow/run_as_user.sh
 
 get_airflow_version() {
-  airflow_version=$(${run_as_user} airflow version | grep -o "^[0-9\.]*")
+  airflow_version=$(${run_as_user} airflow version 2>/dev/null | grep -oE '[0-9]\.[0-9]+\.[0-9]+' | head -1)
   original_ifs="$IFS"
   IFS='.'
   set -- $airflow_version
