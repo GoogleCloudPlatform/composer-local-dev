@@ -40,7 +40,7 @@ install_airflow_deps() {
     cp composer_requirements.txt requirements_with_airflow_version.txt
     echo "" >> requirements_with_airflow_version.txt
     echo "apache-airflow==${version}" >> requirements_with_airflow_version.txt
-    sudo pip3 install -r requirements_with_airflow_version.txt
+    sudo -E pip3 install -r requirements_with_airflow_version.txt
     sudo pip3 check
   fi
 }
