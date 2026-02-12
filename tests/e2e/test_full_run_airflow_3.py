@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pathlib
+import shutil
 
 import pytest
 
@@ -27,6 +28,10 @@ def test_full_run_airflow_3(
         f"create --from-image-version {composer_image_version_airflow_3} "
         f"-p {valid_project_id} --dags-path {dags_dir} {env_name}"
     )
+    # Copy requirements.txt with already satisfied deps to our environment
+    requirements_src = pathlib.Path(__file__).parent / "basic_requirements.txt"
+    requirements_dst = pathlib.Path(f"composer/{env_name}/requirements.txt")
+    shutil.copyfile(str(requirements_src), str(requirements_dst))
     run_app(f"start {env_name}")
     assert_example_dag_listed()
     run_app(f"stop {env_name}")

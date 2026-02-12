@@ -32,6 +32,19 @@ get_airflow_version() {
   echo "$major" "$minor" "$patch"
 }
 
+install_airflow_deps() {
+  if [ -s composer_requirements.txt ]; then
+    # We need to add apache-airflow==[airflow-version]+composer to make sure that pip is taking
+    # into account Composer-Airflow dependencies when resolving and installing the new packages
+    version=$(${run_as_user} airflow version)
+    cp composer_requirements.txt requirements_with_airflow_version.txt
+    echo "" >> requirements_with_airflow_version.txt
+    echo "apache-airflow==${version}" >> requirements_with_airflow_version.txt
+    sudo pip3 install -r requirements_with_airflow_version.txt
+    sudo pip3 check
+  fi
+}
+
 init_airflow() {
 
   $run_as_user mkdir -p ${AIRFLOW__CORE__DAGS_FOLDER}
@@ -45,8 +58,7 @@ init_airflow() {
       $run_as_user /var/local/setup_python_command.sh
   fi
 
-  sudo pip3 install --upgrade -r composer_requirements.txt
-  sudo pip3 check
+  install_airflow_deps
 
   airflow_version=($(get_airflow_version))
   major="${airflow_version[0]}"
