@@ -1,5 +1,13 @@
 # Release notes
 
+## 0.11.1
+
+### Fixes
+
+- Fix: requirements installation ignoring composer-airflow requirements
+- fix: improve airflow version parsing (#122)
+- fix: pip install with env vars (#121)
+
 ## 0.11.0
 
 ### New
