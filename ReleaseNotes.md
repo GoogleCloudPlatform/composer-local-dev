@@ -1,5 +1,12 @@
 # Release notes
 
+## 0.11.2
+
+### Fixes
+
+- Fix issue with newer PyJWT
+- Fix Triggerer in Airflow 3
+
 ## 0.11.1
 
 ### Fixes
