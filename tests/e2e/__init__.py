@@ -125,6 +125,28 @@ def assert_example_dag_listed():
         raise AssertionError("Example DAG was not found")
 
 
+def assert_example_dag_succeeded(env_name: str, airflow_major_version: int):
+    run_app("run-airflow-cmd testenv dags unpause example_dag")
+    run_app("run-airflow-cmd testenv dags trigger example_dag")
+    list_runs_cmd = (
+        "run-airflow-cmd testenv dags list-runs "
+        + ("-d " if airflow_major_version == 2 else "")
+        + "example_dag --state success"
+    )
+    time.sleep(10)
+    for _ in range(10):
+        time.sleep(1)
+        result = run_app(list_runs_cmd)
+        if "example_dag |" in result.output:
+            deferred_logs = run_cmd(
+                f"docker logs composer-local-dev-{env_name}"
+            )
+            if "state=deferred" in deferred_logs.stdout:
+                return
+    else:
+        raise AssertionError("Example DAG didn't run successfully")
+
+
 def run_cmd(cmd: str):
     print(f"> {cmd}")
     result = subprocess.run(

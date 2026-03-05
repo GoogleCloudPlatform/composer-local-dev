@@ -13,7 +13,7 @@
 # limitations under the License.
 import pytest
 
-from tests.e2e import assert_example_dag_listed, run_app, run_cmd
+from tests.e2e import run_app, run_cmd
 
 
 @pytest.mark.e2e

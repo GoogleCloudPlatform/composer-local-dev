@@ -641,6 +641,7 @@ class Environment:
             env_vars.update(
                 {
                     "AIRFLOW__API__EXPOSE_CONFIG": "True",
+                    "AIRFLOW__COMPOSER_INTERNAL__ENABLE_TRIGGERER": "True",
                     "AIRFLOW__CORE__AUTH_MANAGER": "airflow.api_fastapi.auth.managers.simple.simple_auth_manager.SimpleAuthManager",
                     "AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS": "True",
                     "AIRFLOW__CORE__EXECUTION_API_SERVER_URL": "http://localhost:8081/execution/",

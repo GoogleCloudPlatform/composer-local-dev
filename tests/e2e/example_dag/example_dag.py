@@ -12,16 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from airflow import DAG
-
-# pylint: disable=g-import-not-at-top
-try:
-    from airflow.providers.standard.operators.bash import BashOperator
-except ImportError:
-    from airflow.operators.bash import BashOperator
-# pylint: enable=g-import-not-at-top
+from airflow.providers.standard.operators.bash import BashOperator
+from airflow.providers.standard.sensors.time_delta import TimeDeltaSensor
 
 DAG_ID = "example_dag"
 RANDOM_FILE_NAME = "random.bin"
@@ -29,10 +24,18 @@ RANDOM_FILE_NAME = "random.bin"
 
 with DAG(
     dag_id=DAG_ID,
-    schedule="@once",
+    schedule=None,
     start_date=datetime(2021, 1, 1),
 ) as dag:
-    op = BashOperator(
-        task_id="task",
+    deferrable_task = TimeDeltaSensor(
+        task_id="deferrable",
+        delta=timedelta(seconds=20),
+        deferrable=True,
+    )
+
+    random_file_task = BashOperator(
+        task_id="random_file",
         bash_command=f"cat /dev/urandom | head -c $((1 * 1024 * 1024)) > {RANDOM_FILE_NAME}",
     )
+
+    deferrable_task >> random_file_task

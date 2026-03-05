@@ -15,7 +15,11 @@ import pathlib
 
 import pytest
 
-from tests.e2e import assert_example_dag_listed, run_app
+from tests.e2e import (
+    assert_example_dag_listed,
+    assert_example_dag_succeeded,
+    run_app,
+)
 
 
 @pytest.mark.e2e
@@ -27,4 +31,5 @@ def test_full_run(composer_image_version, valid_project_id, env_name):
     )
     run_app(f"start {env_name}")
     assert_example_dag_listed()
+    assert_example_dag_succeeded(env_name, airflow_major_version=2)
     run_app(f"stop {env_name}")
