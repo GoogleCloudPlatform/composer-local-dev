@@ -641,6 +641,7 @@ class Environment:
             env_vars.update(
                 {
                     "AIRFLOW__API__EXPOSE_CONFIG": "True",
+                    "AIRFLOW__API_AUTH__JWT_ISSUER": "test-jwt-issuer",
                     "AIRFLOW__COMPOSER_INTERNAL__ENABLE_TRIGGERER": "True",
                     "AIRFLOW__CORE__AUTH_MANAGER": "airflow.api_fastapi.auth.managers.simple.simple_auth_manager.SimpleAuthManager",
                     "AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS": "True",
