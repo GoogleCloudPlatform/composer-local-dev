@@ -489,6 +489,54 @@ To delete all images downloaded by Composer Local Development CLI tool, run:
 docker rmi $(docker images --filter=reference='*/cloud-airflow-releaser/*/*' -q)
 ```
 
+## Shell Tab Completion
+
+The `composer-dev` CLI supports tab completion for Bash, Zsh, and Fish shells.
+This makes it easy to discover available subcommands and options without
+consulting the help text.
+
+![Shell Tab Completion Demo](docs/images/shell-tab-completion-v2.gif)
+
+### Zsh
+
+Generate the completion script and source it in your `~/.zshrc`:
+
+```bash
+_COMPOSER_DEV_COMPLETE=zsh_source composer-dev > ~/.composer-dev-complete.zsh
+```
+
+Then add it to your `~/.zshrc`:
+
+```bash
+# You can add it yourself directly source ~/.composer-dev-complete.zsh
+# Or you can just run the command
+echo 'source ~/.composer-dev-complete.zsh' >> ~/.zshrc
+```
+
+### Bash
+
+Generate the completion script and source it in your `~/.bashrc`:
+
+```bash
+_COMPOSER_DEV_COMPLETE=bash_source composer-dev > ~/.composer-dev-complete.bash
+```
+
+Then add it to your `~/.bashrc`:
+
+```bash
+# You can add it yourself directly source ~/.composer-dev-complete.bash
+# Or you can just run the command
+echo 'source ~/.composer-dev-complete.bash' >> ~/.bashrc
+```
+
+### Fish
+
+Generate the completion script and save it to the Fish completions directory:
+
+```bash
+_COMPOSER_DEV_COMPLETE=fish_source composer-dev > ~/.config/fish/completions/composer-dev.fish
+```
+
 ## Troubleshooting
 
 This section provides solutions to common issues.
