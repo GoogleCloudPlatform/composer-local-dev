@@ -19,6 +19,7 @@ from typing import List, Optional, Union
 
 import rich.markdown
 import rich_click as click
+from click.shell_completion import CompletionItem
 
 from composer_local_dev import console, constants
 from composer_local_dev import environment as composer_environment
@@ -178,15 +179,26 @@ option_port = click.option(
 )
 
 
+def _complete_environment(ctx, param, incomplete):
+    env_dirs = files.get_environment_directories()
+    return [
+        CompletionItem(env_dir.name)
+        for env_dir in env_dirs
+        if env_dir.name.startswith(incomplete)
+    ]
+
+
 required_environment = click.argument(
     "environment",
     required=True,
     metavar="LOCAL_ENVIRONMENT_NAME",
+    shell_complete=_complete_environment,
 )
 optional_environment = click.argument(
     "environment",
     required=False,
     metavar="LOCAL_ENVIRONMENT_NAME",
+    shell_complete=_complete_environment,
 )
 option_location = click.option(
     "-l",
