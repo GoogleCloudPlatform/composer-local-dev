@@ -689,8 +689,8 @@ class Environment:
                 f"extra__google_cloud_platform__scope="
                 f"https://www.googleapis.com/auth/cloud-platform"
             ),
-            "GCP_PROJECT": "test-project",
-            "COMPOSER_LOCATION": "test-location",
+            "GCP_PROJECT": self.project_id,
+            "COMPOSER_LOCATION": self.location,
             "COMPOSER_ENVIRONMENT": self.name,
             **default_db_variables,
             **self.get_environment_variables_for_image_version(),
