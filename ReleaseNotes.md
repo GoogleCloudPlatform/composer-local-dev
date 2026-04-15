@@ -1,5 +1,15 @@
 # Release notes
 
+## 0.11.3
+
+### New
+
+- feat: environment name tab-completion for CLI commands (#130)
+
+### Fixes
+
+- Fix hardcoded GCP_PROJECT and COMPOSER_LOCATION in container environment variables (#131)
+
 ## 0.11.2
 
 ### Fixes
