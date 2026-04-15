@@ -16,14 +16,13 @@
 
 set -ex
 
-readonly PRE_COMMIT_VERSION="4.2.0"
-
 pyenv install --skip-existing 3.11.5
 pyenv global 3.11.5
-pip install pre-commit==$PRE_COMMIT_VERSION
 
 git config --global --add safe.directory /tmpfs/src/git/composer-local-development
 cd git/composer-local-development
+
+pip install --require-hashes -r .kokoro/linter/linter_requirements.txt
 FILES=$(git diff --diff-filter=AM --name-only HEAD~1 HEAD)
 echo "Running pre-commit on the following files:"
 echo "$FILES"

@@ -144,6 +144,18 @@ class TestEnvironment:
         )
         assert expected_image == parsed_image
 
+    def test_assert_image_is_not_supported(self):
+        image_version = "composer-3-airflow-3.1.0-build.7"
+        with pytest.raises(
+            errors.ImageNotSupportedError,
+            match=re.escape(
+                constants.IMAGE_VERSION_IS_NOT_SUPPORTED_ERROR.format(
+                    image_version=image_version
+                )
+            ),
+        ):
+            environment.assert_image_is_supported(image_version)
+
     @mock.patch("composer_local_dev.environment.artifactregistry_v1")
     def test_assert_image_exists_not_found(self, mocked_artifact):
         mock_client = mock.Mock()
@@ -682,8 +694,12 @@ class TestEnvironment:
             "AIRFLOW__SCHEDULER__STANDALONE_DAG_PROCESSOR": "False",
             "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
             "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
+            "COMPOSER_LOCAL_DEV": "True",
             "COMPOSER_IMAGE_VERSION": default_env.image_version,
             "COMPOSER_PYTHON_VERSION": "3",
+            "GCP_PROJECT": default_env.project_id,
+            "COMPOSER_LOCATION": default_env.location,
+            "COMPOSER_ENVIRONMENT": "my_env",
             "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
             "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
             "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
@@ -701,11 +717,75 @@ class TestEnvironment:
         default_env.docker_client.containers.create.assert_called_with(
             image=default_env.image_tag,
             name="composer-local-dev-my_env",
-            entrypoint="sh /home/airflow/entrypoint.sh",
+            entrypoint="bash /home/airflow/entrypoint.sh",
             environment=environment,
             mounts=mocked_mounts(),
             ports=ports,
             mem_limit=constants.DOCKER_CONTAINER_MEMORY_LIMIT,
+            cpu_count=constants.DOCKER_CONTAINER_CPU_COUNT,
+            detach=True,
+            extra_hosts={"host.docker.internal": "host-gateway"},
+        )
+
+    @mock.patch("composer_local_dev.utils.resolve_gcloud_config_path")
+    @mock.patch("composer_local_dev.utils.resolve_kube_config_path")
+    @mock.patch("composer_local_dev.environment.get_image_mounts")
+    def test_create_docker_container_with_custom_limits(
+        self,
+        mocked_mounts,
+        mocked_resolve_kube_config_path,
+        mocked_resolve_gcloud_config_path,
+        default_env,
+    ):
+        mocked_resolve_kube_config_path.return_value = mock.Mock()
+        mocked_resolve_gcloud_config_path.return_value = mock.Mock()
+        custom_mem_limit = "16g"
+        custom_cpu_count = 4
+        default_env.container_memory_limit = custom_mem_limit
+        default_env.container_cpu_count = custom_cpu_count
+        default_env.create_docker_container()
+        ports = {
+            f"8080/tcp": default_env.port,
+        }
+        environment = {
+            "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default",
+            "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
+            "AIRFLOW__CORE__DATA_FOLDER": "/home/airflow/gcs/data",
+            "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
+            "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
+            "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": default_env.dag_dir_list_interval,
+            "AIRFLOW__SCHEDULER__STANDALONE_DAG_PROCESSOR": "False",
+            "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
+            "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
+            "COMPOSER_LOCAL_DEV": "True",
+            "COMPOSER_IMAGE_VERSION": default_env.image_version,
+            "COMPOSER_PYTHON_VERSION": "3",
+            "GCP_PROJECT": default_env.project_id,
+            "COMPOSER_LOCATION": default_env.location,
+            "COMPOSER_ENVIRONMENT": "my_env",
+            "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
+            "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
+            "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
+            "AIRFLOW_HOME": "/home/airflow/airflow",
+            "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": f"google-cloud-platform://?"
+            f"extra__google_cloud_platform__project={default_env.project_id}&"
+            f"extra__google_cloud_platform__scope="
+            f"https://www.googleapis.com/auth/cloud-platform",
+            "PGDATA": "/var/lib/postgresql/data/pgdata",
+            "POSTGRES_USER": "postgres",
+            "POSTGRES_PASSWORD": "airflow",
+            "POSTGRES_DB": "airflow",
+            "AIRFLOW__DATABASE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://postgres:airflow@composer-local-dev-db-my_env:5432/airflow",
+        }
+        default_env.docker_client.containers.create.assert_called_with(
+            image=default_env.image_tag,
+            name="composer-local-dev-my_env",
+            entrypoint="bash /home/airflow/entrypoint.sh",
+            environment=environment,
+            mounts=mocked_mounts(),
+            ports=ports,
+            mem_limit=custom_mem_limit,
+            cpu_count=custom_cpu_count,
             detach=True,
             extra_hosts={"host.docker.internal": "host-gateway"},
         )
@@ -1047,8 +1127,12 @@ class TestEnvironment:
             "AIRFLOW__SCHEDULER__STANDALONE_DAG_PROCESSOR": "True",
             "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
             "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
+            "COMPOSER_LOCAL_DEV": "True",
             "COMPOSER_IMAGE_VERSION": "composer-3-airflow-2.10.5-build.0",
             "COMPOSER_PYTHON_VERSION": "3",
+            "GCP_PROJECT": "123",
+            "COMPOSER_LOCATION": "eu-west",
+            "COMPOSER_ENVIRONMENT": "env_name",
             "AIRFLOW_HOME": "/home/airflow/airflow",
             "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
             "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
@@ -1065,6 +1149,63 @@ class TestEnvironment:
             env_dir_path=pathlib.Path("composer", "env_name"),
             project_id=project_id,
             image_version="composer-3-airflow-2.10.5-build.0",
+            location="eu-west",
+            dags_path=str(pathlib.Path("dags", "folder")),
+            dag_dir_list_interval=dag_interval,
+            port=8080,
+            pypi_packages={},
+            environment_vars=None,
+            database_engine=constants.DatabaseEngine.postgresql,
+        )
+        default_vars = env.get_default_environment_variables(db_vars)
+        actual_vars = {**default_vars, **extra_vars}
+        assert expected_vars == actual_vars
+
+    @mock.patch("composer_local_dev.environment.docker.from_env")
+    def test_get_environment_variables_airflow_3(self, mocked_docker):
+        project_id = "123"
+        dag_interval = 105
+        extra_vars = {"VAR_1": "123", "VAR_2": "a"}
+        db_vars = {
+            "PGDATA": "/var/lib/postgresql/data/pgdata",
+            "POSTGRES_USER": "airflow",
+            "POSTGRES_PASSWORD": "airflow",
+        }
+        expected_vars = {
+            "AIRFLOW__API__EXPOSE_CONFIG": "True",
+            "AIRFLOW__API_AUTH__JWT_ISSUER": "test-jwt-issuer",
+            "AIRFLOW__COMPOSER_INTERNAL__ENABLE_TRIGGERER": "True",
+            "AIRFLOW__CORE__AUTH_MANAGER": "airflow.api_fastapi.auth.managers.simple.simple_auth_manager.SimpleAuthManager",
+            "AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS": "True",
+            "AIRFLOW__CORE__EXECUTION_API_SERVER_URL": "http://localhost:8081/execution/",
+            "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
+            "AIRFLOW__CORE__DATA_FOLDER": "/home/airflow/gcs/data",
+            "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
+            "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
+            "AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL": 105,
+            "AIRFLOW__DAG_PROCESSOR__PARSING_PRE_IMPORT_MODULES": "False",
+            "COMPOSER_LOCAL_DEV": "True",
+            "COMPOSER_IMAGE_VERSION": "composer-3-airflow-3.1.0-build.8",
+            "COMPOSER_PYTHON_VERSION": "3",
+            "GCP_PROJECT": "123",
+            "COMPOSER_LOCATION": "eu-west",
+            "COMPOSER_ENVIRONMENT": "env_name",
+            "AIRFLOW_HOME": "/home/airflow/airflow",
+            "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
+            "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
+            "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
+            "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": "google-cloud-platform://?"
+            "extra__google_cloud_platform__project=123&"
+            "extra__google_cloud_platform__scope="
+            "https://www.googleapis.com/auth/cloud-platform",
+            **db_vars,
+            **extra_vars,
+        }
+
+        env = environment.Environment(
+            env_dir_path=pathlib.Path("composer", "env_name"),
+            project_id=project_id,
+            image_version="composer-3-airflow-3.1.0-build.8",
             location="eu-west",
             dags_path=str(pathlib.Path("dags", "folder")),
             dag_dir_list_interval=dag_interval,

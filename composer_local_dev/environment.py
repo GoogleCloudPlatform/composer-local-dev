@@ -233,6 +233,17 @@ def get_env_variables(software_config):
     return {k: "" for k, _ in software_config.env_variables.items()}
 
 
+def assert_image_is_supported(image_version: str):
+    """Asserts that image version is supported.
+
+    Raises if the image is not supported.
+    Args:
+        image_version: Image version in format of 'composer-x.y.z-airflow-a.b.c-[build.d]'
+    """
+    if not utils.is_image_version_supported(image_version):
+        raise errors.ImageNotSupportedError(image_version=image_version)
+
+
 def assert_image_exists(image_version: str):
     """Asserts that image version exists.
 
@@ -354,6 +365,9 @@ class EnvironmentConfig:
         self.image_version = self.get_str_param("composer_image_version")
         self.location = self.get_str_param("composer_location")
         self.dags_path = self.get_str_param("dags_path")
+        self.memory_limit = self.config.get("memory_limit") or None
+        cpu_raw = self.config.get("cpu_count")
+        self.cpu_count = int(cpu_raw) if cpu_raw is not None else None
         # Backwards compatibility: don't fail on missing plugins_path
         if "plugins_path" in self.config:
             self.plugins_path = self.get_str_param("plugins_path")
@@ -445,12 +459,16 @@ class Environment:
         plugins_path: Optional[str] = None,
         dag_dir_list_interval: int = 10,
         database_engine: str = constants.DatabaseEngine.postgresql,
+        memory_limit: Optional[str] = None,
+        cpu_count: Optional[int] = None,
         port: Optional[int] = None,
         pypi_packages: Optional[Dict] = None,
         environment_vars: Optional[Dict] = None,
     ):
         self.name = env_dir_path.name
         self.container_name = f"{constants.CONTAINER_NAME}-{self.name}"
+        self.container_memory_limit = memory_limit
+        self.container_cpu_count = cpu_count
         self.db_container_name = f"{constants.DB_CONTAINER_NAME}-{self.name}"
         self.docker_network_name = (
             f"{constants.DOCKER_NETWORK_NAME}-{self.name}"
@@ -548,6 +566,8 @@ class Environment:
             dag_dir_list_interval=config.dag_dir_list_interval,
             port=config.port,
             database_engine=config.database_engine,
+            memory_limit=config.memory_limit,
+            cpu_count=config.cpu_count,
             environment_vars=environment_vars,
         )
 
@@ -562,6 +582,8 @@ class Environment:
         dags_path: Optional[str],
         plugins_path: Optional[str],
         database_engine: str,
+        memory_limit: Optional[str] = None,
+        cpu_count: Optional[int] = None,
     ):
         """
         Create Environment using configuration retrieved from Composer
@@ -589,6 +611,8 @@ class Environment:
             pypi_packages=pypi_packages,
             environment_vars=env_variables,
             database_engine=database_engine,
+            memory_limit=memory_limit,
+            cpu_count=cpu_count,
         )
 
     def pypi_packages_to_requirements(self):
@@ -611,22 +635,46 @@ class Environment:
         with open(self.env_dir_path / "variables.env", "w") as fp:
             fp.write(env_vars_lines)
 
+    def get_environment_variables_for_image_version(self) -> Dict:
+        env_vars = {}
+        if "airflow-3" in self.image_version:
+            env_vars.update(
+                {
+                    "AIRFLOW__API__EXPOSE_CONFIG": "True",
+                    "AIRFLOW__API_AUTH__JWT_ISSUER": "test-jwt-issuer",
+                    "AIRFLOW__COMPOSER_INTERNAL__ENABLE_TRIGGERER": "True",
+                    "AIRFLOW__CORE__AUTH_MANAGER": "airflow.api_fastapi.auth.managers.simple.simple_auth_manager.SimpleAuthManager",
+                    "AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS": "True",
+                    "AIRFLOW__CORE__EXECUTION_API_SERVER_URL": "http://localhost:8081/execution/",
+                    "AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL": self.dag_dir_list_interval,
+                    "AIRFLOW__DAG_PROCESSOR__PARSING_PRE_IMPORT_MODULES": "False",
+                }
+            )
+        else:
+            env_vars.update(
+                {
+                    "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default",
+                    "AIRFLOW__SCHEDULER__STANDALONE_DAG_PROCESSOR": str(
+                        self.image_version.startswith("composer-3")
+                    ),
+                    "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": self.dag_dir_list_interval,
+                    "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
+                    "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
+                }
+            )
+
+        return env_vars
+
     def get_default_environment_variables(
         self, default_db_variables: Dict[str, str]
     ) -> Dict:
         """Return environment variables that will be set inside container."""
         return {
-            "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default",
             "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
             "AIRFLOW__CORE__DATA_FOLDER": "/home/airflow/gcs/data",
             "AIRFLOW__CORE__LOAD_EXAMPLES": "false",
             "AIRFLOW__CORE__PLUGINS_FOLDER": "/home/airflow/gcs/plugins",
-            "AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL": self.dag_dir_list_interval,
-            "AIRFLOW__SCHEDULER__STANDALONE_DAG_PROCESSOR": str(
-                self.image_version.startswith("composer-3")
-            ),
-            "AIRFLOW__WEBSERVER__EXPOSE_CONFIG": "true",
-            "AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE": "True",
+            "COMPOSER_LOCAL_DEV": "True",
             "COMPOSER_IMAGE_VERSION": self.image_version,
             "COMPOSER_PYTHON_VERSION": "3",
             # By default, the container runs as the user `airflow` with UID 999. Set
@@ -641,7 +689,11 @@ class Environment:
                 f"extra__google_cloud_platform__scope="
                 f"https://www.googleapis.com/auth/cloud-platform"
             ),
+            "GCP_PROJECT": self.project_id,
+            "COMPOSER_LOCATION": self.location,
+            "COMPOSER_ENVIRONMENT": self.name,
             **default_db_variables,
+            **self.get_environment_variables_for_image_version(),
         }
 
     def assert_valid_environment_options(self):
@@ -669,6 +721,8 @@ class Environment:
             "dag_dir_list_interval": int(self.dag_dir_list_interval),
             "port": int(self.port),
             "database_engine": self.database_engine,
+            "memory_limit": self.container_memory_limit,
+            "cpu_count": self.container_cpu_count,
         }
         with open(self.env_dir_path / "config.json", "w") as fp:
             json.dump(config, fp, indent=4)
@@ -761,9 +815,14 @@ class Environment:
         ports = {
             f"8080/tcp": self.port,
         }
-        entrypoint = f"sh {constants.ENTRYPOINT_PATH}"
-        memory_limit = constants.DOCKER_CONTAINER_MEMORY_LIMIT
-
+        entrypoint = f"bash {constants.ENTRYPOINT_PATH}"
+        memory_limit = (
+            self.container_memory_limit
+            or constants.DOCKER_CONTAINER_MEMORY_LIMIT
+        )
+        cpu_count = (
+            self.container_cpu_count or constants.DOCKER_CONTAINER_CPU_COUNT
+        )
         try:
             container = self.create_container(
                 image=self.image_tag,
@@ -773,6 +832,7 @@ class Environment:
                 mounts=mounts,
                 ports=ports,
                 mem_limit=memory_limit,
+                cpu_count=cpu_count,
                 detach=True,
                 extra_hosts={"host.docker.internal": "host-gateway"},
             )
@@ -790,6 +850,7 @@ class Environment:
                 mounts=mounts,
                 ports=ports,
                 mem_limit=memory_limit,
+                cpu_count=cpu_count,
                 detach=True,
                 extra_hosts={"host.docker.internal": "host-gateway"},
             )
@@ -900,6 +961,7 @@ class Environment:
         and environment configuration will be saved to config.json and
         requirements.txt files.
         """
+        assert_image_is_supported(self.image_version)
         assert_image_exists(self.image_version)
         self.assert_valid_environment_options()
         files.create_environment_directories(
@@ -1035,6 +1097,7 @@ class Environment:
         is already allocated.
         Started environment is polled until Airflow scheduler starts.
         """
+        assert_image_is_supported(self.image_version)
         assert_image_exists(self.image_version)
         self.assert_requirements_exist()
         files.assert_dag_path_exists(self.dags_path)

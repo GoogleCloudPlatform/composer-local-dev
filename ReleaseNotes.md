@@ -1,5 +1,42 @@
 # Release notes
 
+## 0.11.3
+
+### New
+
+- feat: environment name tab-completion for CLI commands (#130)
+
+### Fixes
+
+- Fix hardcoded GCP_PROJECT and COMPOSER_LOCATION in container environment variables (#131)
+
+## 0.11.2
+
+### Fixes
+
+- Fix issue with newer PyJWT
+- Fix Triggerer in Airflow 3
+
+## 0.11.1
+
+### Fixes
+
+- Fix: requirements installation ignoring composer-airflow requirements
+- fix: improve airflow version parsing (#122)
+- fix: pip install with env vars (#121)
+
+## 0.11.0
+
+### New
+
+- Airflow 3 is now supported starting from composer-3-airflow-3.1.0-build.8
+- Feature/configure container cpu and memory limits (#112)
+
+### Fixes
+
+- Fixes: pgdata folder is owned by root and non-readable (#114)
+- fix: add missing --plugins-path option to create command (#115)
+
 ## 0.10.2
 
 ### New

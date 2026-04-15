@@ -30,7 +30,7 @@ deployed Cloud Composer images for production purposes.
     and `composer-3-airflow-2.10.5-build.0`, and all versions of Airflow 2
     greater than `2.10.5`.
 
-  - Airflow 3 is currently not supported.
+  - Airflow 3 is supported for `composer-3-airflow-3.1.0-build.8` and greater.
 
 - Composer Local Development CLI tool creates local Airflow environments in a
     directory where you run the `composer-dev create` command. To access your
@@ -487,6 +487,54 @@ To delete all images downloaded by Composer Local Development CLI tool, run:
 
 ```bash
 docker rmi $(docker images --filter=reference='*/cloud-airflow-releaser/*/*' -q)
+```
+
+## Shell Tab Completion
+
+The `composer-dev` CLI supports tab completion for Bash, Zsh, and Fish shells.
+This makes it easy to discover available subcommands and options without
+consulting the help text.
+
+![Shell Tab Completion Demo](docs/images/shell-tab-completion-v2.gif)
+
+### Zsh
+
+Generate the completion script and source it in your `~/.zshrc`:
+
+```bash
+_COMPOSER_DEV_COMPLETE=zsh_source composer-dev > ~/.composer-dev-complete.zsh
+```
+
+Then add it to your `~/.zshrc`:
+
+```bash
+# You can add it yourself directly source ~/.composer-dev-complete.zsh
+# Or you can just run the command
+echo 'source ~/.composer-dev-complete.zsh' >> ~/.zshrc
+```
+
+### Bash
+
+Generate the completion script and source it in your `~/.bashrc`:
+
+```bash
+_COMPOSER_DEV_COMPLETE=bash_source composer-dev > ~/.composer-dev-complete.bash
+```
+
+Then add it to your `~/.bashrc`:
+
+```bash
+# You can add it yourself directly source ~/.composer-dev-complete.bash
+# Or you can just run the command
+echo 'source ~/.composer-dev-complete.bash' >> ~/.bashrc
+```
+
+### Fish
+
+Generate the completion script and save it to the Fish completions directory:
+
+```bash
+_COMPOSER_DEV_COMPLETE=fish_source composer-dev > ~/.config/fish/completions/composer-dev.fish
 ```
 
 ## Troubleshooting

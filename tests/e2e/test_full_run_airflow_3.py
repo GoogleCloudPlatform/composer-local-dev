@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pathlib
+import shutil
 
 import pytest
 
@@ -23,13 +24,19 @@ from tests.e2e import (
 
 
 @pytest.mark.e2e
-def test_full_run(composer_image_version, valid_project_id, env_name):
+def test_full_run_airflow_3(
+    composer_image_version_airflow_3, valid_project_id, env_name
+):
     dags_dir = pathlib.Path(__file__).parent / "example_dag"
     run_app(
-        f"create --from-image-version {composer_image_version} "
+        f"create --from-image-version {composer_image_version_airflow_3} "
         f"-p {valid_project_id} --dags-path {dags_dir} {env_name}"
     )
+    # Copy requirements.txt with already satisfied deps to our environment
+    requirements_src = pathlib.Path(__file__).parent / "basic_requirements.txt"
+    requirements_dst = pathlib.Path(f"composer/{env_name}/requirements.txt")
+    shutil.copyfile(str(requirements_src), str(requirements_dst))
     run_app(f"start {env_name}")
     assert_example_dag_listed()
-    assert_example_dag_succeeded(env_name, airflow_major_version=2)
+    assert_example_dag_succeeded(env_name, airflow_major_version=3)
     run_app(f"stop {env_name}")

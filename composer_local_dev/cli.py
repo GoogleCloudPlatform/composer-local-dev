@@ -19,6 +19,7 @@ from typing import List, Optional, Union
 
 import rich.markdown
 import rich_click as click
+from click.shell_completion import CompletionItem
 
 from composer_local_dev import console, constants
 from composer_local_dev import environment as composer_environment
@@ -48,6 +49,10 @@ click.rich_click.OPTION_GROUPS = {
         {
             "name": "Environment options",
             "options": ["--web-server-port", "--dags-path", "--plugins-path"],
+        },
+        {
+            "name": "Container Memory and CPUs limit",
+            "options": ["--container-memory-limit", "--container-cpu-limit"],
         },
     ],
     "composer-dev start": [COMMON_OPTIONS],
@@ -174,15 +179,26 @@ option_port = click.option(
 )
 
 
+def _complete_environment(ctx, param, incomplete):
+    env_dirs = files.get_environment_directories()
+    return [
+        CompletionItem(env_dir.name)
+        for env_dir in env_dirs
+        if env_dir.name.startswith(incomplete)
+    ]
+
+
 required_environment = click.argument(
     "environment",
     required=True,
     metavar="LOCAL_ENVIRONMENT_NAME",
+    shell_complete=_complete_environment,
 )
 optional_environment = click.argument(
     "environment",
     required=False,
     metavar="LOCAL_ENVIRONMENT_NAME",
+    shell_complete=_complete_environment,
 )
 option_location = click.option(
     "-l",
@@ -216,12 +232,31 @@ option_location = click.option(
     show_default="project ID set in Cloud CLI",
     metavar="PROJECT_ID",
 )
+@click.option(
+    "--container-memory-limit",
+    help="Memory limit for the container in MiB. "
+    "If not set, it will be set to 4 GiB.",
+    metavar="MEMORY_LIMIT",
+)
+@click.option(
+    "--container-cpu-limit",
+    help="CPU limit for the container in cores. "
+    "If not set, it will be set to 2 cores.",
+    metavar="CPU_LIMIT",
+)
 @option_location
 @option_port
 @click.option(
     "--dags-path",
     help="Path to DAGs folder. If it does not exist, it will be created.",
     show_default="'dags' directory in the environment directory",
+    metavar="PATH",
+    type=click.Path(file_okay=False),
+)
+@click.option(
+    "--plugins-path",
+    help="Path to plugins folder. If it does not exist, it will be created.",
+    show_default="'plugins' directory in the environment directory",
     metavar="PATH",
     type=click.Path(file_okay=False),
 )
@@ -250,6 +285,8 @@ def create(
     database_engine: str,
     dags_path: Optional[pathlib.Path] = None,
     plugins_path: Optional[pathlib.Path] = None,
+    container_memory_limit: Optional[str] = None,
+    container_cpu_limit: Optional[str] = None,
 ):
     """
     Create local Composer development environment.
@@ -305,6 +342,8 @@ def create(
             dags_path=dags_path,
             plugins_path=plugins_path,
             database_engine=database_engine,
+            memory_limit=container_memory_limit,
+            cpu_count=container_cpu_limit,
         )
     else:
         env = composer_environment.Environment(
@@ -316,6 +355,8 @@ def create(
             dags_path=dags_path,
             plugins_path=plugins_path,
             database_engine=database_engine,
+            memory_limit=container_memory_limit,
+            cpu_count=container_cpu_limit,
         )
     env.create()
 

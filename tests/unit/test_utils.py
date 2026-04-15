@@ -219,19 +219,52 @@ def get_image_version_mock(version_id, day, month, year):
 
 
 def test_filter_image_versions():
+    def get_supported_image_version_mock(image_version, should_be_supported):
+        return (
+            get_image_version_mock(image_version, 1, 1, 2022),
+            should_be_supported,
+        )
+
     versions = [
-        get_image_version_mock("composer-2.0.23-airflow-2.2.1", 1, 1, 2022),
-        get_image_version_mock("composer-2.0.23-airflow-2.2.2", 1, 2, 2022),
-        get_image_version_mock("composer-1.0.23-airflow-2.2.3", 1, 1, 2023),
-        get_image_version_mock("composer-1.0.22-airflow-2.2.1", 1, 1, 2022),
-        get_image_version_mock("composer-2.0.22-airflow-2.2.2", 2, 1, 2022),
-        get_image_version_mock("composer-3-airflow-2.10.2-build.5", 2, 1, 2022),
-        get_image_version_mock(
-            "composer-3-airflow-2.10.2-build.20", 2, 1, 2022
+        get_supported_image_version_mock("composer-2.0.23-airflow-2.2.1", True),
+        get_supported_image_version_mock("composer-2.0.23-airflow-2.2.2", True),
+        get_supported_image_version_mock(
+            "composer-1.0.23-airflow-2.2.3", False
+        ),
+        get_supported_image_version_mock(
+            "composer-1.0.22-airflow-2.2.1", False
+        ),
+        get_supported_image_version_mock("composer-2.0.22-airflow-2.2.2", True),
+        get_supported_image_version_mock(
+            "composer-3-airflow-2.10.2-build.5", False
+        ),
+        get_supported_image_version_mock(
+            "composer-3-airflow-2.10.2-build.20", True
+        ),
+        get_supported_image_version_mock(
+            "composer-3-airflow-2.10.5-build.0", True
+        ),
+        get_supported_image_version_mock(
+            "composer-3-airflow-2.11.0-build.0", True
+        ),
+        get_supported_image_version_mock(
+            "composer-3-airflow-3.0.0-build.50", False
+        ),
+        get_supported_image_version_mock(
+            "composer-3-airflow-3.1.0-build.7", False
+        ),
+        get_supported_image_version_mock(
+            "composer-3-airflow-3.1.0-build.8", True
+        ),
+        get_supported_image_version_mock(
+            "composer-3-airflow-3.1.1-build.0", True
         ),
     ]
-    expected_versions = [versions[0], versions[1], versions[4], versions[6]]
-    filtered = utils.filter_image_versions(versions)
+    expected_versions = [
+        version for (version, supported) in versions if supported
+    ]
+    all_versions = [version for (version, _) in versions]
+    filtered = utils.filter_image_versions(all_versions)
     assert filtered == expected_versions
 
 
