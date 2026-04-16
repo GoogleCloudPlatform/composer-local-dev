@@ -682,6 +682,9 @@ class Environment:
             "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
             "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
             "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
+            "COMPOSER_ENVIRONMENT": self.name,
+            "COMPOSER_LOCATION": self.location,
+            "DAGS_FOLDER": "/home/airflow/gcs/dags",
             "AIRFLOW_HOME": "/home/airflow/airflow",
             "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": (
                 f"google-cloud-platform://?"
@@ -690,8 +693,7 @@ class Environment:
                 f"https://www.googleapis.com/auth/cloud-platform"
             ),
             "GCP_PROJECT": self.project_id,
-            "COMPOSER_LOCATION": self.location,
-            "COMPOSER_ENVIRONMENT": self.name,
+            "GOOGLE_CLOUD_PROJECT": self.project_id,
             **default_db_variables,
             **self.get_environment_variables_for_image_version(),
         }
