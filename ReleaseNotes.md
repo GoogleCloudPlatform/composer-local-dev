@@ -1,5 +1,11 @@
 # Release notes
 
+## 0.11.4
+
+### Changes
+
+- Set DAGS_FOLDER and GOOGLE_CLOUD_PROJECT like we set in Composer environments
+
 ## 0.11.3
 
 ### New
