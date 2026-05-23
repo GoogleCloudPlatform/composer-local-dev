@@ -37,9 +37,9 @@ install_airflow_deps() {
     # We need to add apache-airflow==[airflow-version]+composer to make sure that pip is taking
     # into account Composer-Airflow dependencies when resolving and installing the new packages
     version=$(${run_as_user} airflow version | grep -oE '[0-9]\.[0-9]+\.[0-9]+\+composer')
-    cp composer_requirements.txt requirements_with_airflow_version.txt
-    echo "" >> requirements_with_airflow_version.txt
-    echo "apache-airflow==${version}" >> requirements_with_airflow_version.txt
+    ${run_as_user} cp composer_requirements.txt requirements_with_airflow_version.txt
+    ${run_as_user} bash -c "echo \"\" >> requirements_with_airflow_version.txt"
+    ${run_as_user} bash -c "echo \"apache-airflow==${version}\" >> requirements_with_airflow_version.txt"
     sudo -E pip3 install -r requirements_with_airflow_version.txt
     sudo pip3 check
   fi
