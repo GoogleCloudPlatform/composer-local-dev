@@ -1264,6 +1264,30 @@ class TestWaitForStart:
         ):
             default_env.wait_for_start()
 
+    @mock.patch(
+        "composer_local_dev.environment.time.time",
+        side_effect=[1, 121],
+    )
+    def test_wait_for_start_custom_timeout(self, mocked_time, default_env):
+        container = mock.Mock()
+        container.status = "running"
+        container.logs = mock.Mock(return_value=[b"Log lines"])
+        default_env.get_container = mock.Mock(return_value=container)
+        with pytest.raises(
+            errors.ComposerCliError,
+            match="Environment did not start in 120 seconds.",
+        ):
+            default_env.wait_for_start(timeout_seconds=120)
+
+    @mock.patch(
+        "composer_local_dev.environment.time.time",
+        side_effect=[1, 1 + constants.OPERATION_TIMEOUT_SECONDS],
+    )
+    def test_wait_for_start_timeout_disabled(self, mocked_time, default_env):
+        log_lines = [b"Log lines", b"Searching for files in path..."]
+        default_env.get_container = get_container_logs_mock(log_lines)
+        default_env.wait_for_start(timeout_seconds=0)
+
     def test_wait_for_start_failed(self, default_env):
         default_env.get_container = get_container_logs_mock([], "not_running")
         with pytest.raises(

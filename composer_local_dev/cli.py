@@ -184,6 +184,19 @@ option_port = click.option(
 )
 
 
+option_start_timeout = click.option(
+    "--start-timeout",
+    "start_timeout_seconds",
+    type=click.IntRange(min=0),
+    help=(
+        "Maximum number of seconds to wait for environment startup. "
+        "Use 0 to disable the timeout."
+    ),
+    show_default=f"{constants.OPERATION_TIMEOUT_SECONDS} seconds",
+    metavar="SECONDS",
+)
+
+
 def _complete_environment(ctx, param, incomplete):
     env_dirs = files.get_environment_directories()
     return [
@@ -379,12 +392,14 @@ def create(
 @cli.command()
 @optional_environment
 @option_port
+@option_start_timeout
 @verbose_mode
 @debug_mode
 @errors.catch_exceptions()
 def start(
     environment: Optional[str],
     web_server_port: Optional[int],
+    start_timeout_seconds: Optional[int],
     verbose: bool,
     debug: bool,
 ):
@@ -395,7 +410,7 @@ def start(
         env_path, web_server_port
     )
     console.get_console().print(f"Starting {env.name} composer environment...")
-    env.start()
+    env.start(timeout_seconds=start_timeout_seconds)
 
 
 @cli.command()
@@ -419,12 +434,14 @@ def stop(environment: Optional[str], verbose: bool, debug: bool):
 @cli.command()
 @optional_environment
 @option_port
+@option_start_timeout
 @verbose_mode
 @debug_mode
 @errors.catch_exceptions()
 def restart(
     environment: Optional[str],
     web_server_port: Optional[int],
+    start_timeout_seconds: Optional[int],
     verbose: bool,
     debug: bool,
 ):
@@ -439,7 +456,7 @@ def restart(
     env = composer_environment.Environment.load_from_config(
         env_path, web_server_port
     )
-    env.restart()
+    env.restart(timeout_seconds=start_timeout_seconds)
 
 
 @cli.command()

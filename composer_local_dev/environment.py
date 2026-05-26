@@ -39,9 +39,13 @@ LOG = logging.getLogger(__name__)
 DOCKER_FILES = pathlib.Path(__file__).parent / "docker_files"
 
 
-def timeout_occurred(start_time):
+def timeout_occurred(start_time, timeout_seconds=None):
     """Returns whether time since start is greater than OPERATION_TIMEOUT."""
-    return time.time() - start_time >= constants.OPERATION_TIMEOUT_SECONDS
+    if timeout_seconds is None:
+        timeout_seconds = constants.OPERATION_TIMEOUT_SECONDS
+    if timeout_seconds <= 0:
+        return False
+    return time.time() - start_time >= timeout_seconds
 
 
 def get_image_mounts(
@@ -1016,7 +1020,7 @@ class Environment:
         ):
             raise errors.EnvironmentStartError()
 
-    def wait_for_db_start(self):
+    def wait_for_db_start(self, timeout_seconds=None):
         start_time = time.time()
         with console.get_console().status("[bold green]Starting database..."):
             self.assert_container_is_active(self.db_container_name)
@@ -1031,12 +1035,14 @@ class Environment:
                         "Database is started in %.2f seconds", start_duration
                     )
                     return
-                if timeout_occurred(start_time):
-                    raise errors.EnvironmentStartTimeoutError()
+                if timeout_occurred(start_time, timeout_seconds):
+                    raise errors.EnvironmentStartTimeoutError(
+                        timeout_seconds or constants.OPERATION_TIMEOUT_SECONDS
+                    )
                 self.assert_container_is_active(self.db_container_name)
         raise errors.EnvironmentStartError()
 
-    def wait_for_start(self):
+    def wait_for_start(self, timeout_seconds=None):
         """
         Poll environment logs to see if it is ready.
         When Airflow scheduler starts, it prints 'searching for files' in the
@@ -1059,8 +1065,10 @@ class Environment:
                         "Environment started in %.2f seconds", start_duration
                     )
                     return
-                if timeout_occurred(start_time):
-                    raise errors.EnvironmentStartTimeoutError()
+                if timeout_occurred(start_time, timeout_seconds):
+                    raise errors.EnvironmentStartTimeoutError(
+                        timeout_seconds or constants.OPERATION_TIMEOUT_SECONDS
+                    )
                 self.assert_container_is_active(self.container_name)
         raise errors.EnvironmentStartError()
 
@@ -1110,7 +1118,7 @@ class Environment:
             error = f"Environment ({container_name}) failed to start with an error: {err}"
             raise errors.EnvironmentStartError(error) from None
 
-    def start(self, assert_not_running=True):
+    def start(self, assert_not_running=True, timeout_seconds=None):
         """Starts local composer environment.
 
         Before starting we are asserting that are required files in the
@@ -1149,7 +1157,7 @@ class Environment:
                 f"Database engine is selected as {self.database_engine}. The container will start before"
             )
             db_container = self.start_container(self.db_container_name, False)
-            self.wait_for_db_start()
+            self.wait_for_db_start(timeout_seconds)
             self.ensure_container_is_attached_to_network(db_container)
             LOG.info(f"Database started!")
 
@@ -1157,7 +1165,7 @@ class Environment:
             self.container_name, assert_not_running
         )
         self.ensure_container_is_attached_to_network(container)
-        self.wait_for_start()
+        self.wait_for_start(timeout_seconds)
         self.print_start_message()
 
     def ensure_container_is_attached_to_network(self, container):
@@ -1239,7 +1247,7 @@ class Environment:
                 network = self.get_docker_network()
                 network.remove()
 
-    def restart(self):
+    def restart(self, timeout_seconds=None):
         """
         Restarts the local composer environment.
 
@@ -1250,7 +1258,7 @@ class Environment:
             self.stop(remove_container=True)
         except errors.EnvironmentNotRunningError:
             pass
-        self.start(assert_not_running=False)
+        self.start(assert_not_running=False, timeout_seconds=timeout_seconds)
 
     def status(self) -> str:
         """Get status of the local composer environment."""

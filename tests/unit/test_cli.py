@@ -185,12 +185,19 @@ class TestStartRestartCommand:
     def assert_env_loaded(self, mocked_env, env_path, port=None):
         mocked_env.load_from_config.assert_called_with(env_path, port)
 
-    def assert_run_command(self, command, mocked_env, env_path, port=None):
+    def assert_run_command(
+        self, command, mocked_env, env_path, port=None, start_timeout=None
+    ):
         run_composer_and_assert_exit_code(
             command,
             exit_code=0,
         )
         self.assert_env_loaded(mocked_env, env_path, port)
+        loaded_env = mocked_env.load_from_config.return_value
+        if command.startswith("start"):
+            loaded_env.start.assert_called_with(timeout_seconds=start_timeout)
+        elif command.startswith("restart"):
+            loaded_env.restart.assert_called_with(timeout_seconds=start_timeout)
 
     @pytest.mark.parametrize("command", ["start", "restart"])
     def test_start_command(
@@ -205,6 +212,39 @@ class TestStartRestartCommand:
         port = 8081
         command += f" --port {port}"
         self.assert_run_command(command, mocked_env, env_path, port)
+
+    @pytest.mark.parametrize("command", ["start", "restart"])
+    def test_start_command_with_timeout(
+        self, mocked_env, mocked_resolve_env, env_path, command
+    ):
+        start_timeout = 600
+        command += f" --start-timeout {start_timeout}"
+        self.assert_run_command(
+            command, mocked_env, env_path, start_timeout=start_timeout
+        )
+
+    @pytest.mark.parametrize("command", ["start", "restart"])
+    def test_start_command_with_timeout_disabled(
+        self, mocked_env, mocked_resolve_env, env_path, command
+    ):
+        start_timeout = 0
+        command += f" --start-timeout {start_timeout}"
+        self.assert_run_command(
+            command, mocked_env, env_path, start_timeout=start_timeout
+        )
+
+    @pytest.mark.parametrize("command", ["start", "restart"])
+    def test_start_command_with_invalid_timeout(
+        self, mocked_env, mocked_resolve_env, env_path, command
+    ):
+        result = run_composer_and_assert_exit_code(
+            f"{command} --start-timeout -1",
+            exit_code=2,
+        )
+        assert (
+            "Invalid value for '--start-timeout': -1 is not in the range"
+            in result.output
+        )
 
     def test_start_with_invalid_port(
         self, mocked_env, mocked_resolve_env, env_path
