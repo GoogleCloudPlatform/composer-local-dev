@@ -19,7 +19,7 @@ set -ex
 pyenv install --skip-existing 3.11.5
 pyenv global 3.11.5
 
-git config --global --add safe.directory /tmpfs/src/git/composer-local-development
+git config --global --add safe.directory "${KOKORO_ARTIFACTS_DIR}/git/composer-local-development"
 cd git/composer-local-development
 
 pip install --require-hashes -r .kokoro/linter/linter_requirements.txt
