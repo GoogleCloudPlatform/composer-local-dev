@@ -106,7 +106,13 @@ install_and_run_sshd() {
   echo "Installing sshd"
   if ! command -v /usr/sbin/sshd &> /dev/null
   then
-    sudo apt-get -qq update && sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install openssh-server > /dev/null 2>&1
+    sudo bash -c 'cat << EOF > /etc/apt/sources.list.d/default.list
+deb http://archive.ubuntu.com/ubuntu/ noble main restricted
+deb http://archive.ubuntu.com/ubuntu/ noble-updates main restricted
+EOF'
+    sudo apt-get -qq update > /dev/null 2>&1
+    sudo apt-get -qqy install openssh-server > /dev/null 2>&1
+    sudo chown airflow:airflow /etc/ssh/ssh_host_*_key
     sudo mkdir /run/sshd
     echo "airflow:${COMPOSER_CONTAINER_AIRFLOW_USER_PASSWORD}" | sudo chpasswd
   fi
