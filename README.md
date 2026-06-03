@@ -235,6 +235,9 @@ For SSH connection, use the `airflow` user. The default password for this user i
 If you need to change this default password, set the `COMPOSER_CONTAINER_AIRFLOW_USER_PASSWORD` environment variable
 in the variables.env file.
 
+Use the `--ssh-port` option to change which host port is mapped to the container's `ssh` port.
+The default host port used is 10022.
+
 ## Enable the container user to access mounted files and directories from the host
 
 By default, the Composer container runs as the user `airflow` with UID 999. The user needs to have access the files and
