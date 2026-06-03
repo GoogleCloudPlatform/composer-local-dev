@@ -858,7 +858,7 @@ class Environment:
         )
 
         if env_vars["COMPOSER_CONTAINER_ENABLE_SSHD"] == "True":
-            ports[f"22/tcp"] = self.ssh_port
+            ports["22/tcp"] = self.ssh_port
 
         try:
             container = self.create_container(
