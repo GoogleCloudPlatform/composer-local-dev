@@ -508,7 +508,7 @@ class Environment:
         )
         self.port: int = port if port is not None else 8080
         self.enable_ssh: bool = enable_ssh
-        self.ssh_port: int = ssh_port if ssh_port is not None else 10022
+        self.ssh_port: int = ssh_port if ssh_port is not None else constants.DEFAULT_SSH_PORT
         self.pypi_packages = (
             pypi_packages if pypi_packages is not None else dict()
         )
