@@ -362,6 +362,7 @@ class EnvironmentConfig:
         self,
         env_dir_path: pathlib.Path,
         port: Optional[int],
+        enable_ssh: Optional[bool] = None,
         ssh_port: Optional[int] = None,
     ):
         self.env_dir_path = env_dir_path
@@ -390,7 +391,11 @@ class EnvironmentConfig:
 
         # Backwards compatibility: don't fail on missing enable_ssh
         if "enable_ssh" in self.config:
-            self.enable_ssh = self.get_str_param("enable_ssh")
+            self.enable_ssh = (
+                enable_ssh
+                if enable_ssh is not None
+                else self.get_str_param("enable_ssh")
+            )
             self.ssh_port = (
                 ssh_port
                 if ssh_port is not None
@@ -574,10 +579,11 @@ class Environment:
         cls,
         env_dir_path: pathlib.Path,
         port: Optional[int],
+        enable_ssh: Optional[bool] = None,
         ssh_port: Optional[int] = None,
     ):
         """Create local environment using 'config.json' configuration file."""
-        config = EnvironmentConfig(env_dir_path, port, ssh_port)
+        config = EnvironmentConfig(env_dir_path, port, enable_ssh, ssh_port)
         environment_vars = load_environment_variables(env_dir_path)
         Environment.assert_valid_environment_configuration(
             config, environment_vars
