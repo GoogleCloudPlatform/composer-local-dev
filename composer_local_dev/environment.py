@@ -387,12 +387,19 @@ class EnvironmentConfig:
             else self.parse_int_param("port", allowed_range=(0, 65536))
         )
         self.database_engine = self.get_str_param("database_engine")
-        self.enable_ssh = self.get_str_param("enable_ssh")
-        self.ssh_port = (
-            ssh_port
-            if ssh_port is not None
-            else self.parse_int_param("ssh_port", allowed_range=(0, 65536))
-        )
+
+        # Backwards compatibility: don't fail on missing enable_ssh
+        if "enable_ssh" in self.config:
+            self.enable_ssh = self.get_str_param("enable_ssh")
+            self.ssh_port = (
+                ssh_port
+                if ssh_port is not None
+                else self.parse_int_param("ssh_port", allowed_range=(0, 65536))
+            )
+        else:
+            self.enable_ssh = False
+            self.ssh_port = None
+
 
     def load_configuration_from_file(self) -> Dict:
         """
