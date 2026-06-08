@@ -4,3 +4,11 @@ target-version = ['py311', 'py312', 'py313', 'py314']
 [tool.isort]
 profile = "black"
 line_length = 80
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = ["composer", ".nox", "venv", ".venv", ".git", "build", "dist"]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"

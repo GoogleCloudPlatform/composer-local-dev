@@ -58,7 +58,7 @@ deployed Cloud Composer images for production purposes.
     `airflow triggerer` was released in Airflow 2.2.0 and thus won't
     work with older versions.
 
-- You can access the host machine services via `host.docker.internal`
+- You can access the host machine services via `host.docker.internal` (also when running on Podman)
     instead of `localhost`. For more information please go to
     [Interaction with other service on the host machine](#interaction-with-other-service-on-the-host-machine)
 
@@ -73,10 +73,13 @@ In order to run the CLI tool, install the following prerequisites:
 
 - Python 3.11-3.14 with `pip`
 - [gcloud CLI][2]
-- Docker
+- Docker or Podman
 
-Docker must be installed and running in the local system. To verify that
-Docker is running, you can run any Docker CLI command, such as `docker ps`.
+Docker or Podman must be installed and running in the local system.
+To verify that they are running, you can run `docker ps` (for Docker) or `podman ps` (for Podman).
+All of the instructions apply to both Docker and Podman unless specified otherwise,
+and any Docker commands can be replaced by equivalent Podman commands.
+For tips how to install Podman, see the [Running with Podman on Linux](#running-with-podman-on-linux) section.
 
 ## Configure credentials
 
@@ -267,9 +270,11 @@ export KUBECONFIG=~/.kube/config
 
 ## Interaction with other service on the host machine
 
-Please note that the `localhost` in composer environment is pointing the container itself, not the host machine
-due to how network works on docker containers. For convenience, we configure the container's network to access
-the machine via `host.docker.internal` domain alias. Here are some example;
+Please note that the `localhost` in composer environment is pointing
+to the container itself, not the host machine due to how network
+works on Docker or Podman containers. For convenience, we
+configure the container's network to access the machine via `host.docker.internal`
+domain alias. Here are some example;
 
 - for `Redis` you can use `host.docker.internal:6379` instead of
   `localhost:6379` assuming the `Redis` is running on port `6379`.
@@ -412,7 +417,7 @@ local environment's directory: `./composer/<local_environment_name>/data` and
 `./composer/<local_environment_name>/plugins`).
 
 To change the contents of `/data` and `/plugins` directories, add or remove
-files in these directories. Docker automatically propagates file changes to
+files in these directories. Your container runtime automatically propagates file changes to
 your local Airflow environment.
 
 Composer Local Development CLI tool does not support specifying a different
@@ -498,6 +503,133 @@ To delete all images downloaded by Composer Local Development CLI tool, run:
 docker rmi $(docker images --filter=reference='*/cloud-airflow-releaser/*/*' -q)
 ```
 
+## Running with Podman on Linux
+
+You can run Composer Local Development CLI tool using Podman instead of Docker.
+Below are the instructions for configuring and troubleshooting rootless Podman.
+
+### Prerequisites & System Configuration
+
+#### Enable the Podman User Service Socket
+
+`composer-dev` communicates via standard Docker API calls.
+You must activate Podman's background service socket wrapper at the user level
+so it can mimic the Docker daemon seamlessly.
+
+First, verify if the user-level socket is already active:
+
+```bash
+systemctl --user is-active podman.socket
+```
+
+If the command returns `inactive` or `failed`, enable and start the socket:
+
+```bash
+# Enable and start Podman's user-level systemd socket
+systemctl --user enable --now podman.socket
+```
+
+#### Environment Variables
+
+Add the following exports to your shell environment variables:
+
+```bash
+export DOCKER_HOST="unix:///run/user/$UID/podman/podman.sock"
+```
+
+### Managing the Environment
+
+With the environment configured, use the standard `composer-dev` workflow:
+
+```bash
+# Create the environment
+composer-dev create --from-image-version <IMAGE_VERSION> podman-test-env
+
+# Start the environment
+composer-dev start podman-test-env
+```
+
+### Maintenance & Troubleshooting
+
+If your local environment becomes unresponsive, fails to initialize Postgres databases,
+or throws permission/DNS routing errors, follow these cleanup actions.
+
+#### Corporate Users: Fixing Permission or `lchown` Errors
+
+To prevent rootless Podman from auto-allocating user namespaces that overlap with
+your primary corporate user ID (causing `lchown: invalid argument` or permission errors),
+you must manually push your subordinate ranges above the 4-million block.
+
+1. Open `/etc/subuid` and `/etc/subgid` with root privileges (e.g., `sudo nano /etc/subuid`).
+2. Update or add your username entry to look exactly like this:
+
+   ```plaintext
+   YOUR_USERNAME:4000000:3000000
+   ```
+
+3. Save both files and run the following to apply the new namespace mapping rules to Podman:
+
+   ```bash
+   podman system migrate
+   ```
+
+#### Wiping Stuck Files and Permission Denied Errors
+
+If you updated your subuid ranges while old containers existed, your current namespace
+will be blocked from accessing its own data cache. Run the "nuclear option" to force-clear
+the local storage graph using host-level root privileges.
+WARNING: Running "podman volume rm --all --force" will remove
+all your volumes - proceed with caution if you have other work stored.
+
+```bash
+podman rm -fa
+podman volume rm --all --force
+podman system migrate
+```
+
+#### Fixing DNS Failures ("Name or service not known")
+
+If your Airflow container throws a `psycopg2.OperationalError` stating it
+cannot translate or resolve the hostname for the database container (`your-env-name`),
+Podman's internal virtual bridge network is out of sync.
+
+Flush the runtime states and force `netavark` and `aardvark-dns` to regenerate clean routing tables.
+WARNING: The following commands will remove all networks - proceed with caution if you have other work stored.
+
+```bash
+podman rm -fa
+podman network prune --force
+
+rm -rf /run/user/$UID/containers/*
+rm -rf /run/user/$UID/netavark/*
+rm -rf <path/to/composer-local-development>/composer/*
+
+podman system migrate
+```
+
+### Verifying your Engine Status
+
+To prove definitively that Podman is managing your workflow rootless (and not bypassing your configuration into system Docker):
+
+#### Verify Network DNS Backend
+
+```bash
+podman info | grep -A 3 -i "dns"
+```
+
+Should show `backend: netavark` and a valid executable path to `aardvark-dns`.
+
+#### Verify Process Ownership Mapping
+
+With your environment running, look at the host process owner:
+
+```bash
+ps -ef | grep -i "postgres"
+```
+
+The leftmost column should display a high UID number (e.g., `4000069`)
+corresponding to your subuid map range, proving it is running entirely rootless.
+
 ## Shell Tab Completion
 
 The `composer-dev` CLI supports tab completion for Bash, Zsh, and Fish shells.
@@ -552,7 +684,7 @@ This section provides solutions to common issues.
 
 ### Unable to start a local environment on MacOS X
 
-If you installed the `composer-dev` package to a directory where Docker cannot
+If you installed the `composer-dev` package to a directory where Docker or Podman cannot
 access it, then your local environment might not start.
 
 For example, if Python is installed in the `/opt` directory, such as when you

@@ -40,6 +40,13 @@ def run_composer_and_assert_exit_code(
     with runner.isolated_filesystem(temp_dir=tmp_path) as td:
         result = runner.invoke(cli.cli, cmd)
         working_dir = pathlib.Path(td)
+    if result.exit_code != exit_code:
+        print(
+            f"Command `{cmd}` returned unexpected exit code: {result.exit_code}, want {exit_code}"
+        )
+        print("CLI Output:\n", result.output)
+        if result.exception:
+            raise result.exception
     assert result.exit_code == exit_code
     return result, working_dir
 
