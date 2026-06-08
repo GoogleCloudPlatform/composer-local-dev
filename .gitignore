@@ -23,8 +23,9 @@ coverage.xml
 nosetests.xml
 htmlcov/
 
-# PyCharm configuration:
+# IDE configuration:
 .idea
+.vscode/
 venv/
 
 # Generated files

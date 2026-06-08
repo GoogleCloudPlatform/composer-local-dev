@@ -52,6 +52,7 @@ def get_image_mounts(
     kube_config_path: Optional[str],
     requirements: pathlib.Path,
     database_mounts: Dict[pathlib.Path, str],
+    editable_dependencies: Optional[List[str]] = None,
 ) -> List[docker.types.Mount]:
     """
     Return list of docker volumes to be mounted inside container.
@@ -74,6 +75,9 @@ def get_image_mounts(
     # Add kube_config_path only if it's provided
     if kube_config_path:
         mount_paths[kube_config_path] = ".kube/"
+    if editable_dependencies:
+        for i, dep in enumerate(editable_dependencies):
+            mount_paths[dep] = f"editable_deps/{i}_{pathlib.Path(dep).name}"
     return [
         docker.types.Mount(
             source=str(source),
@@ -399,6 +403,9 @@ class EnvironmentConfig:
                 self.db_port = constants.DEFAULT_DB_PORT
 
         self.database_engine = self.get_str_param("database_engine")
+        self.editable_dependencies = self.config.get(
+            "editable_dependencies", []
+        )
 
     def load_configuration_from_file(self) -> Dict:
         """
@@ -482,6 +489,7 @@ class Environment:
         db_port: Optional[int] = None,
         pypi_packages: Optional[Dict] = None,
         environment_vars: Optional[Dict] = None,
+        editable_dependencies: Optional[List[str]] = None,
     ):
         self.name = env_dir_path.name
         self.container_name = f"{constants.CONTAINER_NAME}-{self.name}"
@@ -522,6 +530,10 @@ class Environment:
         self.environment_vars = (
             environment_vars if environment_vars is not None else dict()
         )
+        self.editable_dependencies = [
+            str(pathlib.Path(p).resolve())
+            for p in (editable_dependencies or [])
+        ]
         self.docker_client = self.get_client()
 
     def get_client(self):
@@ -597,6 +609,7 @@ class Environment:
             memory_limit=config.memory_limit,
             cpu_count=config.cpu_count,
             environment_vars=environment_vars,
+            editable_dependencies=config.editable_dependencies,
         )
 
     @classmethod
@@ -613,6 +626,7 @@ class Environment:
         database_engine: str,
         memory_limit: Optional[str] = None,
         cpu_count: Optional[int] = None,
+        editable_dependencies: Optional[List[str]] = None,
     ):
         """
         Create Environment using configuration retrieved from Composer
@@ -643,6 +657,7 @@ class Environment:
             database_engine=database_engine,
             memory_limit=memory_limit,
             cpu_count=cpu_count,
+            editable_dependencies=editable_dependencies,
         )
 
     def pypi_packages_to_requirements(self):
@@ -699,6 +714,10 @@ class Environment:
         self, default_db_variables: Dict[str, str]
     ) -> Dict:
         """Return environment variables that will be set inside container."""
+        editable_deps_paths = [
+            f"/home/airflow/editable_deps/{i}_{pathlib.Path(dep).name}"
+            for i, dep in enumerate(self.editable_dependencies)
+        ]
         return {
             "AIRFLOW__CORE__DAGS_FOLDER": "/home/airflow/gcs/dags",
             "AIRFLOW__CORE__DATA_FOLDER": "/home/airflow/gcs/data",
@@ -724,6 +743,7 @@ class Environment:
             ),
             "GCP_PROJECT": self.project_id,
             "GOOGLE_CLOUD_PROJECT": self.project_id,
+            "COMPOSER_EDITABLE_DEPENDENCIES": ":".join(editable_deps_paths),
             **default_db_variables,
             **self.get_environment_variables_for_image_version(),
         }
@@ -756,6 +776,7 @@ class Environment:
             "database_engine": self.database_engine,
             "memory_limit": self.container_memory_limit,
             "cpu_count": self.container_cpu_count,
+            "editable_dependencies": self.editable_dependencies,
         }
         with open(self.env_dir_path / "config.json", "w") as fp:
             json.dump(config, fp, indent=4)
@@ -833,6 +854,7 @@ class Environment:
             utils.resolve_kube_config_path(),
             self.requirements_file,
             db_mounts,
+            editable_dependencies=self.editable_dependencies,
         )
         db_vars = db_extras["env_vars"]
         default_vars = self.get_default_environment_variables(db_vars)
@@ -917,6 +939,7 @@ class Environment:
             utils.resolve_kube_config_path(),
             self.requirements_file,
             db_mounts,
+            editable_dependencies=self.editable_dependencies,
         )
         db_vars = db_extras["env_vars"]
         db_ports = db_extras["ports"]

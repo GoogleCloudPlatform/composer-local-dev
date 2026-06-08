@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import pathlib
 import shutil
 from typing import Optional
@@ -20,7 +21,7 @@ from unittest import mock
 import pytest
 from click.testing import CliRunner
 
-from composer_local_dev import cli
+from composer_local_dev import cli, constants
 
 
 @pytest.fixture()
@@ -49,17 +50,28 @@ def assert_environment_directories_exist(
     plugins_path: Optional[pathlib.Path] = None,
 ):
     assert env_dir.exists()
-    required_dirs = ["data", "plugins"]
+    config_file = env_dir / "config.json"
+    assert config_file.exists()
+    with open(config_file) as f:
+        config = json.load(f)
+    database_engine = config.get(
+        "database_engine", constants.DatabaseEngine.postgresql
+    )
+
+    required_dirs = ["data"]
     if dags_path is None:
         required_dirs.append("dags")
     if plugins_path is None:
         required_dirs.append("plugins")
-    required_files = [
-        "airflow.db",
-        "config.json",
-        "variables.env",
-        "requirements.txt",
-    ]
+    if database_engine == constants.DatabaseEngine.postgresql:
+        required_dirs.append("postgresql_data")
+
+    required_files = ["config.json", "variables.env", "requirements.txt"]
+    if database_engine == constants.DatabaseEngine.sqlite3:
+        required_files.append("airflow.db")
+    elif database_engine == constants.DatabaseEngine.postgresql:
+        required_files.append(".keep")
+
     actual_dirs = sorted([p.name for p in env_dir.iterdir() if p.is_dir()])
     actual_files = sorted([p.name for p in env_dir.iterdir() if p.is_file()])
     assert sorted(required_dirs) == actual_dirs

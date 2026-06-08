@@ -15,7 +15,7 @@
 import logging
 import pathlib
 import shutil
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 import rich.markdown
 import rich_click as click
@@ -53,6 +53,7 @@ click.rich_click.OPTION_GROUPS = {
                 "--db-port",
                 "--dags-path",
                 "--plugins-path",
+                "--editable-dependencies",
             ],
         },
         {
@@ -283,6 +284,19 @@ option_location = click.option(
     type=click.Choice(constants.DatabaseEngine.choices(), case_sensitive=False),
     metavar="DATABASE_ENGINE",
 )
+@click.option(
+    "--editable-dependencies",
+    multiple=True,
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    help=(
+        "Paths to local directories containing Python packages to install "
+        "in editable mode. Paths can be absolute or relative (relative paths "
+        "are resolved against the current working directory). To specify "
+        "multiple packages, repeat this option (e.g., "
+        "--editable-dependencies ./pkg1 --editable-dependencies ./pkg2)."
+    ),
+    metavar="PATH",
+)
 @required_environment
 @verbose_mode
 @debug_mode
@@ -302,6 +316,7 @@ def create(
     plugins_path: Optional[pathlib.Path] = None,
     container_memory_limit: Optional[str] = None,
     container_cpu_limit: Optional[str] = None,
+    editable_dependencies: Optional[Tuple[str, ...]] = None,
 ):
     """
     Create local Composer development environment.
@@ -360,6 +375,9 @@ def create(
             database_engine=database_engine,
             memory_limit=container_memory_limit,
             cpu_count=container_cpu_limit,
+            editable_dependencies=(
+                list(editable_dependencies) if editable_dependencies else None
+            ),
         )
     else:
         env = composer_environment.Environment(
@@ -374,6 +392,9 @@ def create(
             database_engine=database_engine,
             memory_limit=container_memory_limit,
             cpu_count=container_cpu_limit,
+            editable_dependencies=(
+                list(editable_dependencies) if editable_dependencies else None
+            ),
         )
     env.create()
 

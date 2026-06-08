@@ -45,6 +45,28 @@ install_airflow_deps() {
   fi
 }
 
+install_editable_deps() {
+  if [ -n "${COMPOSER_EDITABLE_DEPENDENCIES}" ]; then
+    echo "Installing editable dependencies..."
+    local old_ifs="$IFS"
+    IFS=':'
+    for dep in ${COMPOSER_EDITABLE_DEPENDENCIES}; do
+      IFS="$old_ifs"
+      if [ -d "${dep}" ]; then
+        echo "Installing editable dependency: ${dep}"
+        if $run_as_user [ -w "${dep}" ]; then
+          $run_as_user pip3 install --user -e "${dep}"
+        else
+          sudo -E pip3 install -e "${dep}"
+        fi
+      else
+        echo "Editable dependency path not found: ${dep}"
+      fi
+    done
+    IFS="$old_ifs"
+  fi
+}
+
 init_airflow() {
 
   $run_as_user mkdir -p ${AIRFLOW__CORE__DAGS_FOLDER}
@@ -59,6 +81,7 @@ init_airflow() {
   fi
 
   install_airflow_deps
+  install_editable_deps
 
   airflow_version=($(get_airflow_version))
   major="${airflow_version[0]}"

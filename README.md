@@ -140,6 +140,7 @@ composer-dev create \
   --dags-path LOCAL_DAGS_PATH \
   --plugins-path LOCAL_PLUGINS_PATH \
   --database DATABASE_ENGINE \
+  --editable-dependencies EDITABLE_DEPENDENCY_PATHS \
   LOCAL_ENVIRONMENT_NAME
 ```
 
@@ -154,6 +155,14 @@ Replace:
     files are located.
 - `DATABASE_ENGINE` with the database engine you wanted to use. You can use
     `sqlite` or `postgresql` (default).
+- `EDITABLE_DEPENDENCY_PATHS` with the path to a local directory containing a
+    Python package to install in editable mode. Paths can be absolute or
+    relative (relative paths are resolved against the current working
+    directory). This folder must be accessible by the container engine. To
+    specify multiple editable packages, repeat this option (e.g.,
+    `--editable-dependencies ./pkg1 --editable-dependencies ./pkg2`).
+    Installing the packages with pip install -e will guarantee that changes
+    to these packages would apply immediately inside the project.
 - `LOCAL_ENVIRONMENT_NAME` with the name of this local Airflow environment.
 
 > If you want to use `LocalExecutor` as Airflow's Core Executor, you need

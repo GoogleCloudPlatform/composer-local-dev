@@ -756,6 +756,7 @@ class TestEnvironment:
             f"extra__google_cloud_platform__project={default_env.project_id}&"
             f"extra__google_cloud_platform__scope="
             f"https://www.googleapis.com/auth/cloud-platform",
+            "COMPOSER_EDITABLE_DEPENDENCIES": "",
             "PGDATA": "/var/lib/postgresql/data/pgdata",
             "POSTGRES_USER": "postgres",
             "POSTGRES_PASSWORD": "airflow",
@@ -821,6 +822,7 @@ class TestEnvironment:
             f"extra__google_cloud_platform__project={default_env.project_id}&"
             f"extra__google_cloud_platform__scope="
             f"https://www.googleapis.com/auth/cloud-platform",
+            "COMPOSER_EDITABLE_DEPENDENCIES": "",
             "PGDATA": "/var/lib/postgresql/data/pgdata",
             "POSTGRES_USER": "postgres",
             "POSTGRES_PASSWORD": "airflow",
@@ -1193,6 +1195,7 @@ class TestEnvironment:
             "extra__google_cloud_platform__project=123&"
             "extra__google_cloud_platform__scope="
             "https://www.googleapis.com/auth/cloud-platform",
+            "COMPOSER_EDITABLE_DEPENDENCIES": "",
             **db_vars,
             **extra_vars,
         }
@@ -1253,6 +1256,7 @@ class TestEnvironment:
             "extra__google_cloud_platform__project=123&"
             "extra__google_cloud_platform__scope="
             "https://www.googleapis.com/auth/cloud-platform",
+            "COMPOSER_EDITABLE_DEPENDENCIES": "",
             **db_vars,
             **extra_vars,
         }
@@ -1452,6 +1456,93 @@ def test_get_image_mounts(mocked_mount):
             postgresql_data_path: "/var/lib/postgresql/data",
             postgresql_keep_path: "airflow/.keep",
         },
+    )
+    assert len(expected_mounts) == len(actual_mounts)
+    mocked_mount.assert_has_calls(expected_mounts)
+
+
+@mock.patch("composer_local_dev.environment.docker.types.Mount", autospec=True)
+def test_get_image_mounts_with_editable_dependencies(mocked_mount):
+    path = pathlib.Path("path/dir")
+    dags_path = "path/to/dags"
+    plugins_path = "path/to/plugins"
+    gcloud_path = "config/path"
+    kubeconfig_path = "/kube"
+    requirements = path / "requirements.txt"
+    sqlite_db_path = path / "airflow.db"
+    postgresql_data_path = path / "postgresql_data"
+    postgresql_keep_path = path / ".keep"
+    editable_dependencies = ["/tmp/my_local_pkg", "/tmp/another_pkg"]
+    expected_mounts = [
+        mock.call(
+            source=str(requirements),
+            target="/home/airflow/composer_requirements.txt",
+            type="bind",
+        ),
+        mock.call(
+            source=dags_path,
+            target="/home/airflow/gcs/dags/",
+            type="bind",
+        ),
+        mock.call(
+            source=plugins_path,
+            target="/home/airflow/gcs/plugins/",
+            type="bind",
+        ),
+        mock.call(
+            source=str(path / "data"),
+            target="/home/airflow/gcs/data/",
+            type="bind",
+        ),
+        mock.call(
+            source=gcloud_path,
+            target="/home/airflow/.config/gcloud",
+            type="bind",
+        ),
+        mock.call(
+            source=str(sqlite_db_path),
+            target="/home/airflow/airflow/airflow.db",
+            type="bind",
+        ),
+        mock.call(
+            source=str(postgresql_data_path),
+            target="/var/lib/postgresql/data",
+            type="bind",
+        ),
+        mock.call(
+            source=str(postgresql_keep_path),
+            target="/home/airflow/airflow/.keep",
+            type="bind",
+        ),
+        mock.call(
+            source=kubeconfig_path,
+            target="/home/airflow/.kube/",
+            type="bind",
+        ),
+        mock.call(
+            source="/tmp/my_local_pkg",
+            target="/home/airflow/editable_deps/0_my_local_pkg",
+            type="bind",
+        ),
+        mock.call(
+            source="/tmp/another_pkg",
+            target="/home/airflow/editable_deps/1_another_pkg",
+            type="bind",
+        ),
+    ]
+    actual_mounts = environment.get_image_mounts(
+        path,
+        dags_path,
+        plugins_path,
+        gcloud_path,
+        kubeconfig_path,
+        requirements,
+        {
+            sqlite_db_path: "airflow/airflow.db",
+            postgresql_data_path: "/var/lib/postgresql/data",
+            postgresql_keep_path: "airflow/.keep",
+        },
+        editable_dependencies=editable_dependencies,
     )
     assert len(expected_mounts) == len(actual_mounts)
     mocked_mount.assert_has_calls(expected_mounts)
