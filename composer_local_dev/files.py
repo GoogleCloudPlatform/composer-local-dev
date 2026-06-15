@@ -126,8 +126,28 @@ def resolve_plugins_path(
     return str(plugins_path.resolve())
 
 
+def resolve_data_path(data_path: Optional[str], env_dir: pathlib.Path) -> str:
+    """
+    Provides and validates path to the data directory.
+    If ``data_path`` is None, the path is constructed from ``env_dir`` path
+    and ``data`` directory.
+    If ``data_path`` is not None, but it does not exist, a warning is raised.
+
+    Returns absolute ``data_path`` path.
+    """
+    if data_path is None:
+        console.get_console().print(constants.DATA_PATH_NOT_PROVIDED_WARN)
+        data_path = env_dir / "data"
+    else:
+        data_path = pathlib.Path(data_path)
+    return str(data_path.resolve())
+
+
 def create_environment_directories(
-    env_dir: pathlib.Path, dags_path: str, plugins_path: str
+    env_dir: pathlib.Path,
+    dags_path: str,
+    plugins_path: str,
+    data_path: Optional[str] = None,
 ):
     """
     Create environment directories (overwriting existing ones).
@@ -135,14 +155,17 @@ def create_environment_directories(
     composer local environment and files used by environment such as
     requirements.txt file, dags, data and plugins directories.
     """
-    data_dir = "data"
-    LOG.info(
-        "Creating environment directory %s in " "%s environment directory.",
-        data_dir,
-        env_dir,
+    # Backwards compatibility: when no explicit data_path is given, the data
+    # directory lives inside the environment directory (the original behaviour).
+    data_path = (
+        pathlib.Path(data_path) if data_path is not None else env_dir / "data"
     )
     env_dir.mkdir(exist_ok=True, parents=True)
-    (env_dir / data_dir).mkdir(exist_ok=True)
+    if not data_path.is_dir():
+        console.get_console().print(
+            constants.CREATING_DATA_PATH_WARN.format(data_path=data_path)
+        )
+        data_path.mkdir(parents=True)
 
     dags_path = pathlib.Path(dags_path)
     if not dags_path.is_dir():
@@ -259,3 +282,10 @@ def assert_plugins_path_exists(path: str) -> None:
     if pathlib.Path(path).is_dir():
         return
     raise errors.PluginsPathNotExistError(path)
+
+
+def assert_data_path_exists(path: str) -> None:
+    """Raise an error if data path does not point to existing directory."""
+    if pathlib.Path(path).is_dir():
+        return
+    raise errors.DataPathNotExistError(path)

@@ -34,7 +34,10 @@ TEST_DATA_DIR = pathlib.Path(__file__).parent.parent / "test_data"
 @mock.patch("composer_local_dev.environment.docker.from_env")
 @mock.patch("composer_local_dev.environment.files.resolve_dags_path")
 @mock.patch("composer_local_dev.environment.files.resolve_plugins_path")
-def default_env(mocked_docker, mocked_dags, mocked_plugins, tmp_path):
+@mock.patch("composer_local_dev.environment.files.resolve_data_path")
+def default_env(
+    mocked_data, mocked_docker, mocked_dags, mocked_plugins, tmp_path
+):
     env_dir_path = tmp_path / ".compose" / "my_env"
     env = environment.Environment(
         env_dir_path=env_dir_path,
@@ -52,8 +55,9 @@ def default_env(mocked_docker, mocked_dags, mocked_plugins, tmp_path):
 @mock.patch("composer_local_dev.environment.docker.from_env")
 @mock.patch("composer_local_dev.environment.files.resolve_dags_path")
 @mock.patch("composer_local_dev.environment.files.resolve_plugins_path")
+@mock.patch("composer_local_dev.environment.files.resolve_data_path")
 def default_env_postgresql(
-    mocked_docker, mocked_dags, mocked_plugins, tmp_path
+    mocked_data, mocked_docker, mocked_dags, mocked_plugins, tmp_path
 ):
     env_dir_path = tmp_path / ".compose" / "my_env"
     env = environment.Environment(
@@ -830,6 +834,7 @@ class TestEnvironment:
     @pytest.mark.parametrize(
         "container_exists, create_container", [(False, True), (True, False)]
     )
+    @mock.patch("composer_local_dev.files.assert_data_path_exists")
     @mock.patch("composer_local_dev.files.assert_dag_path_exists")
     @mock.patch("composer_local_dev.files.assert_plugins_path_exists")
     @mock.patch("composer_local_dev.environment.assert_image_exists")
@@ -844,6 +849,7 @@ class TestEnvironment:
         mocked_create,
         mocked_fix,
         mocked_line_fix,
+        mocked_data_assert,
         container_exists,
         create_container,
         default_env,
@@ -869,6 +875,7 @@ class TestEnvironment:
         )
         default_env.wait_for_start.assert_called_once()
 
+    @mock.patch("composer_local_dev.files.assert_data_path_exists")
     @mock.patch("composer_local_dev.files.assert_dag_path_exists")
     @mock.patch("composer_local_dev.files.assert_plugins_path_exists")
     @mock.patch("composer_local_dev.environment.assert_image_exists")
@@ -883,6 +890,7 @@ class TestEnvironment:
         mocked_create,
         mocked_fix,
         mocked_line_endings,
+        mocked_data_assert,
         default_env,
     ):
         default_env.assert_requirements_exist = mock.Mock()
@@ -897,6 +905,7 @@ class TestEnvironment:
         ):
             default_env.start()
 
+    @mock.patch("composer_local_dev.files.assert_data_path_exists")
     @mock.patch("composer_local_dev.files.assert_dag_path_exists")
     @mock.patch("composer_local_dev.files.assert_plugins_path_exists")
     @mock.patch("composer_local_dev.environment.assert_image_exists")
@@ -911,6 +920,7 @@ class TestEnvironment:
         mocked_create,
         mocked_fix,
         mocked_line_endings,
+        mocked_data_assert,
         default_env,
     ):
         default_env.assert_requirements_exist = mock.Mock()
@@ -947,6 +957,7 @@ class TestEnvironment:
             image_version=default_env.image_version,
             dags_path=default_env.dags_path,
             plugins_path=default_env.plugins_path,
+            data_path=default_env.data_path,
             gcloud_path="path",
         )
         kub_desc = constants.KUBECONFIG_PATH_MESSAGE.format(
@@ -976,6 +987,7 @@ class TestEnvironment:
             image_version=default_env.image_version,
             dags_path=default_env.dags_path,
             plugins_path=default_env.plugins_path,
+            data_path=default_env.data_path,
             gcloud_path="path",
             kube_config_path="path/kube",
         )
@@ -1068,6 +1080,7 @@ class TestEnvironment:
         default_env.create_docker_container()
         default_env.pull_image.assert_called_once()
 
+    @mock.patch("composer_local_dev.files.assert_data_path_exists")
     @mock.patch("composer_local_dev.files.assert_dag_path_exists")
     @mock.patch("composer_local_dev.files.assert_plugins_path_exists")
     @mock.patch("composer_local_dev.environment.assert_image_exists")
@@ -1082,6 +1095,7 @@ class TestEnvironment:
         mocked_create,
         mocked_fix,
         mocked_line_fix,
+        mocked_data_assert,
         default_env,
     ):
         default_env.port = 8083
@@ -1409,6 +1423,42 @@ def test_get_image_mounts(mocked_mount):
     mocked_mount.assert_has_calls(expected_mounts)
 
 
+@mock.patch("composer_local_dev.environment.docker.types.Mount", autospec=True)
+def test_get_image_mounts_with_custom_data_path(mocked_mount):
+    path = pathlib.Path("path/dir")
+    dags_path = "path/to/dags"
+    plugins_path = "path/to/plugins"
+    data_path = "custom/path/to/data"
+    gcloud_path = "config/path"
+    kubeconfig_path = "/kube"
+    requirements = path / "requirements.txt"
+    environment.get_image_mounts(
+        path,
+        dags_path,
+        plugins_path,
+        gcloud_path,
+        kubeconfig_path,
+        requirements,
+        {},
+        data_path,
+    )
+    # Explicit data_path is mounted to the gcs/data target ...
+    mocked_mount.assert_any_call(
+        source=data_path,
+        target="/home/airflow/gcs/data/",
+        type="bind",
+    )
+    # ... and the default <env_dir>/data fallback is NOT used.
+    assert (
+        mock.call(
+            source=str(path / "data"),
+            target="/home/airflow/gcs/data/",
+            type="bind",
+        )
+        not in mocked_mount.mock_calls
+    )
+
+
 @mock.patch("composer_local_dev.environment.service_v1", autospec=True)
 def test_get_software_config_from_environment_api_error(mocked_service):
     error_msg = "Foo error"
@@ -1566,3 +1616,42 @@ class TestEnvironmentConfig:
         with pytest.raises(errors.FailedToParseConfigParamIntRangeError) as err:
             environment.EnvironmentConfig(tmp_path, None)
             assert str(err) == exp_error
+
+    @mock.patch(
+        "composer_local_dev.environment.EnvironmentConfig.load_configuration_from_file"
+    )
+    def test_data_path_from_config(self, mocked_load_conf, tmp_path):
+        config = {
+            "composer_image_version": "composer-2.0.25-airflow-2.2.5",
+            "composer_location": "us-central1",
+            "composer_project_id": "project",
+            "dags_path": "/dags/",
+            "plugins_path": "/plugins/",
+            "data_path": "/custom/data/",
+            "dag_dir_list_interval": 10,
+            "port": 8080,
+            "database_engine": "postgresql",
+        }
+        mocked_load_conf.return_value = config
+        env_config = environment.EnvironmentConfig(tmp_path, None)
+        assert env_config.data_path == "/custom/data/"
+
+    @mock.patch(
+        "composer_local_dev.environment.EnvironmentConfig.load_configuration_from_file"
+    )
+    def test_data_path_defaults_when_missing(self, mocked_load_conf, tmp_path):
+        # Backwards compatibility: configs without a data_path fall back to
+        # the 'data' directory inside the environment directory.
+        config = {
+            "composer_image_version": "composer-2.0.25-airflow-2.2.5",
+            "composer_location": "us-central1",
+            "composer_project_id": "project",
+            "dags_path": "/dags/",
+            "plugins_path": "/plugins/",
+            "dag_dir_list_interval": 10,
+            "port": 8080,
+            "database_engine": "postgresql",
+        }
+        mocked_load_conf.return_value = config
+        env_config = environment.EnvironmentConfig(tmp_path, None)
+        assert env_config.data_path == str((tmp_path / "data").resolve())
