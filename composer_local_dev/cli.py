@@ -48,7 +48,7 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Environment options",
-            "options": ["--web-server-port", "--dags-path", "--plugins-path"],
+            "options": ["--web-server-port", "--dags-path", "--plugins-path", "--enable-ssh", "--ssh-port"],
         },
         {
             "name": "Container Memory and CPUs limit",
@@ -178,6 +178,21 @@ option_port = click.option(
     metavar="PORT",
 )
 
+option_enable_ssh = click.option(
+    "--enable-ssh",
+    is_flag=True,
+    default=False,
+    help="Enable SSH daemon in the environment.",
+    metavar="ENABLE_SSH",
+)
+
+option_ssh_port = click.option(
+    "--ssh-port",
+    type=click.IntRange(min=0, max=65535),
+    help="Port used by SSH daemon",
+    show_default="read from the configuration file",
+    metavar="SSHD_PORT",
+)
 
 def _complete_environment(ctx, param, incomplete):
     env_dirs = files.get_environment_directories()
@@ -246,6 +261,8 @@ option_location = click.option(
 )
 @option_location
 @option_port
+@option_enable_ssh
+@option_ssh_port
 @click.option(
     "--dags-path",
     help="Path to DAGs folder. If it does not exist, it will be created.",
@@ -279,6 +296,8 @@ def create(
     project: Optional[str],
     location: str,
     web_server_port: Optional[int],
+    enable_ssh: Optional[bool],
+    ssh_port: Optional[int],
     environment: str,
     verbose: bool,
     debug: bool,
@@ -339,6 +358,8 @@ def create(
             location=location,
             env_dir_path=env_dir,
             web_server_port=web_server_port,
+            enable_ssh=enable_ssh,
+            ssh_port=ssh_port,
             dags_path=dags_path,
             plugins_path=plugins_path,
             database_engine=database_engine,
@@ -352,6 +373,8 @@ def create(
             location=location,
             env_dir_path=env_dir,
             port=web_server_port,
+            enable_ssh=enable_ssh,
+            ssh_port=ssh_port,
             dags_path=dags_path,
             plugins_path=plugins_path,
             database_engine=database_engine,
@@ -364,12 +387,16 @@ def create(
 @cli.command()
 @optional_environment
 @option_port
+@option_enable_ssh
+@option_ssh_port
 @verbose_mode
 @debug_mode
 @errors.catch_exceptions()
 def start(
     environment: Optional[str],
     web_server_port: Optional[int],
+    enable_ssh: Optional[bool],
+    ssh_port: Optional[int],
     verbose: bool,
     debug: bool,
 ):
@@ -377,7 +404,7 @@ def start(
     utils.setup_logging(verbose, debug)
     env_path = files.resolve_environment_path(environment)
     env = composer_environment.Environment.load_from_config(
-        env_path, web_server_port
+        env_path, web_server_port,enable_ssh,ssh_port
     )
     console.get_console().print(f"Starting {env.name} composer environment...")
     env.start()
@@ -404,12 +431,16 @@ def stop(environment: Optional[str], verbose: bool, debug: bool):
 @cli.command()
 @optional_environment
 @option_port
+@option_enable_ssh
+@option_ssh_port
 @verbose_mode
 @debug_mode
 @errors.catch_exceptions()
 def restart(
     environment: Optional[str],
     web_server_port: Optional[int],
+    enable_ssh: Optional[bool],
+    ssh_port: Optional[int],
     verbose: bool,
     debug: bool,
 ):
@@ -422,7 +453,7 @@ def restart(
     utils.setup_logging(verbose, debug)
     env_path = files.resolve_environment_path(environment)
     env = composer_environment.Environment.load_from_config(
-        env_path, web_server_port
+        env_path, web_server_port,enable_ssh,ssh_port
     )
     env.restart()
 

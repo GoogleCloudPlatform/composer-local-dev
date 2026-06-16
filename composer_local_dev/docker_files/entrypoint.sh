@@ -102,6 +102,24 @@ create_user() {
   fi
 }
 
+install_and_run_sshd() {
+  if ! command -v /usr/sbin/sshd &> /dev/null
+  then
+    echo "Installing sshd"
+    sudo bash -c 'cat << EOF > /etc/apt/sources.list.d/default.list
+deb http://archive.ubuntu.com/ubuntu/ noble main restricted
+deb http://archive.ubuntu.com/ubuntu/ noble-updates main restricted
+EOF'
+    sudo apt-get -qq update > /dev/null 2>&1
+    sudo apt-get -qqy install openssh-server > /dev/null 2>&1
+    sudo chown airflow:airflow /etc/ssh/ssh_host_*_key
+    sudo mkdir /run/sshd
+    echo "airflow:${COMPOSER_CONTAINER_AIRFLOW_USER_PASSWORD}" | sudo chpasswd
+  fi
+  echo "Starting sshd"
+  sudo /usr/sbin/sshd
+}
+
 main() {
   sudo chown airflow:airflow airflow
   sudo chmod +x $run_as_user
@@ -114,6 +132,10 @@ main() {
   # when using the SimpleAuthManager
   if [ -d "$FAST_API_DIR" ]; then
     sudo chown -R airflow:airflow "$FAST_API_DIR"
+  fi
+
+  if [ "${COMPOSER_CONTAINER_ENABLE_SSHD}" = "True" ]; then
+    install_and_run_sshd
   fi
 
   if [ "${COMPOSER_CONTAINER_RUN_AS_HOST_USER}" = "True" ]; then

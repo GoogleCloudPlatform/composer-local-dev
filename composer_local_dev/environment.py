@@ -358,7 +358,13 @@ def get_environments_status(
 
 
 class EnvironmentConfig:
-    def __init__(self, env_dir_path: pathlib.Path, port: Optional[int]):
+    def __init__(
+        self,
+        env_dir_path: pathlib.Path,
+        port: Optional[int],
+        enable_ssh: Optional[bool] = None,
+        ssh_port: Optional[int] = None,
+    ):
         self.env_dir_path = env_dir_path
         self.config = self.load_configuration_from_file()
         self.project_id = self.get_str_param("composer_project_id")
@@ -382,6 +388,16 @@ class EnvironmentConfig:
             else self.parse_int_param("port", allowed_range=(0, 65536))
         )
         self.database_engine = self.get_str_param("database_engine")
+
+        self.enable_ssh = self.config.get("enable_ssh", constants.DEFAULT_ENABLE_SSH)
+        self.ssh_port = self.config.get("ssh_port", constants.DEFAULT_SSH_PORT)
+
+        if enable_ssh is not None:
+            self.enable_ssh = enable_ssh
+
+        if ssh_port is not None:
+            self.ssh_port = self.parse_int_param("ssh_port", allowed_range=(0, 65535))
+
 
     def load_configuration_from_file(self) -> Dict:
         """
@@ -462,6 +478,8 @@ class Environment:
         memory_limit: Optional[str] = None,
         cpu_count: Optional[int] = None,
         port: Optional[int] = None,
+        enable_ssh: Optional[bool] = False,
+        ssh_port: Optional[int] = None,
         pypi_packages: Optional[Dict] = None,
         environment_vars: Optional[Dict] = None,
     ):
@@ -494,6 +512,8 @@ class Environment:
             self.database_engine == constants.DatabaseEngine.sqlite3
         )
         self.port: int = port if port is not None else 8080
+        self.enable_ssh: bool = enable_ssh if enable_ssh is not None else constants.DEFAULT_ENABLE_SSH
+        self.ssh_port: int = ssh_port if ssh_port is not None else constants.DEFAULT_SSH_PORT
         self.pypi_packages = (
             pypi_packages if pypi_packages is not None else dict()
         )
@@ -548,9 +568,15 @@ class Environment:
                 )
 
     @classmethod
-    def load_from_config(cls, env_dir_path: pathlib.Path, port: Optional[int]):
+    def load_from_config(
+        cls,
+        env_dir_path: pathlib.Path,
+        port: Optional[int],
+        enable_ssh: Optional[bool] = None,
+        ssh_port: Optional[int] = None,
+    ):
         """Create local environment using 'config.json' configuration file."""
-        config = EnvironmentConfig(env_dir_path, port)
+        config = EnvironmentConfig(env_dir_path, port, enable_ssh, ssh_port)
         environment_vars = load_environment_variables(env_dir_path)
         Environment.assert_valid_environment_configuration(
             config, environment_vars
@@ -568,6 +594,8 @@ class Environment:
             database_engine=config.database_engine,
             memory_limit=config.memory_limit,
             cpu_count=config.cpu_count,
+            enable_ssh=config.enable_ssh,
+            ssh_port=config.ssh_port,
             environment_vars=environment_vars,
         )
 
@@ -584,6 +612,8 @@ class Environment:
         database_engine: str,
         memory_limit: Optional[str] = None,
         cpu_count: Optional[int] = None,
+        enable_ssh: Optional[bool] = False,
+        ssh_port: Optional[int] = None,
     ):
         """
         Create Environment using configuration retrieved from Composer
@@ -608,6 +638,8 @@ class Environment:
             plugins_path=plugins_path,
             dag_dir_list_interval=10,
             port=web_server_port,
+            enable_ssh=enable_ssh,
+            ssh_port=ssh_port,
             pypi_packages=pypi_packages,
             environment_vars=env_variables,
             database_engine=database_engine,
@@ -666,7 +698,7 @@ class Environment:
         return env_vars
 
     def get_default_environment_variables(
-        self, default_db_variables: Dict[str, str]
+            self, default_db_variables: Dict[str, str], enable_ssh: bool = False
     ) -> Dict:
         """Return environment variables that will be set inside container."""
         return {
@@ -680,6 +712,8 @@ class Environment:
             # By default, the container runs as the user `airflow` with UID 999. Set
             # this env variable to "True" to make it run as the current host user.
             "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
+            "COMPOSER_CONTAINER_ENABLE_SSH": str(enable_ssh),
+            "COMPOSER_CONTAINER_AIRFLOW_USER_PASSWORD": "airflow",
             "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
             "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
             "COMPOSER_ENVIRONMENT": self.name,
@@ -725,6 +759,8 @@ class Environment:
             "database_engine": self.database_engine,
             "memory_limit": self.container_memory_limit,
             "cpu_count": self.container_cpu_count,
+            "enable_ssh": bool(self.enable_ssh),
+            "ssh_port": int(self.ssh_port),
         }
         with open(self.env_dir_path / "config.json", "w") as fp:
             json.dump(config, fp, indent=4)
@@ -804,7 +840,8 @@ class Environment:
             db_mounts,
         )
         db_vars = db_extras["env_vars"]
-        default_vars = self.get_default_environment_variables(db_vars)
+        default_vars = self.get_default_environment_variables(db_vars, self.enable_ssh)
+
         env_vars = {**default_vars, **self.environment_vars}
         if (
             platform.system() == "Windows"
@@ -825,6 +862,10 @@ class Environment:
         cpu_count = (
             self.container_cpu_count or constants.DOCKER_CONTAINER_CPU_COUNT
         )
+
+        if env_vars["COMPOSER_CONTAINER_ENABLE_SSH"] == "True":
+            ports["22/tcp"] = self.ssh_port
+
         try:
             container = self.create_container(
                 image=self.image_tag,

@@ -182,15 +182,15 @@ class TestStartRestartCommand:
         ) as mock_check:
             yield mock_check
 
-    def assert_env_loaded(self, mocked_env, env_path, port=None):
-        mocked_env.load_from_config.assert_called_with(env_path, port)
+    def assert_env_loaded(self, mocked_env, env_path, port=None, enable_ssh=False, ssh_port=None):
+        mocked_env.load_from_config.assert_called_with(env_path, port, enable_ssh, ssh_port)
 
-    def assert_run_command(self, command, mocked_env, env_path, port=None):
+    def assert_run_command(self, command, mocked_env, env_path, port=None, enable_ssh=False, ssh_port=None):
         run_composer_and_assert_exit_code(
             command,
             exit_code=0,
         )
-        self.assert_env_loaded(mocked_env, env_path, port)
+        self.assert_env_loaded(mocked_env, env_path, port, enable_ssh, ssh_port)
 
     @pytest.mark.parametrize("command", ["start", "restart"])
     def test_start_command(

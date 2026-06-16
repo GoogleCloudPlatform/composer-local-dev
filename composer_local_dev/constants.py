@@ -28,6 +28,9 @@ BAD_REQUEST_ERROR_CODE = 400
 CONFLICT_ERROR_CODE = 409
 SERVER_ERROR_CODE = 500
 
+DEFAULT_ENABLE_SSH = False
+DEFAULT_SSH_PORT = 10022
+
 
 class ContainerStatus(str, enum.Enum):
     RUNNING = "running"
