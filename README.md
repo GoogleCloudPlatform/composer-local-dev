@@ -139,6 +139,7 @@ composer-dev create \
   --port WEB_SERVER_PORT \
   --dags-path LOCAL_DAGS_PATH \
   --plugins-path LOCAL_PLUGINS_PATH \
+  --data-path LOCAL_DATA_PATH \
   --database DATABASE_ENGINE \
   LOCAL_ENVIRONMENT_NAME
 ```
@@ -152,6 +153,9 @@ Replace:
     located.
 - `LOCAL_PLUGINS_PATH` with the path to a local directory where the plugins
     files are located.
+- `LOCAL_DATA_PATH` with the path to a local directory where the data files are
+    located. If omitted, a `data` directory inside the environment directory is
+    used.
 - `DATABASE_ENGINE` with the database engine you wanted to use. You can use
     `sqlite` or `postgresql` (default).
 - `LOCAL_ENVIRONMENT_NAME` with the name of this local Airflow environment.
@@ -200,7 +204,8 @@ composer-dev create LOCAL_ENVIRONMENT_NAME \
     --project PROJECT_ID \
     --port WEB_SERVER_PORT \
     --dags-path LOCAL_DAGS_PATH \
-    --plugins-path LOCAL_PLUGINS_PATH
+    --plugins-path LOCAL_PLUGINS_PATH \
+    --data-path LOCAL_DATA_PATH
 ```
 
 Replace:
@@ -215,6 +220,9 @@ Replace:
     located.
 - `LOCAL_PLUGINS_PATH` with a path to a local directory where the plugins are
     located.
+- `LOCAL_DATA_PATH` with a path to a local directory where the data files are
+    located. If omitted, a `data` directory inside the environment directory is
+    used.
 
 Example:
 
@@ -302,17 +310,20 @@ composer-dev stop LOCAL_ENVIRONMENT_NAME
 
 ## Add and update DAGs
 
-DAGs and plugins are stored in the directories that you specified in the
-`--dags-path` and `--plugins-path` parameters respectively when you created
-your local Airflow environment. By default, these directories are
-`./composer/<local_environment_name>/dags` and
-`./composer/<local_environment_name>/plugins`.
+DAGs, plugins, and data are stored in the directories that you specified in the
+`--dags-path`, `--plugins-path`, and `--data-path` parameters respectively when
+you created your local Airflow environment. By default, these directories are
+`./composer/<local_environment_name>/dags`,
+`./composer/<local_environment_name>/plugins`, and
+`./composer/<local_environment_name>/data`. The data directory is mounted into
+the container at `/home/airflow/gcs/data`.
 
 You can get the directories used by your environment with the
 [`describe` command](#get-a-list-and-status-of-local-airflow-environments).
 
-To add and update DAGs and plugins, change files in these directories. You do
-not need to restart your local Airflow environment for changes to take effect.
+To add and update DAGs, plugins, and data, change files in these directories.
+You do not need to restart your local Airflow environment for changes to take
+effect.
 
 ## View local Airflow environment logs
 

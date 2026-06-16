@@ -191,6 +191,15 @@ class PluginsPathNotExistError(ComposerCliError):
         )
 
 
+class DataPathNotExistError(ComposerCliError):
+    """Data path does not exist or is not a directory."""
+
+    def __init__(self, data_path):
+        super().__init__(
+            constants.DATA_PATH_NOT_EXISTS_ERROR.format(data_path=data_path)
+        )
+
+
 def catch_exceptions(func=None):
     """
     Catch exceptions and print user friendly message for common issues.
