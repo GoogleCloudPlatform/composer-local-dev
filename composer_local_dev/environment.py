@@ -389,21 +389,14 @@ class EnvironmentConfig:
         )
         self.database_engine = self.get_str_param("database_engine")
 
-        # Backwards compatibility: don't fail on missing enable_ssh
-        if "enable_ssh" in self.config:
-            self.enable_ssh = (
-                enable_ssh
-                if enable_ssh is not None
-                else self.get_str_param("enable_ssh")
-            )
-            self.ssh_port = (
-                ssh_port
-                if ssh_port is not None
-                else self.parse_int_param("ssh_port", allowed_range=(0, 65536))
-            )
-        else:
-            self.enable_ssh = False
-            self.ssh_port = None
+        self.enable_ssh = self.config.get("enable_ssh", constants.DEFAULT_ENABLE_SSH)
+        self.ssh_port = self.config.get("ssh_port", constants.DEFAULT_SSH_PORT)
+
+        if enable_ssh is not None:
+            self.enable_ssh = enable_ssh
+
+        if ssh_port is not None:
+            self.ssh_port = self.parse_int_param("ssh_port", allowed_range=(0, 65535))
 
 
     def load_configuration_from_file(self) -> Dict:
@@ -519,7 +512,7 @@ class Environment:
             self.database_engine == constants.DatabaseEngine.sqlite3
         )
         self.port: int = port if port is not None else 8080
-        self.enable_ssh: bool = enable_ssh
+        self.enable_ssh: bool = enable_ssh if enable_ssh is not None else constants.DEFAULT_ENABLE_SSH
         self.ssh_port: int = ssh_port if ssh_port is not None else constants.DEFAULT_SSH_PORT
         self.pypi_packages = (
             pypi_packages if pypi_packages is not None else dict()
@@ -719,7 +712,7 @@ class Environment:
             # By default, the container runs as the user `airflow` with UID 999. Set
             # this env variable to "True" to make it run as the current host user.
             "COMPOSER_CONTAINER_RUN_AS_HOST_USER": "False",
-            "COMPOSER_CONTAINER_ENABLE_SSHD": str(enable_ssh),
+            "COMPOSER_CONTAINER_ENABLE_SSH": str(enable_ssh),
             "COMPOSER_CONTAINER_AIRFLOW_USER_PASSWORD": "airflow",
             "COMPOSER_HOST_USER_NAME": f"{getpass.getuser()}",
             "COMPOSER_HOST_USER_ID": f"{os.getuid() if platform.system() != 'Windows' else ''}",
@@ -870,7 +863,7 @@ class Environment:
             self.container_cpu_count or constants.DOCKER_CONTAINER_CPU_COUNT
         )
 
-        if env_vars["COMPOSER_CONTAINER_ENABLE_SSHD"] == "True":
+        if env_vars["COMPOSER_CONTAINER_ENABLE_SSH"] == "True":
             ports["22/tcp"] = self.ssh_port
 
         try:
