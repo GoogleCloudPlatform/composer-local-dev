@@ -14,6 +14,7 @@
 
 import contextlib
 import getpass
+import json
 import os
 import pathlib
 import platform
@@ -61,6 +62,7 @@ def default_env_postgresql(
         project_id="",
         image_version="composer-2.0.8-airflow-2.2.3",
         location="location",
+        db_port=25432,
         dags_path=str(pathlib.Path("path")),
         plugins_path=str(pathlib.Path("path")),
         dag_dir_list_interval=10,
@@ -232,6 +234,7 @@ class TestEnvironment:
             "us-central1",
             pathlib.Path("composer", "env_dir"),
             8082,
+            25432,
             str(pathlib.Path("dags")),
             str(pathlib.Path("plugins")),
             database_engine=db_engine,
@@ -245,6 +248,7 @@ class TestEnvironment:
             plugins_path=str(pathlib.Path("plugins")),
             dag_dir_list_interval=10,
             port=8082,
+            db_port=25432,
             database_engine=db_engine,
         )
         self.compare_envs(expected_env, env)
@@ -288,6 +292,7 @@ class TestEnvironment:
             "eu-west",
             pathlib.Path("composer", "env_name"),
             None,
+            25432,
             str(pathlib.Path("dags", "folder")),
             str(pathlib.Path("plugins", "folder")),
             database_engine=db_engine,
@@ -301,6 +306,7 @@ class TestEnvironment:
             plugins_path=str(pathlib.Path("plugins", "folder")),
             dag_dir_list_interval=10,
             port=8080,
+            db_port=25432,
             pypi_packages=packages,
             database_engine=db_engine,
         )
@@ -354,6 +360,7 @@ class TestEnvironment:
             "eu-west",
             pathlib.Path("composer", "env_name"),
             None,
+            25432,
             str(pathlib.Path("dags", "folder")),
             str(pathlib.Path("plugins", "folder")),
             database_engine=db_engine,
@@ -367,6 +374,7 @@ class TestEnvironment:
             plugins_path=str(pathlib.Path("plugins", "folder")),
             dag_dir_list_interval=10,
             port=8080,
+            db_port=25432,
             pypi_packages={},
             environment_vars=env_variables_parsed,
             database_engine=db_engine,
@@ -410,6 +418,7 @@ class TestEnvironment:
             "eu-west",
             pathlib.Path("composer", "env_name"),
             None,
+            25432,
             str(pathlib.Path("dags", "folder")),
             str(pathlib.Path("plugins", "folder")),
             database_engine=constants.DatabaseEngine.sqlite3,
@@ -423,6 +432,7 @@ class TestEnvironment:
             plugins_path=str(pathlib.Path("plugins", "folder")),
             dag_dir_list_interval=10,
             port=8080,
+            db_port=25432,
             pypi_packages={},
             environment_vars=env_variables_parsed,
             database_engine=constants.DatabaseEngine.sqlite3,
@@ -454,6 +464,7 @@ class TestEnvironment:
             location="location",
             env_dir_path=pathlib.Path("env"),
             port=9000,
+            db_port=26432,
             dags_path=dags_path,
         )
         expected_env = environment.Environment(
@@ -464,9 +475,39 @@ class TestEnvironment:
             dags_path=dags_path,
             dag_dir_list_interval=10,
             port=9000,
+            db_port=26432,
             pypi_packages={},
         )
         self.compare_envs(expected_env, env)
+
+    @pytest.mark.parametrize("test_db_port", [(None, 26432)])
+    def test_without_db_parameter(self, tmp_path, test_db_port):
+        config_file_path = str(pathlib.Path(tmp_path / "config.json"))
+
+        data_without_db_port = {
+            "composer_image_version": "composer-2.17.3-airflow-2.11.1",
+            "composer_location": "location",
+            "composer_project_id": "",
+            "dags_path": "",
+            "plugins_path": "",
+            "dag_dir_list_interval": 10,
+            "port": 9000,
+            "database_engine": "postgresql",
+            "memory_limit": None,
+            "cpu_count": None,
+        }
+
+        with open(config_file_path, "w") as file:
+            json.dump(data_without_db_port, file)
+
+        expected_env = environment.EnvironmentConfig(
+            tmp_path, None, test_db_port
+        )
+
+        if test_db_port is None:
+            assert expected_env.db_port == int(constants.DEFAULT_DB_PORT)
+        else:
+            assert expected_env.db_port == test_db_port
 
     @pytest.mark.parametrize(
         "pypi_packages",
@@ -480,6 +521,7 @@ class TestEnvironment:
         ],
     )
     @pytest.mark.parametrize("port", [None, 8090])
+    @pytest.mark.parametrize("db_port", [None, 25432])
     @pytest.mark.parametrize(
         "database_engine", constants.DatabaseEngine.choices()
     )
@@ -492,6 +534,7 @@ class TestEnvironment:
         pypi_packages,
         database_engine,
         port,
+        db_port,
         tmp_path,
     ):
         env_dir_path = tmp_path / ".compose" / "my_env"
@@ -504,12 +547,15 @@ class TestEnvironment:
             dags_path=str(pathlib.Path(tmp_path)),
             dag_dir_list_interval=10,
             port=port,
+            db_port=db_port,
             pypi_packages=pypi_packages,
             database_engine=database_engine,
         )
         expected_env.create()
 
-        env = environment.Environment.load_from_config(env_dir_path, port)
+        env = environment.Environment.load_from_config(
+            env_dir_path, port, db_port
+        )
         env.pypi_packages = (
             pypi_packages  # load_from_config does not load pypi packages
         )
@@ -808,7 +854,7 @@ class TestEnvironment:
         mocked_resolve_gcloud_config_path.return_value = mock.Mock()
         default_env_postgresql.create_db_docker_container()
         ports = {
-            f"5432/tcp": "25432",
+            f"5432/tcp": 25432,
         }
         environment = {
             "PGDATA": "/var/lib/postgresql/data/pgdata",
@@ -1098,7 +1144,7 @@ class TestEnvironment:
         default_env.get_or_create_container = mock.Mock(return_value=container)
         with pytest.raises(
             errors.ComposerCliError,
-            match=constants.PORT_IN_USE_ERROR.format(port=8083),
+            match=constants.DB_PORT_IN_USE_ERROR.format(port=25432),
         ):
             default_env.start()
 
@@ -1159,6 +1205,7 @@ class TestEnvironment:
             dags_path=str(pathlib.Path("dags", "folder")),
             dag_dir_list_interval=dag_interval,
             port=8080,
+            db_port=25432,
             pypi_packages={},
             environment_vars=None,
             database_engine=constants.DatabaseEngine.postgresql,
@@ -1218,6 +1265,7 @@ class TestEnvironment:
             dags_path=str(pathlib.Path("dags", "folder")),
             dag_dir_list_interval=dag_interval,
             port=8080,
+            db_port=25432,
             pypi_packages={},
             environment_vars=None,
             database_engine=constants.DatabaseEngine.postgresql,
@@ -1487,7 +1535,7 @@ class TestEnvironmentConfig:
         with pytest.raises(
             errors.MissingRequiredParameterError, match=exp_error
         ):
-            environment.EnvironmentConfig(tmp_path, None)
+            environment.EnvironmentConfig(tmp_path, None, None)
 
     def test_invalid_config(self):
         env_dir = (
@@ -1500,7 +1548,7 @@ class TestEnvironmentConfig:
         with pytest.raises(
             errors.FailedToParseConfigError
         ) as err, working_directory(env_dir):
-            environment.EnvironmentConfig(env_dir, None)
+            environment.EnvironmentConfig(env_dir, None, None)
             assert str(err) == exp_error
 
     def test_missing_config(self):
@@ -1509,7 +1557,7 @@ class TestEnvironmentConfig:
         with pytest.raises(errors.ComposerCliError) as err, working_directory(
             env_dir
         ):
-            environment.EnvironmentConfig(env_dir, None)
+            environment.EnvironmentConfig(env_dir, None, None)
             assert str(err) == exp_error
 
     @mock.patch(
@@ -1527,6 +1575,7 @@ class TestEnvironmentConfig:
             "plugins_path": "/plugins/",
             "dag_dir_list_interval": 10,
             "port": 8080,
+            "db_port": 25432,
         }
         valid_config[param] = value
         mocked_load_conf.return_value = valid_config
@@ -1534,7 +1583,7 @@ class TestEnvironmentConfig:
             param_name=param, value=value
         )
         with pytest.raises(errors.FailedToParseConfigParamIntError) as err:
-            environment.EnvironmentConfig(tmp_path, None)
+            environment.EnvironmentConfig(tmp_path, None, None)
             assert str(err) == exp_error
 
     @mock.patch(
@@ -1557,6 +1606,7 @@ class TestEnvironmentConfig:
             "dags_path": "/dags/",
             "dag_dir_list_interval": 10,
             "port": 8080,
+            "db_port": 25432,
         }
         valid_config[param] = value
         mocked_load_conf.return_value = valid_config
@@ -1564,5 +1614,5 @@ class TestEnvironmentConfig:
             param_name=param, value=value, allowed_range=allowed_range
         )
         with pytest.raises(errors.FailedToParseConfigParamIntRangeError) as err:
-            environment.EnvironmentConfig(tmp_path, None)
+            environment.EnvironmentConfig(tmp_path, None, None)
             assert str(err) == exp_error

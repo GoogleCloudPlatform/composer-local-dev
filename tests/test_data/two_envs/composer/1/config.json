@@ -4,5 +4,6 @@
   "composer_project_id": "abc",
   "dags_path": "dags",
   "dag_list_interval": 10,
-  "port": 8080
+  "port": 8080,
+  "db_port": 25432
 }

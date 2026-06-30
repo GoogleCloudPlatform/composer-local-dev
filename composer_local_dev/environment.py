@@ -344,7 +344,7 @@ def get_environments_status(
     environments_status = []
     for env_path in envs:
         try:
-            env = Environment.load_from_config(env_path, None)
+            env = Environment.load_from_config(env_path, None, None)
             env_status = env.status()
             image_version = get_image_version(env)
         except errors.InvalidConfigurationError:
@@ -358,7 +358,12 @@ def get_environments_status(
 
 
 class EnvironmentConfig:
-    def __init__(self, env_dir_path: pathlib.Path, port: Optional[int]):
+    def __init__(
+        self,
+        env_dir_path: pathlib.Path,
+        port: Optional[int],
+        db_port: Optional[int],
+    ):
         self.env_dir_path = env_dir_path
         self.config = self.load_configuration_from_file()
         self.project_id = self.get_str_param("composer_project_id")
@@ -376,11 +381,23 @@ class EnvironmentConfig:
         self.dag_dir_list_interval = self.parse_int_param(
             "dag_dir_list_interval", allowed_range=(0,)
         )
+
         self.port = (
             port
             if port is not None
             else self.parse_int_param("port", allowed_range=(0, 65536))
         )
+
+        if db_port is not None:
+            self.db_port = db_port
+        else:
+            if self.config.get("db_port") is not None:
+                self.db_port = self.parse_int_param(
+                    "db_port", allowed_range=(0, 65536)
+                )
+            else:
+                self.db_port = constants.DEFAULT_DB_PORT
+
         self.database_engine = self.get_str_param("database_engine")
 
     def load_configuration_from_file(self) -> Dict:
@@ -462,6 +479,7 @@ class Environment:
         memory_limit: Optional[str] = None,
         cpu_count: Optional[int] = None,
         port: Optional[int] = None,
+        db_port: Optional[int] = None,
         pypi_packages: Optional[Dict] = None,
         environment_vars: Optional[Dict] = None,
     ):
@@ -494,6 +512,10 @@ class Environment:
             self.database_engine == constants.DatabaseEngine.sqlite3
         )
         self.port: int = port if port is not None else 8080
+        self.db_port: int = (
+            db_port if db_port is not None else constants.DEFAULT_DB_PORT
+        )
+
         self.pypi_packages = (
             pypi_packages if pypi_packages is not None else dict()
         )
@@ -548,9 +570,14 @@ class Environment:
                 )
 
     @classmethod
-    def load_from_config(cls, env_dir_path: pathlib.Path, port: Optional[int]):
+    def load_from_config(
+        cls,
+        env_dir_path: pathlib.Path,
+        port: Optional[int],
+        db_port: Optional[int],
+    ):
         """Create local environment using 'config.json' configuration file."""
-        config = EnvironmentConfig(env_dir_path, port)
+        config = EnvironmentConfig(env_dir_path, port, db_port)
         environment_vars = load_environment_variables(env_dir_path)
         Environment.assert_valid_environment_configuration(
             config, environment_vars
@@ -565,6 +592,7 @@ class Environment:
             plugins_path=config.plugins_path,
             dag_dir_list_interval=config.dag_dir_list_interval,
             port=config.port,
+            db_port=config.db_port,
             database_engine=config.database_engine,
             memory_limit=config.memory_limit,
             cpu_count=config.cpu_count,
@@ -579,6 +607,7 @@ class Environment:
         location: str,
         env_dir_path: pathlib.Path,
         web_server_port: Optional[int],
+        db_port: Optional[int],
         dags_path: Optional[str],
         plugins_path: Optional[str],
         database_engine: str,
@@ -608,6 +637,7 @@ class Environment:
             plugins_path=plugins_path,
             dag_dir_list_interval=10,
             port=web_server_port,
+            db_port=db_port,
             pypi_packages=pypi_packages,
             environment_vars=env_variables,
             database_engine=database_engine,
@@ -722,6 +752,7 @@ class Environment:
             "plugins_path": self.plugins_path,
             "dag_dir_list_interval": int(self.dag_dir_list_interval),
             "port": int(self.port),
+            "db_port": int(self.db_port),
             "database_engine": self.database_engine,
             "memory_limit": self.container_memory_limit,
             "cpu_count": self.container_cpu_count,
@@ -761,7 +792,7 @@ class Environment:
                     "AIRFLOW__DATABASE__SQL_ALCHEMY_CONN": f"postgresql+psycopg2://postgres:airflow@{self.db_container_name}:5432/airflow",
                 },
                 "ports": {
-                    f"5432/tcp": "25432",
+                    f"5432/tcp": self.db_port,
                 },
             },
         }
@@ -1078,15 +1109,21 @@ class Environment:
                 "Starting environment failed with Docker API error.",
                 exc_info=True,
             )
+
             # TODO: (b/234552960) Test on different OS/language setting
             if (
                 err.status_code == constants.SERVER_ERROR_CODE
                 and "port is already allocated" in str(err)
             ):
                 container.remove()
-                raise errors.ComposerCliError(
-                    constants.PORT_IN_USE_ERROR.format(port=self.port)
-                )
+                if constants.DB_CONTAINER_NAME in container_name:
+                    raise errors.ComposerCliError(
+                        constants.DB_PORT_IN_USE_ERROR.format(port=self.db_port)
+                    )
+                else:
+                    raise errors.ComposerCliError(
+                        constants.PORT_IN_USE_ERROR.format(port=self.port)
+                    )
             error = f"Environment ({container_name}) failed to start with an error: {err}"
             raise errors.EnvironmentStartError(error) from None
 

@@ -182,15 +182,17 @@ class TestStartRestartCommand:
         ) as mock_check:
             yield mock_check
 
-    def assert_env_loaded(self, mocked_env, env_path, port=None):
-        mocked_env.load_from_config.assert_called_with(env_path, port)
+    def assert_env_loaded(self, mocked_env, env_path, port=None, db_port=None):
+        mocked_env.load_from_config.assert_called_with(env_path, port, db_port)
 
-    def assert_run_command(self, command, mocked_env, env_path, port=None):
+    def assert_run_command(
+        self, command, mocked_env, env_path, port=None, db_port=None
+    ):
         run_composer_and_assert_exit_code(
             command,
             exit_code=0,
         )
-        self.assert_env_loaded(mocked_env, env_path, port)
+        self.assert_env_loaded(mocked_env, env_path, port, db_port)
 
     @pytest.mark.parametrize("command", ["start", "restart"])
     def test_start_command(
@@ -203,14 +205,16 @@ class TestStartRestartCommand:
         self, mocked_env, mocked_resolve_env, env_path, command
     ):
         port = 8081
-        command += f" --port {port}"
-        self.assert_run_command(command, mocked_env, env_path, port)
+        db_port = 25432
+        command += f" --port {port} --db-port {db_port}"
+        self.assert_run_command(command, mocked_env, env_path, port, db_port)
 
     def test_start_with_invalid_port(
         self, mocked_env, mocked_resolve_env, env_path
     ):
         port = -1
-        command = f"start --port {port}"
+        db_port = 25432
+        command = f"start --port {port} --db-port {db_port}"
         result = run_composer_and_assert_exit_code(
             command,
             exit_code=2,

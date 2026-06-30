@@ -48,7 +48,12 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Environment options",
-            "options": ["--web-server-port", "--dags-path", "--plugins-path"],
+            "options": [
+                "--web-server-port",
+                "--db-port",
+                "--dags-path",
+                "--plugins-path",
+            ],
         },
         {
             "name": "Container Memory and CPUs limit",
@@ -178,6 +183,14 @@ option_port = click.option(
     metavar="PORT",
 )
 
+option_db_port = click.option(
+    "--db-port",
+    type=click.IntRange(min=0, max=65536),
+    help="Port used to connect with PostgreSQL.",
+    show_default="read from the configuration file",
+    metavar="DB_PORT",
+)
+
 
 def _complete_environment(ctx, param, incomplete):
     env_dirs = files.get_environment_directories()
@@ -246,6 +259,7 @@ option_location = click.option(
 )
 @option_location
 @option_port
+@option_db_port
 @click.option(
     "--dags-path",
     help="Path to DAGs folder. If it does not exist, it will be created.",
@@ -279,6 +293,7 @@ def create(
     project: Optional[str],
     location: str,
     web_server_port: Optional[int],
+    db_port: Optional[int],
     environment: str,
     verbose: bool,
     debug: bool,
@@ -339,6 +354,7 @@ def create(
             location=location,
             env_dir_path=env_dir,
             web_server_port=web_server_port,
+            db_port=db_port,
             dags_path=dags_path,
             plugins_path=plugins_path,
             database_engine=database_engine,
@@ -352,6 +368,7 @@ def create(
             location=location,
             env_dir_path=env_dir,
             port=web_server_port,
+            db_port=db_port,
             dags_path=dags_path,
             plugins_path=plugins_path,
             database_engine=database_engine,
@@ -364,20 +381,23 @@ def create(
 @cli.command()
 @optional_environment
 @option_port
+@option_db_port
 @verbose_mode
 @debug_mode
 @errors.catch_exceptions()
 def start(
     environment: Optional[str],
     web_server_port: Optional[int],
+    db_port: Optional[int],
     verbose: bool,
     debug: bool,
 ):
     """Start Composer environment."""
     utils.setup_logging(verbose, debug)
     env_path = files.resolve_environment_path(environment)
+
     env = composer_environment.Environment.load_from_config(
-        env_path, web_server_port
+        env_path, web_server_port, db_port
     )
     console.get_console().print(f"Starting {env.name} composer environment...")
     env.start()
@@ -396,7 +416,9 @@ def stop(environment: Optional[str], verbose: bool, debug: bool):
     """
     utils.setup_logging(verbose, debug)
     env_path = files.resolve_environment_path(environment)
-    env = composer_environment.Environment.load_from_config(env_path, None)
+    env = composer_environment.Environment.load_from_config(
+        env_path, None, None
+    )
     env.stop()
     console.get_console().print("Stopped composer local environment.")
 
@@ -404,12 +426,14 @@ def stop(environment: Optional[str], verbose: bool, debug: bool):
 @cli.command()
 @optional_environment
 @option_port
+@option_db_port
 @verbose_mode
 @debug_mode
 @errors.catch_exceptions()
 def restart(
     environment: Optional[str],
     web_server_port: Optional[int],
+    db_port: Optional[int],
     verbose: bool,
     debug: bool,
 ):
@@ -422,7 +446,7 @@ def restart(
     utils.setup_logging(verbose, debug)
     env_path = files.resolve_environment_path(environment)
     env = composer_environment.Environment.load_from_config(
-        env_path, web_server_port
+        env_path, web_server_port, db_port
     )
     env.restart()
 
@@ -466,7 +490,9 @@ def logs(
     """
     utils.setup_logging(verbose, debug)
     env_path = files.resolve_environment_path(environment)
-    env = composer_environment.Environment.load_from_config(env_path, None)
+    env = composer_environment.Environment.load_from_config(
+        env_path, None, None
+    )
     env.logs(follow, max_lines)
 
 
@@ -513,7 +539,9 @@ def describe(environment: Optional[str], verbose: bool, debug: bool):
     """
     utils.setup_logging(verbose, debug)
     env_path = files.resolve_environment_path(environment)
-    env = composer_environment.Environment.load_from_config(env_path, None)
+    env = composer_environment.Environment.load_from_config(
+        env_path, None, None
+    )
     env.describe()
 
 
@@ -559,7 +587,9 @@ def remove(
             abort=True,
         )
     try:
-        env = composer_environment.Environment.load_from_config(env_path, None)
+        env = composer_environment.Environment.load_from_config(
+            env_path, None, None
+        )
     except errors.InvalidConfigurationError:
         md = rich.markdown.Markdown(
             constants.MALFORMED_CONFIG_REMOVING_CONTAINER
@@ -605,7 +635,9 @@ def run_airflow_cmd(
     """
     utils.setup_logging(verbose, debug)
     env_path = files.resolve_environment_path(environment)
-    env = composer_environment.Environment.load_from_config(env_path, None)
+    env = composer_environment.Environment.load_from_config(
+        env_path, None, None
+    )
     env.run_airflow_command([*command])
 
 

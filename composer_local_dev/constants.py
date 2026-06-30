@@ -28,6 +28,8 @@ BAD_REQUEST_ERROR_CODE = 400
 CONFLICT_ERROR_CODE = 409
 SERVER_ERROR_CODE = 500
 
+DEFAULT_DB_PORT = 25432
+
 
 class ContainerStatus(str, enum.Enum):
     RUNNING = "running"
@@ -195,6 +197,12 @@ PORT_IN_USE_ERROR = (
     "Port {port} is already in use. "
     "Please use different port or close application using port {port}.\n"
     "You can select different port by using --port option when starting "
+    "environment."
+)
+DB_PORT_IN_USE_ERROR = (
+    "Database Port {port} is already in use. "
+    "Please use different port or close application using port {port}.\n"
+    "You can select different database port by using --db-port option when starting "
     "environment."
 )
 ENVIRONMENT_FAILED_TO_START_ERROR = "Environment failed to start."
