@@ -1636,17 +1636,19 @@ class TestEnvironmentConfig:
         exp_error = constants.INVALID_CONFIGURATION_FILE_ERROR.format(
             config_path=config_path, error=""
         )
-        with pytest.raises(
-            errors.FailedToParseConfigError
-        ) as err, working_directory(env_dir):
+        with (
+            pytest.raises(errors.FailedToParseConfigError) as err,
+            working_directory(env_dir),
+        ):
             environment.EnvironmentConfig(env_dir, None, None)
             assert str(err) == exp_error
 
     def test_missing_config(self):
         env_dir = (TEST_DATA_DIR / "missing_composer").resolve()
         exp_error = f"Configuration file '{env_dir / 'config.json'}' not found."
-        with pytest.raises(errors.ComposerCliError) as err, working_directory(
-            env_dir
+        with (
+            pytest.raises(errors.ComposerCliError) as err,
+            working_directory(env_dir),
         ):
             environment.EnvironmentConfig(env_dir, None, None)
             assert str(err) == exp_error

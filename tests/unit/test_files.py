@@ -56,8 +56,9 @@ class TestResolveEnvironment:
             )
             + constants.ADD_DEBUG_ON_ERROR_INFO
         )
-        with pytest.raises(errors.ComposerCliError) as err, working_directory(
-            env_dir
+        with (
+            pytest.raises(errors.ComposerCliError) as err,
+            working_directory(env_dir),
         ):
             files.resolve_environment_path(env_name)
             assert str(err) == exp_error
@@ -72,8 +73,9 @@ class TestResolveEnvironment:
             )
             + constants.ADD_DEBUG_ON_ERROR_INFO
         )
-        with pytest.raises(errors.ComposerCliError) as err, working_directory(
-            env_dir
+        with (
+            pytest.raises(errors.ComposerCliError) as err,
+            working_directory(env_dir),
         ):
             files.resolve_environment_path(env_name)
             assert str(err) == exp_error
@@ -89,8 +91,9 @@ class TestResolveEnvironment:
             )
             + constants.ADD_DEBUG_ON_ERROR_INFO
         )
-        with pytest.raises(errors.ComposerCliError) as err, working_directory(
-            env_dir
+        with (
+            pytest.raises(errors.ComposerCliError) as err,
+            working_directory(env_dir),
         ):
             files.resolve_environment_path(invalid_env)
             assert str(err) == exp_error
@@ -116,8 +119,9 @@ class TestResolveEnvironment:
         error_msg = constants.ENVIRONMENT_NOT_SELECTED_ERROR.format(
             env_dir=composer_dir, env_names=env_names
         )
-        with pytest.raises(errors.ComposerCliError) as err, working_directory(
-            env_dir
+        with (
+            pytest.raises(errors.ComposerCliError) as err,
+            working_directory(env_dir),
         ):
             files.resolve_environment_path(None)
             assert str(err) == error_msg

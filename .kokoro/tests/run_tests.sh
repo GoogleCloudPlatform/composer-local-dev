@@ -27,9 +27,12 @@ if [[ ! -z "${KOKORO_BUILD_ID}" ]]; then # export vars only for Kokoro job
 fi
 
 pyenv install --skip-existing 3.11.14
-pyenv global 3.11.14
+pyenv install --skip-existing 3.12.4
+pyenv install --skip-existing 3.13.1
+pyenv install --skip-existing 3.14.0
 
-# install nox for testing
+pyenv global 3.11.14 3.12.4 3.13.1 3.14.0
+
 python -m pip install --require-hashes --upgrade --quiet -r .kokoro/tests/requirements.txt
 python -m nox --version
 

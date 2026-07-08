@@ -71,7 +71,7 @@ Local Development CLI tool and Cloud Composer.
 
 In order to run the CLI tool, install the following prerequisites:
 
-- Python 3.8-3.11 with `pip`
+- Python 3.11-3.14 with `pip`
 - [gcloud CLI][2]
 - Docker
 

@@ -17,7 +17,7 @@ from pathlib import Path
 import nox
 
 DEFAULT_PYTHON_VERSION = "3.11"
-TEST_PYTHON_VERSIONS = ["3.11"]
+TEST_PYTHON_VERSIONS = ["3.11", "3.12", "3.13", "3.14"]
 
 CURRENT_DIRECTORY = Path(__file__).parent.absolute()
 

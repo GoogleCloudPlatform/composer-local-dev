@@ -124,12 +124,15 @@ class TestResolveGcloudConfigPath:
     )
     def test_not_existing_gcloud_path(self, mocked_os_check):
         config_path = "i/dont/exist"
-        with pytest.raises(
-            errors.ComposerCliError,
-            match="Could not resolve gcloud config location. "
-            "Please use CLOUDSDK_CONFIG environment variable to override "
-            "default configuration location.",
-        ), mock.patch.dict("os.environ", {"APPDATA": config_path}):
+        with (
+            pytest.raises(
+                errors.ComposerCliError,
+                match="Could not resolve gcloud config location. "
+                "Please use CLOUDSDK_CONFIG environment variable to override "
+                "default configuration location.",
+            ),
+            mock.patch.dict("os.environ", {"APPDATA": config_path}),
+        ):
             utils.resolve_gcloud_config_path()
 
 
