@@ -969,7 +969,7 @@ class Environment:
                 )
             raise errors.EnvironmentStartError(error)
 
-    def get_docker_network(self):
+    def get_or_create_docker_network(self):
         try:
             return self.docker_client.networks.get(self.docker_network_name)
         except docker.errors.NotFound as _:
@@ -977,6 +977,12 @@ class Environment:
         except docker.errors.APIError as err:
             error = f"Failed to create/get network an error: {err}"
             raise errors.EnvironmentStartError(error)
+
+    def get_docker_network(self):
+        try:
+            return self.docker_client.networks.get(self.docker_network_name)
+        except docker.errors.NotFound as _:
+            return None
 
     def pull_image(self):
         """Pull Composer docker image."""
@@ -1200,7 +1206,7 @@ class Environment:
         self.print_start_message()
 
     def ensure_container_is_attached_to_network(self, container):
-        network = self.get_docker_network()
+        network = self.get_or_create_docker_network()
         existing_containers = [c.name for c in network.containers]
         if container.name in existing_containers:
             network.disconnect(container.name)
@@ -1248,6 +1254,38 @@ class Environment:
             for line in log_lines.split("\n"):
                 console.get_console().print(line)
 
+    def remove_containers_and_networks(self):
+        """
+        Perform a clean shutdown and removal of all active containers and networks
+        """
+        try:
+            db_container = self.get_container(
+                self.db_container_name, ignore_not_found=True
+            )
+            if db_container:
+                db_container.remove()
+        except docker.errors.APIError as err:
+            logging.warning(
+                f"Error during db container removing process: {str(err)}",
+                exc_info=True,
+            )
+
+        try:
+            container = self.get_container(
+                self.container_name, ignore_not_found=True
+            )
+            if container:
+                container.remove()
+        except docker.errors.APIError as err:
+            logging.warning(
+                f"Error during container removing process: {str(err)}",
+                exc_info=True,
+            )
+
+        network = self.get_docker_network()
+        if network:
+            network.remove()
+
     def stop(self, remove_container=False):
         """
         Stops the local composer environment.
@@ -1262,20 +1300,15 @@ class Environment:
             )
             if db_container:
                 db_container.stop()
-                if remove_container:
-                    db_container.remove()
 
             container = self.get_container(
                 self.container_name, ignore_not_found=True
             )
             if container:
                 container.stop()
-                if remove_container:
-                    container.remove()
 
             if remove_container:
-                network = self.get_docker_network()
-                network.remove()
+                self.remove_containers_and_networks()
 
     def restart(self):
         """
@@ -1287,7 +1320,7 @@ class Environment:
         try:
             self.stop(remove_container=True)
         except errors.EnvironmentNotRunningError:
-            pass
+            self.remove_containers_and_networks()
         self.start(assert_not_running=False)
 
     def status(self) -> str:
@@ -1373,4 +1406,5 @@ class Environment:
                 container.remove()
 
         network = self.get_docker_network()
-        network.remove()
+        if network:
+            network.remove()
