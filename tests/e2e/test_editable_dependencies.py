@@ -53,7 +53,7 @@ def test_create_environment_with_editable_dependencies(
         [
             "create",
             "--from-image-version",
-            "composer-2.0.29-airflow-2.2.5",
+            "composer-2.17.6-airflow-2.11.1",
             "--project",
             "local-dev-tool-testing",
             "--editable-dependencies",

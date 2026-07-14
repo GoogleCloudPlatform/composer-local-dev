@@ -1,1 +1,1 @@
-apache-airflow-providers-google
+apache-airflow-providers-google==22.0.0
