@@ -694,7 +694,7 @@ class Environment:
             ),
             "GCP_PROJECT": self.project_id,
             "GOOGLE_CLOUD_PROJECT": self.project_id,
-            **default_db_variables,
+            **{k: v for k, v in default_db_variables.items() if k.startswith("AIRFLOW__")},
             **self.get_environment_variables_for_image_version(),
         }
 
@@ -1132,33 +1132,10 @@ class Environment:
             self.ensure_container_is_attached_to_network(db_container)
             LOG.info(f"Database started!")
 
-        # Attach to network before starting to avoid DNS resolution race:
-        # entrypoint runs "airflow db migrate" immediately on container start,
-        # so the container must already be on the Docker network at that point.
-        container = self.get_or_create_container(self.container_name)
-        if (
-            assert_not_running
-            and container.status == constants.ContainerStatus.RUNNING
-        ):
-            raise errors.EnvironmentAlreadyRunningError(self.name) from None
+        container = self.start_container(
+            self.container_name, assert_not_running
+        )
         self.ensure_container_is_attached_to_network(container)
-        try:
-            container.start()
-        except docker.errors.APIError as err:
-            logging.debug(
-                "Starting environment failed with Docker API error.",
-                exc_info=True,
-            )
-            if (
-                err.status_code == constants.SERVER_ERROR_CODE
-                and "port is already allocated" in str(err)
-            ):
-                container.remove()
-                raise errors.ComposerCliError(
-                    constants.PORT_IN_USE_ERROR.format(port=self.port)
-                )
-            error = f"Environment ({self.container_name}) failed to start with an error: {err}"
-            raise errors.EnvironmentStartError(error) from None
         self.wait_for_start()
         self.print_start_message()
 
