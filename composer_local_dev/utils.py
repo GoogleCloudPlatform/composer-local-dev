@@ -19,10 +19,12 @@ import pathlib
 import re
 import subprocess
 import sys
-from functools import total_ordering
+import time
+from functools import cache, total_ordering
 from typing import List, Optional, Tuple
 
 import click
+import docker
 import rich.box
 import rich.table
 from google.api_core import exceptions as api_exception
@@ -361,3 +363,105 @@ def resolve_project_id(project_id: Optional[str]) -> str:
             f"(using '-p' / '--project' option). Failed to retrieve "
             f"project id from gcloud configuration:\n{err}"
         )
+
+
+@cache
+def is_podman_windows(client: docker.DockerClient) -> bool:
+    """
+    Verify if the current execution is Podman running on Windows.
+
+    This is used to handle environment-specific architectural shifts, such
+    as swapping local bind mounts or high memory spikes.
+
+    Returns:
+        bool: True if the OS is Windows and the active container engine is Podman.
+    """
+    if not is_windows_os():
+        return False
+
+    try:
+        version_info = client.version()
+        for component in version_info.get("Components", []):
+            if "podman" in component.get("Name", "").lower():
+                return True
+
+        # for old podman version
+        if "podman" in version_info.get("Version", "").lower():
+            return True
+    except Exception as e:
+        return False
+
+    return False
+
+
+def enforce_podman_volume_type(mounts: list) -> None:
+    """
+    Mutate container mount configuration to enforce native volume types for Podman.
+
+    On Windows environment running Podman, local named volumes passed can sometimes be
+    misinterpreted as host bind mounts, leading to unsupported UNC path errors.
+
+    Args:
+        mounts (list): A list of dicts representing containers's configured volume/folder mapping
+
+    Returns:
+        None: The list in mutated in-place.
+    """
+    podman_volumes = [
+        constants.POSTGRES_DATA_VOLUME_NAME,
+        constants.SQLITE_AIRFLOW_HOME_VOLUME_NAME,
+    ]
+
+    for m in mounts:
+        source_str = str(m.get("Source", ""))
+        if not source_str:
+            continue
+
+        for podman_volume in podman_volumes:
+            if podman_volume in source_str:
+                m["Type"] = "volume"
+                break
+
+
+def is_podman_volume(host_path: pathlib.Path) -> bool:
+    """
+    Check if the given host path represent a Podman Named Volume.
+    """
+    podman_volumes = [
+        constants.POSTGRES_DATA_VOLUME_NAME,
+        constants.SQLITE_AIRFLOW_HOME_VOLUME_NAME,
+    ]
+
+    for podman_volume in podman_volumes:
+        if podman_volume in host_path.name:
+            return True
+
+    return False
+
+
+def restart_docker_client(client: docker.DockerClient) -> docker.DockerClient:
+    """
+    Restart docker client with exponential backoff mechanism
+    """
+    try:
+        client.close()
+    except Exception as exc:
+        LOG.warning(
+            "Failed to close docker client, proceeding with restart attempt.",
+            exc_info=True,
+        )
+
+    max_attempts = 5
+    base_delay = 1.0
+
+    for attempt in range(max_attempts):
+        time.sleep(base_delay * (2**attempt))
+        try:
+            client = docker.from_env()
+            if client.ping():
+                LOG.debug("Docker client restarted successfully")
+                return client
+        except Exception:
+            LOG.warning("Docker client socket unresponsive. Wait and retry")
+
+    raise RuntimeError("Failed to reconnect docker client")

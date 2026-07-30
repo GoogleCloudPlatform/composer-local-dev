@@ -30,6 +30,12 @@ SERVER_ERROR_CODE = 500
 
 DEFAULT_DB_PORT = 25432
 
+# podman volume name to store PostgreSQL data
+POSTGRES_DATA_VOLUME_NAME: str = "pg_data_volume"
+
+# podman volume name to store sqlite data
+SQLITE_AIRFLOW_HOME_VOLUME_NAME: str = "composer_airflow_home_volume"
+
 
 class ContainerStatus(str, enum.Enum):
     RUNNING = "running"

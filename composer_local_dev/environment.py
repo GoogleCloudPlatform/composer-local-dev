@@ -784,22 +784,37 @@ class Environment:
     @cached_property
     def database_extras(self) -> Dict[str, Dict]:
         env_path = self.env_dir_path
-        extras = {
-            constants.DatabaseEngine.sqlite3: {
-                "mounts": {
-                    "folders": {},
-                    "files": {
-                        env_path / "airflow.db": "airflow/airflow.db",
-                    },
-                },
-                "env_vars": {},
-                "ports": {},
+        sqlite3_struct = {
+            "mounts": {
+                "folders": {},
+                "files": {},
             },
+            "env_vars": {},
+            "ports": {},
+        }
+
+        if utils.is_podman_windows(self.docker_client):
+            sqlite3_struct["mounts"]["folders"] = {
+                pathlib.Path(
+                    self.container_name
+                    + constants.SQLITE_AIRFLOW_HOME_VOLUME_NAME
+                ): "/home/airflow/airflow",
+            }
+            bind_folder_postgresql = pathlib.Path(
+                self.container_name + constants.POSTGRES_DATA_VOLUME_NAME
+            )
+        else:
+            sqlite3_struct["mounts"]["files"] = {
+                env_path / "airflow.db": "airflow/airflow.db"
+            }
+            bind_folder_postgresql = env_path / "postgresql_data"
+
+        extras = {
+            constants.DatabaseEngine.sqlite3: sqlite3_struct,
             constants.DatabaseEngine.postgresql: {
                 "mounts": {
                     "folders": {
-                        env_path
-                        / "postgresql_data": "/var/lib/postgresql/data",
+                        bind_folder_postgresql: "/var/lib/postgresql/data",
                     },
                     "files": {
                         env_path / ".keep": "airflow/.keep",
@@ -856,6 +871,10 @@ class Environment:
             db_mounts,
             editable_dependencies=self.editable_dependencies,
         )
+
+        if utils.is_podman_windows(self.docker_client):
+            utils.enforce_podman_volume_type(mounts)
+
         db_vars = db_extras["env_vars"]
         default_vars = self.get_default_environment_variables(db_vars)
         env_vars = {**default_vars, **self.environment_vars}
@@ -897,6 +916,16 @@ class Environment:
                 "Pulling the image..."
             )
             self.pull_image()
+
+            # WORKAROUND: Podman WSL2 suffers from memory inflation and leaks
+            # during heavy SDK operations.
+            # Closing client triggers immediate garbage collection of the underlying connection pools,
+            # this prevent Out-Of-Memory threshold.
+            if utils.is_podman_windows(self.docker_client):
+                self.docker_client = utils.restart_docker_client(
+                    self.docker_client
+                )
+
             container = self.create_container(
                 image=self.image_tag,
                 name=self.container_name,
@@ -941,6 +970,10 @@ class Environment:
             db_mounts,
             editable_dependencies=self.editable_dependencies,
         )
+
+        if utils.is_podman_windows(self.docker_client):
+            utils.enforce_podman_volume_type(mounts)
+
         db_vars = db_extras["env_vars"]
         db_ports = db_extras["ports"]
         memory_limit = constants.DOCKER_CONTAINER_MEMORY_LIMIT
@@ -1010,8 +1043,12 @@ class Environment:
         db_extras = self.database_extras
         db_mounts = db_extras["mounts"]
         for host_path in db_mounts["files"].keys():
+            if utils.is_podman_volume(host_path):
+                continue
             files.create_empty_file(host_path, skip_if_exist=skip_if_exist)
         for host_path in db_mounts["folders"].keys():
+            if utils.is_podman_volume(host_path):
+                continue
             files.create_empty_folder(
                 host_path, delete_if_exist=not skip_if_exist
             )
@@ -1408,3 +1445,21 @@ class Environment:
         network = self.get_docker_network()
         if network:
             network.remove()
+
+        postgres_volume_name = (
+            self.container_name + constants.POSTGRES_DATA_VOLUME_NAME
+        )
+        sqlite_volume_name = (
+            self.container_name + constants.SQLITE_AIRFLOW_HOME_VOLUME_NAME
+        )
+
+        volumes_to_remove = [postgres_volume_name, sqlite_volume_name]
+
+        for volume_name in volumes_to_remove:
+            try:
+                volume = self.docker_client.volumes.get(volume_name)
+                volume.remove(force=True)
+            except docker.errors.NotFound:
+                pass
+            except Exception as e:
+                LOG.warning(f"Could not remove volume {volume_name}")

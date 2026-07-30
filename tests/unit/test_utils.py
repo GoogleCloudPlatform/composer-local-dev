@@ -18,6 +18,7 @@ import pathlib
 import re
 import subprocess
 from unittest import mock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from google.api_core import exceptions as api_exception
@@ -306,3 +307,77 @@ def test_get_image_versions_api_error(mocked_service):
         match=constants.LIST_VERSIONS_API_ERROR.format(err=error_msg),
     ):
         utils.get_image_versions("", "", False)
+
+
+@pytest.mark.parametrize(
+    "path_str, expected",
+    [
+        (f"composer_dev_{constants.SQLITE_AIRFLOW_HOME_VOLUME_NAME}", True),
+        (f"composer_dev_{constants.POSTGRES_DATA_VOLUME_NAME}", True),
+        ("C:/Users/User/my_project/dags", False),
+        ("relateive/path/to/somewhere", False),
+    ],
+)
+def test_is_podman_volume(path_str, expected):
+    host_path = pathlib.Path(path_str)
+    assert utils.is_podman_volume(host_path) is expected
+
+
+def test_enforce_podman_volume_type():
+    mounts = [
+        {
+            "Source": f"some_prefix_{constants.POSTGRES_DATA_VOLUME_NAME}",
+            "Target": "/var/lib/postgresql/data",
+            "Type": "bind",
+        },
+        {
+            "Source": "C:/Users/User/project/dags",
+            "Target": "/opt/airflow/dags",
+            "Type": "bind",
+        },
+    ]
+
+    utils.enforce_podman_volume_type(mounts)
+
+    assert mounts[0]["Type"] == "volume"
+    assert mounts[1]["Type"] == "bind"
+
+
+@mock.patch(
+    "composer_local_dev.environment.utils.is_windows_os", return_value=False
+)
+def test_is_podman_windows_return_false_on_linux(mocked_os_check):
+    mock_client = MagicMock()
+
+    utils.is_podman_windows.cache_clear()
+
+    assert utils.is_podman_windows(mock_client) is False
+
+
+@mock.patch(
+    "composer_local_dev.environment.utils.is_windows_os", return_value=True
+)
+def test_is_podman_windows_detect_podman_on_windows(mocked_os_check):
+    mock_client = MagicMock()
+    mock_client.version.return_value = {
+        "Components": [{"Name": "Podman Engine", "Version": "5.1.1"}]
+    }
+
+    utils.is_podman_windows.cache_clear()
+    assert utils.is_podman_windows(mock_client) is True
+
+
+@patch("docker.from_env")
+@patch("time.sleep")
+def test_restart_docker_client(mock_sleep, mock_from_env):
+    mock_old_client = MagicMock()
+    mock_new_client = MagicMock()
+    mock_new_client.ping.return_value = True
+
+    mock_from_env.return_value = mock_new_client
+
+    returned_client = utils.restart_docker_client(mock_old_client)
+
+    mock_old_client.close.assert_called_once()
+    mock_new_client.ping.assert_called()
+    assert returned_client is mock_new_client

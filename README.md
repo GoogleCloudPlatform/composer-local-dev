@@ -503,14 +503,16 @@ To delete all images downloaded by Composer Local Development CLI tool, run:
 docker rmi $(docker images --filter=reference='*/cloud-airflow-releaser/*/*' -q)
 ```
 
-## Running with Podman on Linux
+## Running with Podman
+
+### Running with Podman on Linux
 
 You can run Composer Local Development CLI tool using Podman instead of Docker.
 Below are the instructions for configuring and troubleshooting rootless Podman.
 
-### Prerequisites & System Configuration
+#### Prerequisites & System Configuration
 
-#### Enable the Podman User Service Socket
+##### Enable the Podman User Service Socket
 
 `composer-dev` communicates via standard Docker API calls.
 You must activate Podman's background service socket wrapper at the user level
@@ -529,7 +531,7 @@ If the command returns `inactive` or `failed`, enable and start the socket:
 systemctl --user enable --now podman.socket
 ```
 
-#### Environment Variables
+##### Environment Variables
 
 Add the following exports to your shell environment variables:
 
@@ -537,7 +539,7 @@ Add the following exports to your shell environment variables:
 export DOCKER_HOST="unix:///run/user/$UID/podman/podman.sock"
 ```
 
-### Managing the Environment
+#### Managing the Environment
 
 With the environment configured, use the standard `composer-dev` workflow:
 
@@ -549,12 +551,12 @@ composer-dev create --from-image-version <IMAGE_VERSION> podman-test-env
 composer-dev start podman-test-env
 ```
 
-### Maintenance & Troubleshooting
+#### Maintenance & Troubleshooting
 
 If your local environment becomes unresponsive, fails to initialize Postgres databases,
 or throws permission/DNS routing errors, follow these cleanup actions.
 
-#### Corporate Users: Fixing Permission or `lchown` Errors
+##### Corporate Users: Fixing Permission or `lchown` Errors
 
 To prevent rootless Podman from auto-allocating user namespaces that overlap with
 your primary corporate user ID (causing `lchown: invalid argument` or permission errors),
@@ -573,7 +575,7 @@ you must manually push your subordinate ranges above the 4-million block.
    podman system migrate
    ```
 
-#### Wiping Stuck Files and Permission Denied Errors
+##### Wiping Stuck Files and Permission Denied Errors
 
 If you updated your subuid ranges while old containers existed, your current namespace
 will be blocked from accessing its own data cache. Run the "nuclear option" to force-clear
@@ -587,7 +589,7 @@ podman volume rm --all --force
 podman system migrate
 ```
 
-#### Fixing DNS Failures ("Name or service not known")
+##### Fixing DNS Failures ("Name or service not known")
 
 If your Airflow container throws a `psycopg2.OperationalError` stating it
 cannot translate or resolve the hostname for the database container (`your-env-name`),
@@ -607,11 +609,11 @@ rm -rf <path/to/composer-local-development>/composer/*
 podman system migrate
 ```
 
-### Verifying your Engine Status
+#### Verifying your Engine Status
 
 To prove definitively that Podman is managing your workflow rootless (and not bypassing your configuration into system Docker):
 
-#### Verify Network DNS Backend
+##### Verify Network DNS Backend
 
 ```bash
 podman info | grep -A 3 -i "dns"
@@ -619,7 +621,7 @@ podman info | grep -A 3 -i "dns"
 
 Should show `backend: netavark` and a valid executable path to `aardvark-dns`.
 
-#### Verify Process Ownership Mapping
+##### Verify Process Ownership Mapping
 
 With your environment running, look at the host process owner:
 
@@ -629,6 +631,74 @@ ps -ef | grep -i "postgres"
 
 The leftmost column should display a high UID number (e.g., `4000069`)
 corresponding to your subuid map range, proving it is running entirely rootless.
+
+### Running with Podman on Windows
+
+#### Prerequisites & Installation
+
+1. Make sure Podman is installed and running.
+   To install it, follow the Podman for Windows installation instructions in [Podman documentation](https://podman.io/docs/installation#windows).
+
+2. Set **WSL 2** configuration (.wslconfig)
+   Before initializing your Podman machine, you MUST ensure **WSL 2** has a defined memory
+   and swap boundary. Without this, multi-container deployments can hit heavy memory spikes
+   during image extraction. Also it is important to set restriction for concurrent downloads limit.
+   Change or create file `%USERPROFILE%\.wslconfig`
+
+   ```Ini
+   [wsl2]
+   memory=4GB
+   swap=2GB
+
+   [registry]
+   max_concurrent_downloads = 2
+    ```
+
+3. Initialize the Podman machine:
+
+   ```powershell
+   podman machine init
+   ```
+
+4. Start the machine:
+
+   ```powershell
+   podman machine start
+   ```
+
+Now you are ready to work with composer-dev CLI commands. The tool will automatically
+detect your Podman environment on Windows and adapt the architecture mappings.
+
+#### Troubleshooting & Common Issues
+
+If the database or Airflow container exits immediately with pipe errors during deployment,
+Podman might be hitting a memory limit. To fix it, you can try increasing the memory and swap limits in
+the .wslconfig file:
+
+1. Stop your Podman machine and **WSL 2** virtual machine by running:
+
+   ```powershell
+    podman machine stop
+    wsl --shutdown
+    ```
+
+2. Make changes in `%USERPROFILE%\.wslconfig` to adapt your swap and memory limits. For reference,
+   follow [WSL config reference](https://learn.microsoft.com/en-us/windows/wsl/wsl-config).
+
+3. Start your Podman machine by running:
+
+   ```powershell
+   podman machine start
+   ```
+
+If you encounter errors, you can try hard-resetting the Windows virtualization and networking stack.
+To do it, open PowerShell as an Administrator and run:
+
+   ```powershell
+   Restart-Service -Name vmms -Force
+   Restart-Service -Name hns -Force
+   wsl --shutdown
+   ```
 
 ## Shell Tab Completion
 
