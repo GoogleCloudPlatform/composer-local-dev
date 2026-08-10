@@ -1,5 +1,28 @@
 # Release notes
 
+## 0.12.0
+
+### New
+
+- The ability to run local development using Podman
+- Podman support for Windows (#56)
+- Set dynamic port for database (#133)
+- Importing local editable Python packages (#52)
+
+### Changes
+
+- Add support Python 3.12, 3.13 and 3.14
+- Drop support for Python 3.9 and 3.10
+
+### Fixes
+
+- fix: restarting with new ports
+
+### Miscellaneous
+
+- fix: Upgrade apache-airflow-providers-google in e2e tests
+- test(e2e): Use randomized unique environment names to prevent Docker collisions
+
 ## 0.11.4
 
 ### Changes
