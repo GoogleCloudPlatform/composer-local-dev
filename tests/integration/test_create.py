@@ -49,13 +49,13 @@ def assert_environment_directories_exist(
     plugins_path: Optional[pathlib.Path] = None,
 ):
     assert env_dir.exists()
-    required_dirs = ["data", "plugins"]
+    required_dirs = ["data", "postgresql_data"]
     if dags_path is None:
         required_dirs.append("dags")
     if plugins_path is None:
         required_dirs.append("plugins")
     required_files = [
-        "airflow.db",
+        ".keep",
         "config.json",
         "variables.env",
         "requirements.txt",
