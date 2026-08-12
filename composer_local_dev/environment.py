@@ -708,7 +708,7 @@ class Environment:
             ),
             "GCP_PROJECT": self.project_id,
             "GOOGLE_CLOUD_PROJECT": self.project_id,
-            **default_db_variables,
+            **{k: v for k, v in default_db_variables.items() if k.startswith("AIRFLOW__")},
             **self.get_environment_variables_for_image_version(),
         }
 
