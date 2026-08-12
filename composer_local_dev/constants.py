@@ -94,7 +94,8 @@ Started [bold]{env_name}[/] environment.
 
 1. You can put your DAGs in {dags_path}
 2. You can put your plugins in {plugins_path}
-3. Access Airflow at http://localhost:{port}
+3. You can put your data in {data_path}
+4. Access Airflow at http://localhost:{port}
 """
 # TODO: Fill source environment info
 DESCRIBE_ENV_MESSAGE = """
@@ -103,6 +104,7 @@ Composer [bold]{name}[/] environment is in state: {state}.
 Image version: {image_version}
 Dags directory: {dags_path}.
 Plugins directory: {plugins_path}.
+Data directory: {data_path}.
 The environment is using credentials from gcloud located at {gcloud_path}.
 """
 KUBECONFIG_PATH_MESSAGE = """
@@ -141,6 +143,15 @@ PLUGINS_PATH_NOT_PROVIDED_WARN = (
 )
 PLUGINS_PATH_NOT_EXISTS_ERROR = (
     "Plugins path does not exist or is not a directory: {plugins_path}"
+)
+CREATING_DATA_PATH_WARN = (
+    "Data path '{data_path}' does not exist. It will be created."
+)
+DATA_PATH_NOT_PROVIDED_WARN = (
+    "No data directory provided, using default data directory."
+)
+DATA_PATH_NOT_EXISTS_ERROR = (
+    "Data path does not exist or is not a directory: {data_path}"
 )
 FAILED_TO_GET_DOCKER_PORT_WARN = (
     "Failed to retrieve used port from the Docker daemon, "

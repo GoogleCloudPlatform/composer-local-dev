@@ -174,6 +174,10 @@ class TestCreateEnvironmentDirectories:
         dags_path = env_dir / "dags"
         plugins_path = env_dir / "plugins"
         plugins_path.mkdir()
+        # Pre-create the default data dir so this test stays focused on the
+        # dags path warning (an absent data dir warns on its own, see
+        # test_not_existing_data_path).
+        (env_dir / "data").mkdir()
         files.create_environment_directories(
             env_dir=env_dir, dags_path=dags_path, plugins_path=plugins_path
         )
@@ -211,6 +215,10 @@ class TestCreateEnvironmentDirectories:
         dags_path = env_dir / "dags"
         dags_path.mkdir()
         plugins_path = env_dir / "plugins"
+        # Pre-create the default data dir so this test stays focused on the
+        # plugins path warning (an absent data dir warns on its own, see
+        # test_not_existing_data_path).
+        (env_dir / "data").mkdir()
         files.create_environment_directories(
             env_dir=env_dir, dags_path=dags_path, plugins_path=plugins_path
         )
@@ -227,6 +235,48 @@ class TestCreateEnvironmentDirectories:
             env_dir / "data",
         ):
             assert path.is_dir()
+        assert expected_output == output
+
+    def test_not_existing_data_path(self, temporary_env_dir, capsys):
+        env_dir = temporary_env_dir
+        dags_path = env_dir / "dags"
+        dags_path.mkdir()
+        plugins_path = env_dir / "plugins"
+        plugins_path.mkdir()
+        files.create_environment_directories(
+            env_dir=env_dir, dags_path=dags_path, plugins_path=plugins_path
+        )
+        captured = capsys.readouterr()
+        output = clean_cli_output(captured.out)
+        expected_output = clean_cli_output(
+            constants.CREATING_DATA_PATH_WARN.format(data_path=env_dir / "data")
+        )
+        assert (env_dir / "data").is_dir()
+        assert expected_output == output
+
+    def test_custom_data_path(self, temporary_env_dir, capsys):
+        env_dir = temporary_env_dir
+        dags_path = env_dir / "dags"
+        dags_path.mkdir()
+        plugins_path = env_dir / "plugins"
+        plugins_path.mkdir()
+        data_path = env_dir / "custom_data"
+        files.create_environment_directories(
+            env_dir=env_dir,
+            dags_path=dags_path,
+            plugins_path=plugins_path,
+            data_path=data_path,
+        )
+        captured = capsys.readouterr()
+        output = clean_cli_output(captured.out)
+        expected_output = clean_cli_output(
+            constants.CREATING_DATA_PATH_WARN.format(data_path=data_path)
+        )
+        assert env_dir.is_dir()
+        assert data_path.is_dir()
+        # The default <env_dir>/data is not created when data_path is given.
+        assert not (env_dir / "data").exists()
+        # The user is told the custom data path will be created.
         assert expected_output == output
 
 
@@ -266,6 +316,24 @@ class TestResolvePluginsPath:
             expected_plugins_str_path, tmpdir
         )
         assert expected_plugins_str_path == plugins_path
+
+
+class TestResolveDataPath:
+    def test_optional_data_path(self, tmpdir, capsys):
+        env_dir = pathlib.Path(tmpdir)
+        expected_data_path = str(env_dir / "data")
+        data_path = files.resolve_data_path(None, env_dir)
+        captured = capsys.readouterr()
+        output = "".join(captured.out.split("\n"))
+        assert expected_data_path == data_path
+        assert constants.DATA_PATH_NOT_PROVIDED_WARN in output
+
+    def test_provided_data_path(self, tmpdir):
+        expected_data_path = pathlib.Path(tmpdir) / "data"
+        expected_data_path.mkdir(exist_ok=True)
+        expected_data_str_path = str(expected_data_path)
+        data_path = files.resolve_data_path(expected_data_str_path, tmpdir)
+        assert expected_data_str_path == data_path
 
 
 class TestAssertDagsPathExists:
@@ -311,6 +379,29 @@ class TestAssertPluginsPathExists:
         )
         with pytest.raises(errors.PluginsPathNotExistError) as err:
             files.assert_plugins_path_exists(str(file_path))
+            assert str(err) == error_msg
+
+
+class TestAssertDataPathExists:
+    def test_existing_path(self, tmp_path):
+        files.assert_data_path_exists(str(tmp_path))
+
+    def test_missing_path(self):
+        path = "i/dont/exist"
+        error_msg = f"Data path does not exist or is not a directory: {path}"
+        with pytest.raises(errors.DataPathNotExistError) as err:
+            files.assert_data_path_exists(path)
+            assert str(err) == error_msg
+
+    def test_path_is_file(self, tmp_path):
+        file_path = tmp_path / "file.ext"
+        with open(file_path, "w") as fp:
+            pass
+        error_msg = (
+            f"Data path does not exist or is not a directory: {file_path}"
+        )
+        with pytest.raises(errors.DataPathNotExistError) as err:
+            files.assert_data_path_exists(str(file_path))
             assert str(err) == error_msg
 
 
