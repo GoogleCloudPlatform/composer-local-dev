@@ -52,6 +52,7 @@ def get_image_mounts(
     kube_config_path: Optional[str],
     requirements: pathlib.Path,
     database_mounts: Dict[pathlib.Path, str],
+    data_path: Optional[str] = None,
     editable_dependencies: Optional[List[str]] = None,
 ) -> List[docker.types.Mount]:
     """
@@ -63,12 +64,16 @@ def get_image_mounts(
      - kube_config_path which contains user cluster credentials for K8S [Optional]
      - environment airflow sqlite db file location
      - database_mounts which contains the path for database mounts
+     - data_path which contains the path for data [Optional]
     """
+    # Backwards compatibility: when no explicit data_path is given, the data
+    # directory lives inside the environment directory (the original behaviour).
+    data_path = data_path if data_path is not None else env_path / "data"
     mount_paths = {
         requirements: "composer_requirements.txt",
         dags_path: "gcs/dags/",
         plugins_path: "gcs/plugins/",
-        env_path / "data": "gcs/data/",
+        data_path: "gcs/data/",
         gcloud_config_path: ".config/gcloud",
         **database_mounts,
     }
@@ -382,6 +387,11 @@ class EnvironmentConfig:
             self.plugins_path = self.get_str_param("plugins_path")
         else:
             self.plugins_path = files.resolve_plugins_path(None, env_dir_path)
+        # Backwards compatibility: don't fail on missing data_path
+        if "data_path" in self.config:
+            self.data_path = self.get_str_param("data_path")
+        else:
+            self.data_path = files.resolve_data_path(None, env_dir_path)
         self.dag_dir_list_interval = self.parse_int_param(
             "dag_dir_list_interval", allowed_range=(0,)
         )
@@ -481,6 +491,7 @@ class Environment:
         location: str,
         dags_path: Optional[str],
         plugins_path: Optional[str] = None,
+        data_path: Optional[str] = None,
         dag_dir_list_interval: int = 10,
         database_engine: str = constants.DatabaseEngine.postgresql,
         memory_limit: Optional[str] = None,
@@ -514,6 +525,7 @@ class Environment:
         self.plugins_path = files.resolve_plugins_path(
             plugins_path, env_dir_path
         )
+        self.data_path = files.resolve_data_path(data_path, env_dir_path)
         self.dag_dir_list_interval = dag_dir_list_interval
         self.database_engine = database_engine
         self.is_database_sqlite3 = (
@@ -603,6 +615,7 @@ class Environment:
             location=config.location,
             dags_path=config.dags_path,
             plugins_path=config.plugins_path,
+            data_path=config.data_path,
             dag_dir_list_interval=config.dag_dir_list_interval,
             port=config.port,
             db_port=config.db_port,
@@ -630,6 +643,7 @@ class Environment:
         dags_path: Optional[str],
         plugins_path: Optional[str],
         database_engine: str,
+        data_path: Optional[str] = None,
         memory_limit: Optional[str] = None,
         cpu_count: Optional[int] = None,
         editable_dependencies: Optional[List[str]] = None,
@@ -655,6 +669,7 @@ class Environment:
             location=location,
             dags_path=dags_path,
             plugins_path=plugins_path,
+            data_path=data_path,
             dag_dir_list_interval=10,
             port=web_server_port,
             db_port=db_port,
@@ -776,6 +791,7 @@ class Environment:
             "composer_project_id": self.project_id,
             "dags_path": self.dags_path,
             "plugins_path": self.plugins_path,
+            "data_path": self.data_path,
             "dag_dir_list_interval": int(self.dag_dir_list_interval),
             "port": int(self.port),
             "db_port": int(self.db_port),
@@ -875,6 +891,7 @@ class Environment:
             utils.resolve_kube_config_path(),
             self.requirements_file,
             db_mounts,
+            data_path=self.data_path,
             editable_dependencies=self.editable_dependencies,
         )
 
@@ -974,6 +991,7 @@ class Environment:
             utils.resolve_kube_config_path(),
             self.requirements_file,
             db_mounts,
+            data_path=self.data_path,
             editable_dependencies=self.editable_dependencies,
         )
 
@@ -1069,7 +1087,10 @@ class Environment:
         assert_image_is_supported(self.image_version)
         self.assert_valid_environment_options()
         files.create_environment_directories(
-            self.env_dir_path, self.dags_path, self.plugins_path
+            self.env_dir_path,
+            self.dags_path,
+            self.plugins_path,
+            self.data_path,
         )
         self.create_database_files(skip_if_exist=False)
         self.write_environment_config_to_config_file()
@@ -1084,6 +1105,7 @@ class Environment:
                 env_variables_path=self.env_dir_path / "variables.env",
                 dags_path=self.dags_path,
                 plugins_path=self.plugins_path,
+                data_path=self.data_path,
             )
         )
 
@@ -1219,6 +1241,7 @@ class Environment:
         self.assert_requirements_exist()
         files.assert_dag_path_exists(self.dags_path)
         files.assert_plugins_path_exists(self.plugins_path)
+        files.assert_data_path_exists(self.data_path)
 
         self.create_database_files()
         db_path = (
@@ -1268,6 +1291,7 @@ class Environment:
                 env_name=self.name,
                 dags_path=self.dags_path,
                 plugins_path=self.plugins_path,
+                data_path=self.data_path,
                 port=self.port,
             )
         )
@@ -1420,6 +1444,7 @@ class Environment:
                 image_version=self.image_version,
                 dags_path=self.dags_path,
                 plugins_path=self.plugins_path,
+                data_path=self.data_path,
                 gcloud_path=utils.resolve_gcloud_config_path(),
             )
             + (

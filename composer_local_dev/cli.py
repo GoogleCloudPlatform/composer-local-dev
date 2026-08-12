@@ -53,6 +53,7 @@ click.rich_click.OPTION_GROUPS = {
                 "--db-port",
                 "--dags-path",
                 "--plugins-path",
+                "--data-path",
                 "--editable-dependencies",
             ],
         },
@@ -283,6 +284,13 @@ option_location = click.option(
     type=click.Path(file_okay=False),
 )
 @click.option(
+    "--data-path",
+    help="Path to data folder. If it does not exist, it will be created.",
+    show_default="'data' directory in the environment directory",
+    metavar="PATH",
+    type=click.Path(file_okay=False),
+)
+@click.option(
     "--database-engine",
     "--database",
     help="Database engine for airflow metadata.",
@@ -321,6 +329,7 @@ def create(
     database_engine: str,
     dags_path: Optional[pathlib.Path] = None,
     plugins_path: Optional[pathlib.Path] = None,
+    data_path: Optional[pathlib.Path] = None,
     container_memory_limit: Optional[str] = None,
     container_cpu_limit: Optional[str] = None,
     editable_dependencies: Optional[Tuple[str, ...]] = None,
@@ -379,6 +388,7 @@ def create(
             db_port=db_port,
             dags_path=dags_path,
             plugins_path=plugins_path,
+            data_path=data_path,
             database_engine=database_engine,
             memory_limit=container_memory_limit,
             cpu_count=container_cpu_limit,
@@ -396,6 +406,7 @@ def create(
             db_port=db_port,
             dags_path=dags_path,
             plugins_path=plugins_path,
+            data_path=data_path,
             database_engine=database_engine,
             memory_limit=container_memory_limit,
             cpu_count=container_cpu_limit,
