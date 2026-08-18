@@ -192,6 +192,13 @@ option_db_port = click.option(
     metavar="DB_PORT",
 )
 
+option_image = click.option(
+    "--image",
+    help="Custom Docker image to use for this run (overrides the environment's configured image version).",
+    metavar="DOCKER_IMAGE",
+    hidden=True,
+)
+
 
 def _complete_environment(ctx, param, incomplete):
     env_dirs = files.get_environment_directories()
@@ -406,10 +413,12 @@ def create(
 @verbose_mode
 @debug_mode
 @errors.catch_exceptions()
+@option_image
 def start(
     environment: Optional[str],
     web_server_port: Optional[int],
     db_port: Optional[int],
+    image: Optional[str],
     verbose: bool,
     debug: bool,
 ):
@@ -418,7 +427,7 @@ def start(
     env_path = files.resolve_environment_path(environment)
 
     env = composer_environment.Environment.load_from_config(
-        env_path, web_server_port, db_port
+        env_path, web_server_port, db_port, image
     )
     console.get_console().print(f"Starting {env.name} composer environment...")
     env.start()
@@ -451,10 +460,12 @@ def stop(environment: Optional[str], verbose: bool, debug: bool):
 @verbose_mode
 @debug_mode
 @errors.catch_exceptions()
+@option_image
 def restart(
     environment: Optional[str],
     web_server_port: Optional[int],
     db_port: Optional[int],
+    image: Optional[str],
     verbose: bool,
     debug: bool,
 ):
@@ -467,7 +478,7 @@ def restart(
     utils.setup_logging(verbose, debug)
     env_path = files.resolve_environment_path(environment)
     env = composer_environment.Environment.load_from_config(
-        env_path, web_server_port, db_port
+        env_path, web_server_port, db_port, image
     )
     env.restart()
 

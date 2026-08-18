@@ -587,6 +587,7 @@ class Environment:
         env_dir_path: pathlib.Path,
         port: Optional[int],
         db_port: Optional[int],
+        image: Optional[str] = None,
     ):
         """Create local environment using 'config.json' configuration file."""
         config = EnvironmentConfig(env_dir_path, port, db_port)
@@ -595,7 +596,7 @@ class Environment:
             config, environment_vars
         )
 
-        return cls(
+        env = cls(
             env_dir_path=env_dir_path,
             project_id=config.project_id,
             image_version=config.image_version,
@@ -611,6 +612,11 @@ class Environment:
             environment_vars=environment_vars,
             editable_dependencies=config.editable_dependencies,
         )
+
+        if image:
+            env.image_tag = image
+
+        return env
 
     @classmethod
     def from_source_environment(
@@ -1061,7 +1067,6 @@ class Environment:
         requirements.txt files.
         """
         assert_image_is_supported(self.image_version)
-        assert_image_exists(self.image_version)
         self.assert_valid_environment_options()
         files.create_environment_directories(
             self.env_dir_path, self.dags_path, self.plugins_path
@@ -1203,7 +1208,14 @@ class Environment:
         Started environment is polled until Airflow scheduler starts.
         """
         assert_image_is_supported(self.image_version)
-        assert_image_exists(self.image_version)
+        if self.image_tag == get_docker_image_tag_from_image_version(
+            self.image_version
+        ):
+            assert_image_exists(self.image_version)
+        else:
+            LOG.info(
+                "Custom image provided. Skipping image existence validation in Artifact Registry."
+            )
         self.assert_requirements_exist()
         files.assert_dag_path_exists(self.dags_path)
         files.assert_plugins_path_exists(self.plugins_path)

@@ -561,6 +561,33 @@ class TestEnvironment:
         )
         self.compare_envs(expected_env, env)
 
+    @mock.patch("composer_local_dev.environment.docker.from_env")
+    @mock.patch("composer_local_dev.environment.assert_image_exists")
+    def test_load_from_config_with_image_override(
+        self,
+        mocked_docker,
+        mocked_assert,
+        tmp_path,
+    ):
+        env_dir_path = tmp_path / ".compose" / "my_env"
+        image_version = "composer-2.0.8-airflow-2.2.3"
+        expected_env = environment.Environment(
+            env_dir_path=env_dir_path,
+            project_id="",
+            image_version=image_version,
+            location="location",
+            dags_path=str(pathlib.Path(tmp_path)),
+        )
+        expected_env.create()
+
+        custom_image = "custom-image:dev"
+        env = environment.Environment.load_from_config(
+            env_dir_path, None, None, image=custom_image
+        )
+        # Verify the overrides and original configs
+        assert env.image_tag == custom_image
+        assert env.image_version == image_version
+
     def test_missing_variables_env(self):
         env_dir = (TEST_DATA_DIR / "missing_composer").resolve()
         exp_error = (
@@ -916,6 +943,54 @@ class TestEnvironment:
             create_container
         )
         default_env.wait_for_start.assert_called_once()
+
+    @pytest.mark.parametrize(
+        "container_exists,create_container",
+        [
+            (True, False),
+            (False, True),
+        ],
+    )
+    @mock.patch("composer_local_dev.files.assert_dag_path_exists")
+    @mock.patch("composer_local_dev.files.assert_plugins_path_exists")
+    @mock.patch("composer_local_dev.environment.assert_image_exists")
+    @mock.patch("composer_local_dev.environment.files.create_empty_file")
+    @mock.patch("composer_local_dev.environment.files.fix_file_permissions")
+    @mock.patch("composer_local_dev.environment.files.fix_line_endings")
+    def test_start_container_with_custom_image_bypasses_registry_check(
+        self,
+        mocked_fix_line,
+        mocked_fix_perm,
+        mocked_create,
+        mocked_assert,
+        mocked_plugins_assert,
+        mocked_dag_assert,
+        container_exists,
+        create_container,
+        default_env,
+    ):
+        default_env.assert_requirements_exist = mock.Mock()
+        default_env.get_container = mock.Mock()
+        if not container_exists:
+            default_env.get_container.side_effect = (
+                errors.EnvironmentNotRunningError()
+            )
+        default_env.create_docker_container = mock.Mock()
+        default_env.create_db_docker_container = mock.Mock()
+        default_env.wait_for_start = mock.Mock()
+        default_env.wait_for_db_start = mock.Mock()
+
+        # Set custom image tag
+        default_env.image_tag = "custom-image:dev"
+
+        default_env.start()
+
+        default_env.assert_requirements_exist.assert_called_once()
+        if create_container:
+            mocked_create.assert_called()
+
+        # Verify that assert_image_exists was skipped because image_tag is custom
+        mocked_assert.assert_not_called()
 
     @mock.patch("composer_local_dev.files.assert_dag_path_exists")
     @mock.patch("composer_local_dev.files.assert_plugins_path_exists")

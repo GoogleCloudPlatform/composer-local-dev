@@ -182,17 +182,21 @@ class TestStartRestartCommand:
         ) as mock_check:
             yield mock_check
 
-    def assert_env_loaded(self, mocked_env, env_path, port=None, db_port=None):
-        mocked_env.load_from_config.assert_called_with(env_path, port, db_port)
+    def assert_env_loaded(
+        self, mocked_env, env_path, port=None, db_port=None, image=None
+    ):
+        mocked_env.load_from_config.assert_called_with(
+            env_path, port, db_port, image
+        )
 
     def assert_run_command(
-        self, command, mocked_env, env_path, port=None, db_port=None
+        self, command, mocked_env, env_path, port=None, db_port=None, image=None
     ):
         run_composer_and_assert_exit_code(
             command,
             exit_code=0,
         )
-        self.assert_env_loaded(mocked_env, env_path, port, db_port)
+        self.assert_env_loaded(mocked_env, env_path, port, db_port, image)
 
     @pytest.mark.parametrize("command", ["start", "restart"])
     def test_start_command(
@@ -230,6 +234,14 @@ class TestStartRestartCommand:
         self, mocked_env, mocked_resolve_env, env_path, command
     ):
         self.assert_run_command(command, mocked_env, env_path)
+
+    @pytest.mark.parametrize("command", ["start", "restart"])
+    def test_start_command_with_image(
+        self, mocked_env, mocked_resolve_env, env_path, command
+    ):
+        image = "custom-image:dev"
+        command += f" --image {image}"
+        self.assert_run_command(command, mocked_env, env_path, image=image)
 
 
 class TestStopCommand:
