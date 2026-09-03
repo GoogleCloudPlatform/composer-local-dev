@@ -1007,6 +1007,57 @@ class TestEnvironment:
     @mock.patch("composer_local_dev.environment.files.create_empty_file")
     @mock.patch("composer_local_dev.environment.files.fix_file_permissions")
     @mock.patch("composer_local_dev.environment.files.fix_line_endings")
+    def test_start_shares_timeout_between_db_and_env(
+        self,
+        mocked_fix_line,
+        mocked_fix_perm,
+        mocked_create,
+        mocked_assert,
+        mocked_plugins_assert,
+        mocked_dag_assert,
+        mocked_data_assert,
+        default_env,
+    ):
+        default_env.assert_requirements_exist = mock.Mock()
+        default_env.get_container = mock.Mock(
+            side_effect=errors.EnvironmentNotRunningError()
+        )
+        default_env.create_docker_container = mock.Mock()
+        default_env.create_db_docker_container = mock.Mock()
+        default_env.wait_for_start = mock.Mock()
+        default_env.wait_for_db_start = mock.Mock()
+        default_env.is_database_sqlite3 = False
+
+        default_env.start(timeout_seconds=300)
+
+        default_env.wait_for_db_start.assert_called_once()
+        default_env.wait_for_start.assert_called_once()
+        db_start_time = default_env.wait_for_db_start.call_args.kwargs.get(
+            "start_time"
+        )
+        env_start_time = default_env.wait_for_start.call_args.kwargs.get(
+            "start_time"
+        )
+        assert db_start_time is not None
+        assert db_start_time == env_start_time
+        assert (
+            default_env.wait_for_db_start.call_args.kwargs.get(
+                "timeout_seconds"
+            )
+            == 300
+        )
+        assert (
+            default_env.wait_for_start.call_args.kwargs.get("timeout_seconds")
+            == 300
+        )
+
+    @mock.patch("composer_local_dev.files.assert_data_path_exists")
+    @mock.patch("composer_local_dev.files.assert_dag_path_exists")
+    @mock.patch("composer_local_dev.files.assert_plugins_path_exists")
+    @mock.patch("composer_local_dev.environment.assert_image_exists")
+    @mock.patch("composer_local_dev.environment.files.create_empty_file")
+    @mock.patch("composer_local_dev.environment.files.fix_file_permissions")
+    @mock.patch("composer_local_dev.environment.files.fix_line_endings")
     def test_start_already_running(
         self,
         mocked_assert,
@@ -1388,10 +1439,51 @@ class TestWaitForStart:
         container.logs = mock.Mock(return_value=[b"Log lines"])
         default_env.get_container = mock.Mock(return_value=container)
         with pytest.raises(
-            errors.ComposerCliError,
+            errors.EnvironmentStartTimeoutError,
             match=f"Environment did not start in {constants.OPERATION_TIMEOUT_SECONDS} seconds.",
         ):
             default_env.wait_for_start()
+
+    @mock.patch(
+        "composer_local_dev.environment.time.time",
+        side_effect=[1, 121],
+    )
+    def test_wait_for_start_custom_timeout(self, mocked_time, default_env):
+        container = mock.Mock()
+        container.status = "running"
+        container.logs = mock.Mock(return_value=[b"Log lines"])
+        default_env.get_container = mock.Mock(return_value=container)
+        with pytest.raises(
+            errors.EnvironmentStartTimeoutError,
+            match="Environment did not start in 120 seconds.",
+        ):
+            default_env.wait_for_start(timeout_seconds=120)
+
+    @mock.patch(
+        "composer_local_dev.environment.time.time",
+        side_effect=[10, 131],
+    )
+    def test_wait_for_start_with_passed_start_time(
+        self, mocked_time, default_env
+    ):
+        container = mock.Mock()
+        container.status = "running"
+        container.logs = mock.Mock(return_value=[b"Log lines"])
+        default_env.get_container = mock.Mock(return_value=container)
+        with pytest.raises(
+            errors.EnvironmentStartTimeoutError,
+            match="Environment did not start in 120 seconds.",
+        ):
+            default_env.wait_for_start(timeout_seconds=120, start_time=1)
+
+    @mock.patch(
+        "composer_local_dev.environment.time.time",
+        side_effect=[1, 1 + constants.OPERATION_TIMEOUT_SECONDS],
+    )
+    def test_wait_for_start_timeout_disabled(self, mocked_time, default_env):
+        log_lines = [b"Log lines", b"Searching for files in path..."]
+        default_env.get_container = get_container_logs_mock(log_lines)
+        default_env.wait_for_start(timeout_seconds=0)
 
     def test_wait_for_start_failed(self, default_env):
         default_env.get_container = get_container_logs_mock([], "not_running")
@@ -1405,6 +1497,82 @@ class TestWaitForStart:
         log_lines = [b"Log lines"] * 10 + [b"Searching for files in path..."]
         default_env.get_container = get_container_logs_mock(log_lines)
         default_env.wait_for_start()
+
+
+class TestWaitForDbStart:
+    @mock.patch(
+        "composer_local_dev.environment.time.time",
+        side_effect=[1, 1 + constants.OPERATION_TIMEOUT_SECONDS],
+    )
+    def test_wait_for_db_start_timeout(self, mocked_time, default_env):
+        container = mock.Mock()
+        container.status = "running"
+        container.logs = mock.Mock(return_value=[b"Log lines"])
+        default_env.get_container = mock.Mock(return_value=container)
+        with pytest.raises(
+            errors.EnvironmentStartTimeoutError,
+            match=f"Environment did not start in {constants.OPERATION_TIMEOUT_SECONDS} seconds.",
+        ):
+            default_env.wait_for_db_start()
+
+    @mock.patch(
+        "composer_local_dev.environment.time.time",
+        side_effect=[1, 121],
+    )
+    def test_wait_for_db_start_custom_timeout(self, mocked_time, default_env):
+        container = mock.Mock()
+        container.status = "running"
+        container.logs = mock.Mock(return_value=[b"Log lines"])
+        default_env.get_container = mock.Mock(return_value=container)
+        with pytest.raises(
+            errors.EnvironmentStartTimeoutError,
+            match="Environment did not start in 120 seconds.",
+        ):
+            default_env.wait_for_db_start(timeout_seconds=120)
+
+    @mock.patch(
+        "composer_local_dev.environment.time.time",
+        side_effect=[10, 131],
+    )
+    def test_wait_for_db_start_with_passed_start_time(
+        self, mocked_time, default_env
+    ):
+        container = mock.Mock()
+        container.status = "running"
+        container.logs = mock.Mock(return_value=[b"Log lines"])
+        default_env.get_container = mock.Mock(return_value=container)
+        with pytest.raises(
+            errors.EnvironmentStartTimeoutError,
+            match="Environment did not start in 120 seconds.",
+        ):
+            default_env.wait_for_db_start(timeout_seconds=120, start_time=1)
+
+    @mock.patch(
+        "composer_local_dev.environment.time.time",
+        side_effect=[1, 1 + constants.OPERATION_TIMEOUT_SECONDS],
+    )
+    def test_wait_for_db_start_timeout_disabled(self, mocked_time, default_env):
+        log_lines = [
+            b"Log lines",
+            b"database system is ready to accept connections",
+        ]
+        default_env.get_container = get_container_logs_mock(log_lines)
+        default_env.wait_for_db_start(timeout_seconds=0)
+
+    def test_wait_for_db_start_failed(self, default_env):
+        default_env.get_container = get_container_logs_mock([], "not_running")
+        with pytest.raises(
+            errors.EnvironmentStartError,
+            match=constants.ENVIRONMENT_FAILED_TO_START_ERROR,
+        ):
+            default_env.wait_for_db_start()
+
+    def test_wait_for_db_start(self, default_env):
+        log_lines = [b"Log lines"] * 10 + [
+            b"database system is ready to accept connections"
+        ]
+        default_env.get_container = get_container_logs_mock(log_lines)
+        default_env.wait_for_db_start()
 
     def test_get_host_port(self, default_env):
         exp_port = 1234

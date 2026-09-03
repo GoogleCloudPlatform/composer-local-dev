@@ -39,9 +39,15 @@ LOG = logging.getLogger(__name__)
 DOCKER_FILES = pathlib.Path(__file__).parent / "docker_files"
 
 
-def timeout_occurred(start_time):
-    """Returns whether time since start is greater than OPERATION_TIMEOUT."""
-    return time.time() - start_time >= constants.OPERATION_TIMEOUT_SECONDS
+def timeout_occurred(
+    start_time: float, timeout_seconds: Optional[int] = None
+) -> bool:
+    """Returns whether elapsed time since start_time exceeds timeout_seconds."""
+    if timeout_seconds is None:
+        timeout_seconds = constants.OPERATION_TIMEOUT_SECONDS
+    if timeout_seconds <= 0:
+        return False
+    return time.time() - start_time >= timeout_seconds
 
 
 def get_image_mounts(
@@ -1120,8 +1126,13 @@ class Environment:
         ):
             raise errors.EnvironmentStartError()
 
-    def wait_for_db_start(self):
-        start_time = time.time()
+    def wait_for_db_start(
+        self,
+        timeout_seconds: Optional[int] = None,
+        start_time: Optional[float] = None,
+    ) -> None:
+        db_start_time = time.time()
+        start_time = start_time if start_time is not None else db_start_time
         with console.get_console().status("[bold green]Starting database..."):
             self.assert_container_is_active(self.db_container_name)
             for line in self.get_container(self.db_container_name).logs(
@@ -1130,41 +1141,50 @@ class Environment:
                 line = line.decode("utf-8").strip()
                 console.get_console().print(line)
                 if "database system is ready to accept connections" in line:
-                    start_duration = time.time() - start_time
+                    start_duration = time.time() - db_start_time
                     LOG.info(
                         "Database is started in %.2f seconds", start_duration
                     )
                     return
-                if timeout_occurred(start_time):
-                    raise errors.EnvironmentStartTimeoutError()
+                if timeout_occurred(start_time, timeout_seconds):
+                    raise errors.EnvironmentStartTimeoutError(
+                        timeout_seconds or constants.OPERATION_TIMEOUT_SECONDS
+                    )
                 self.assert_container_is_active(self.db_container_name)
         raise errors.EnvironmentStartError()
 
-    def wait_for_start(self):
+    def wait_for_start(
+        self,
+        timeout_seconds: Optional[int] = None,
+        start_time: Optional[float] = None,
+    ) -> None:
         """
         Poll environment logs to see if it is ready.
         When Airflow scheduler starts, it prints 'searching for files' in the
         logs. We are using it as marker of the environment readiness.
         """
-        start_time = time.time()
+        env_start_time = time.time()
+        start_time = start_time if start_time is not None else env_start_time
         with console.get_console().status(
             "[bold green]Starting environment..."
         ):
             self.assert_container_is_active(self.container_name)
             for line in self.get_container(self.container_name).logs(
-                stream=True, timestamps=True, since=start_time
+                stream=True, timestamps=True, since=env_start_time
             ):
                 line = line.decode("utf-8").strip()
                 console.get_console().print(line)
                 # TODO: (b/234684803) Improve detecting container readiness
                 if "Searching for files" in line:
-                    start_duration = time.time() - start_time
+                    start_duration = time.time() - env_start_time
                     LOG.info(
                         "Environment started in %.2f seconds", start_duration
                     )
                     return
-                if timeout_occurred(start_time):
-                    raise errors.EnvironmentStartTimeoutError()
+                if timeout_occurred(start_time, timeout_seconds):
+                    raise errors.EnvironmentStartTimeoutError(
+                        timeout_seconds or constants.OPERATION_TIMEOUT_SECONDS
+                    )
                 self.assert_container_is_active(self.container_name)
         raise errors.EnvironmentStartError()
 
@@ -1220,7 +1240,11 @@ class Environment:
             error = f"Environment ({container_name}) failed to start with an error: {err}"
             raise errors.EnvironmentStartError(error) from None
 
-    def start(self, assert_not_running=True):
+    def start(
+        self,
+        assert_not_running: bool = True,
+        timeout_seconds: Optional[int] = None,
+    ) -> None:
         """Starts local composer environment.
 
         Before starting we are asserting that are required files in the
@@ -1261,12 +1285,16 @@ class Environment:
             requirements=self.requirements_file,
         )
 
+        start_time = time.time()
+
         if not self.is_database_sqlite3:
             LOG.info(
                 f"Database engine is selected as {self.database_engine}. The container will start before"
             )
             db_container = self.start_container(self.db_container_name, False)
-            self.wait_for_db_start()
+            self.wait_for_db_start(
+                timeout_seconds=timeout_seconds, start_time=start_time
+            )
             self.ensure_container_is_attached_to_network(db_container)
             LOG.info(f"Database started!")
 
@@ -1274,7 +1302,9 @@ class Environment:
             self.container_name, assert_not_running
         )
         self.ensure_container_is_attached_to_network(container)
-        self.wait_for_start()
+        self.wait_for_start(
+            timeout_seconds=timeout_seconds, start_time=start_time
+        )
         self.print_start_message()
 
     def ensure_container_is_attached_to_network(self, container):
@@ -1383,7 +1413,7 @@ class Environment:
             if remove_container:
                 self.remove_containers_and_networks()
 
-    def restart(self):
+    def restart(self, timeout_seconds: Optional[int] = None) -> None:
         """
         Restarts the local composer environment.
 
@@ -1394,7 +1424,7 @@ class Environment:
             self.stop(remove_container=True)
         except errors.EnvironmentNotRunningError:
             self.remove_containers_and_networks()
-        self.start(assert_not_running=False)
+        self.start(assert_not_running=False, timeout_seconds=timeout_seconds)
 
     def status(self) -> str:
         """Get status of the local composer environment."""

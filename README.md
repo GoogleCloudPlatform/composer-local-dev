@@ -301,6 +301,17 @@ To start a local Airflow environment, run:
 composer-dev start LOCAL_ENVIRONMENT_NAME
 ```
 
+You can customize the startup timeout with the `--start-timeout` option:
+
+```bash
+composer-dev start LOCAL_ENVIRONMENT_NAME --start-timeout SECONDS
+```
+
+Replace:
+
+- `SECONDS` with the maximum number of seconds to wait for environment startup
+  (default is 600 seconds). Use `0` to disable the timeout.
+
 ## Stop or restart a local Airflow environments
 
 When you restart a local Airflow environment, Composer Local Development CLI
@@ -312,6 +323,12 @@ To restart or start a stopped local Airflow environment, run:
 
 ```bash
 composer-dev restart LOCAL_ENVIRONMENT_NAME
+```
+
+You can also use the `--start-timeout` option with `restart`:
+
+```bash
+composer-dev restart LOCAL_ENVIRONMENT_NAME --start-timeout SECONDS
 ```
 
 To stop a local Airflow environment, run:

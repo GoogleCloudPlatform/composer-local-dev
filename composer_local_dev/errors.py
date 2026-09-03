@@ -95,10 +95,8 @@ class EnvironmentStartError(ComposerCliError):
 class EnvironmentStartTimeoutError(EnvironmentStartError):
     """Composer environment start timed out."""
 
-    def __init__(self):
-        msg = constants.ENV_DID_NOT_START_TIMEOUT_ERROR.format(
-            seconds=constants.OPERATION_TIMEOUT_SECONDS
-        )
+    def __init__(self, seconds: int = constants.OPERATION_TIMEOUT_SECONDS):
+        msg = constants.ENV_DID_NOT_START_TIMEOUT_ERROR.format(seconds=seconds)
         super().__init__(msg)
 
 
