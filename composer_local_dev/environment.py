@@ -1022,6 +1022,11 @@ class Environment:
 
     def wait_for_db_start(self, timeout_seconds=None):
         start_time = time.time()
+        # On first run, initdb briefly starts a test server that also prints
+        # "ready to accept connections" before the real startup. Detect this by
+        # watching for "running bootstrap script" (initdb-only marker) and skip
+        # that first occurrence to avoid starting Airflow mid-initdb.
+        in_initdb = False
         with console.get_console().status("[bold green]Starting database..."):
             self.assert_container_is_active(self.db_container_name)
             for line in self.get_container(self.db_container_name).logs(
@@ -1029,7 +1034,12 @@ class Environment:
             ):
                 line = line.decode("utf-8").strip()
                 console.get_console().print(line)
+                if "running bootstrap script" in line:
+                    in_initdb = True
                 if "database system is ready to accept connections" in line:
+                    if in_initdb:
+                        in_initdb = False
+                        continue
                     start_duration = time.time() - start_time
                     LOG.info(
                         "Database is started in %.2f seconds", start_duration
