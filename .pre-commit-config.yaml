@@ -82,6 +82,7 @@ repos:
       - --license-filepath
       - scripts/LICENSE.txt
       - --fuzzy-match-generates-todo
+      - --allow-past-years
     - id: insert-license
       name: Add license for all rst files
       exclude: ^\.github/.*$
@@ -91,6 +92,7 @@ repos:
       - --license-filepath
       - scripts/LICENSE.rst
       - --fuzzy-match-generates-todo
+      - --allow-past-years
       files: \.rst$
     - id: insert-license
       name: Add license for all YAML files
@@ -103,3 +105,4 @@ repos:
       - --license-filepath
       - scripts/LICENSE.txt
       - --fuzzy-match-generates-todo
+      - --allow-past-years
