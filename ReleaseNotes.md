@@ -1,5 +1,22 @@
 # Release notes
 
+## 0.12.1
+
+### New
+
+- Add --data-path flag to mount local directory to /home/airflow/gcs/data (#140)
+- Add configurable start timeout (#136)
+
+### Fixes
+
+- fix: write airflow deps as runtime user (#135)
+
+### Miscellaneous
+
+- Bump apache-airflow-providers-google from 22.0.0 to 22.2.1 in /tests/e2e
+- Update license template year
+- Add --image flag to start and restart commands (intended for internal use)
+
 ## 0.12.0
 
 ### New
