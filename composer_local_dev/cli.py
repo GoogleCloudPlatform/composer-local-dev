@@ -50,6 +50,7 @@ click.rich_click.OPTION_GROUPS = {
             "name": "Environment options",
             "options": [
                 "--web-server-port",
+                "--bind-address",
                 "--dags-path",
                 "--plugins-path",
                 "--data-path",
@@ -184,6 +185,24 @@ option_port = click.option(
 )
 
 
+def validate_bind_address(
+    ctx: click.Context, param: click.Parameter, value: Optional[str]
+) -> Optional[str]:
+    if value is not None and not utils.is_ip_address(value):
+        raise click.BadParameter(f"{value!r} is not a valid IP address.")
+    return value
+
+
+option_bind_address = click.option(
+    "--bind-address",
+    callback=validate_bind_address,
+    help="Host IP address the web server and database ports are published "
+    "on. Use 0.0.0.0 to make them reachable from other machines.",
+    show_default=constants.DEFAULT_BIND_ADDRESS,
+    metavar="IP_ADDRESS",
+)
+
+
 option_start_timeout = click.option(
     "--start-timeout",
     "start_timeout_seconds",
@@ -264,6 +283,7 @@ option_location = click.option(
 )
 @option_location
 @option_port
+@option_bind_address
 @click.option(
     "--dags-path",
     help="Path to DAGs folder. If it does not exist, it will be created.",
@@ -304,6 +324,7 @@ def create(
     project: Optional[str],
     location: str,
     web_server_port: Optional[int],
+    bind_address: Optional[str],
     environment: str,
     verbose: bool,
     debug: bool,
@@ -365,6 +386,7 @@ def create(
             location=location,
             env_dir_path=env_dir,
             web_server_port=web_server_port,
+            bind_address=bind_address,
             dags_path=dags_path,
             plugins_path=plugins_path,
             data_path=data_path,
@@ -379,6 +401,7 @@ def create(
             location=location,
             env_dir_path=env_dir,
             port=web_server_port,
+            bind_address=bind_address,
             dags_path=dags_path,
             plugins_path=plugins_path,
             data_path=data_path,

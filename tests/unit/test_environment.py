@@ -686,7 +686,7 @@ class TestEnvironment:
         mocked_resolve_gcloud_config_path.return_value = mock.Mock()
         default_env.create_docker_container()
         ports = {
-            f"8080/tcp": default_env.port,
+            f"8080/tcp": (constants.DEFAULT_BIND_ADDRESS, default_env.port),
         }
         environment = {
             "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default",
@@ -751,7 +751,7 @@ class TestEnvironment:
         default_env.container_cpu_count = custom_cpu_count
         default_env.create_docker_container()
         ports = {
-            f"8080/tcp": default_env.port,
+            f"8080/tcp": (constants.DEFAULT_BIND_ADDRESS, default_env.port),
         }
         environment = {
             "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default",
@@ -812,7 +812,7 @@ class TestEnvironment:
         mocked_resolve_gcloud_config_path.return_value = mock.Mock()
         default_env_postgresql.create_db_docker_container()
         ports = {
-            f"5432/tcp": "25432",
+            f"5432/tcp": (constants.DEFAULT_BIND_ADDRESS, "25432"),
         }
         environment = {
             "PGDATA": "/var/lib/postgresql/data/pgdata",
@@ -830,6 +830,39 @@ class TestEnvironment:
             mem_limit=constants.DOCKER_CONTAINER_MEMORY_LIMIT,
             detach=True,
         )
+
+    @mock.patch("composer_local_dev.environment.docker.from_env")
+    @mock.patch("composer_local_dev.utils.resolve_gcloud_config_path")
+    @mock.patch("composer_local_dev.utils.resolve_kube_config_path")
+    @mock.patch("composer_local_dev.environment.get_image_mounts")
+    def test_create_docker_containers_with_bind_address(
+        self,
+        mocked_mounts,
+        mocked_resolve_kube_config_path,
+        mocked_resolve_gcloud_config_path,
+        mocked_docker,
+        tmp_path,
+    ):
+        env = environment.Environment(
+            env_dir_path=tmp_path / ".compose" / "my_env",
+            project_id="",
+            image_version="composer-2.0.8-airflow-2.2.3",
+            location="location",
+            dags_path=str(tmp_path),
+            port=8081,
+            bind_address="0.0.0.0",
+        )
+        create = env.docker_client.containers.create
+
+        env.create_docker_container()
+        assert create.call_args.kwargs["ports"] == {
+            "8080/tcp": ("0.0.0.0", 8081)
+        }
+
+        env.create_db_docker_container()
+        assert create.call_args.kwargs["ports"] == {
+            "5432/tcp": ("0.0.0.0", "25432")
+        }
 
     @pytest.mark.parametrize(
         "container_exists, create_container", [(False, True), (True, False)]
@@ -1679,3 +1712,50 @@ class TestEnvironmentConfig:
         mocked_load_conf.return_value = config
         env_config = environment.EnvironmentConfig(tmp_path, None)
         assert env_config.data_path == str((tmp_path / "data").resolve())
+
+    @mock.patch(
+        "composer_local_dev.environment.EnvironmentConfig.load_configuration_from_file"
+    )
+    @pytest.mark.parametrize(
+        "extra, expected_bind_address",
+        [
+            ({}, constants.DEFAULT_BIND_ADDRESS),
+            ({"bind_address": "0.0.0.0"}, "0.0.0.0"),
+        ],
+    )
+    def test_bind_address_from_config(
+        self, mocked_load_conf, tmp_path, extra, expected_bind_address
+    ):
+        config = {
+            "composer_image_version": "composer-2.0.25-airflow-2.2.5",
+            "composer_location": "us-central1",
+            "composer_project_id": "project",
+            "dags_path": "/dags/",
+            "plugins_path": "/plugins/",
+            "dag_dir_list_interval": 10,
+            "port": 8080,
+            "database_engine": "postgresql",
+            **extra,
+        }
+        mocked_load_conf.return_value = config
+        env_config = environment.EnvironmentConfig(tmp_path, None)
+        assert env_config.bind_address == expected_bind_address
+
+    @mock.patch(
+        "composer_local_dev.environment.EnvironmentConfig.load_configuration_from_file"
+    )
+    def test_invalid_bind_address_in_config(self, mocked_load_conf, tmp_path):
+        config = {
+            "composer_image_version": "composer-2.0.25-airflow-2.2.5",
+            "composer_location": "us-central1",
+            "composer_project_id": "project",
+            "dags_path": "/dags/",
+            "plugins_path": "/plugins/",
+            "dag_dir_list_interval": 10,
+            "port": 8080,
+            "database_engine": "postgresql",
+            "bind_address": "localhost",
+        }
+        mocked_load_conf.return_value = config
+        with pytest.raises(errors.FailedToParseConfigBindAddressError):
+            environment.EnvironmentConfig(tmp_path, None)

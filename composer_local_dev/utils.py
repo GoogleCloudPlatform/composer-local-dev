@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import ipaddress
 import json
 import logging
 import os
@@ -159,6 +160,17 @@ def resolve_kube_config_path() -> Optional[str]:
     Returns the absolute path the kubectl CLI's configuration directory from environmental variable if provided.
     """
     return os.environ.get(constants.KUBECONFIG_PATH_ENV)
+
+
+def is_ip_address(value: object) -> bool:
+    """Return True if the value is an IPv4 or IPv6 address."""
+    if not isinstance(value, str):
+        return False
+    try:
+        ipaddress.ip_address(value)
+    except ValueError:
+        return False
+    return True
 
 
 def assert_environment_name_is_valid(env_name: str):

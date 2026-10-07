@@ -104,6 +104,26 @@ def test_create_no_plugins_path(mocked_env):
     assert exp_plugins_path == env_kwargs.get("plugins_path")
 
 
+@mock.patch("composer_local_dev.cli.composer_environment.Environment")
+def test_create_with_bind_address(mocked_env):
+    run_composer_and_assert_exit_code(
+        "create --project 123 --from-image-version composer-2.0.16-airflow-2.2.5 --bind-address 0.0.0.0 test",
+        exit_code=0,
+    )
+    _, env_kwargs = mocked_env.call_args
+    assert "0.0.0.0" == env_kwargs.get("bind_address")
+
+
+def test_create_with_invalid_bind_address():
+    result = run_composer_and_assert_exit_code(
+        "create --project 123 --from-image-version composer-2.0.16-airflow-2.2.5 --bind-address localhost test",
+        exit_code=2,
+    )
+    assert "'localhost' is not a valid IP address" in reformat_cli_output(
+        result.output
+    )
+
+
 class TestCreateCommandProjectId:
     @mock.patch("composer_local_dev.cli.utils.get_project_id", autospec=True)
     @mock.patch(

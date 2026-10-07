@@ -28,6 +28,9 @@ BAD_REQUEST_ERROR_CODE = 400
 CONFLICT_ERROR_CODE = 409
 SERVER_ERROR_CODE = 500
 
+# Host address the web server and database ports are published on
+DEFAULT_BIND_ADDRESS = "127.0.0.1"
+
 
 class ContainerStatus(str, enum.Enum):
     RUNNING = "running"
@@ -224,6 +227,10 @@ INVALID_ENV_VARIABLES_FILE_ERROR = (
     "Could not parse the file containing environment variables "
     "({env_file_path}). Line '{line}' is invalid."
     "Each line should contain a key-value pair, eg. FOO=BAR."
+)
+INVALID_BIND_ADDRESS_ERROR = (
+    "Invalid value for 'bind_address' configuration value."
+    " '{value}' is not a valid IP address."
 )
 INVALID_INT_VALUE_ERROR = (
     "Invalid value for '{param_name}' configuration value."
