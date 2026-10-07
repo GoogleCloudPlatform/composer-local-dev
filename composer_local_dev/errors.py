@@ -137,6 +137,14 @@ class FailedToParseConfigParamIntRangeError(InvalidConfigurationError):
         super().__init__(msg)
 
 
+class FailedToParseConfigBindAddressError(InvalidConfigurationError):
+    """Bind address in configuration file is not an IP address."""
+
+    def __init__(self, value: object):
+        msg = constants.INVALID_BIND_ADDRESS_ERROR.format(value=value)
+        super().__init__(msg)
+
+
 class FailedToParseConfigError(InvalidConfigurationError):
     def __init__(self, config_path, err):
         msg = constants.INVALID_CONFIGURATION_FILE_ERROR.format(

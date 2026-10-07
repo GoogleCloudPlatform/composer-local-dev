@@ -303,3 +303,16 @@ def test_get_image_versions_api_error(mocked_service):
         match=constants.LIST_VERSIONS_API_ERROR.format(err=error_msg),
     ):
         utils.get_image_versions("", "", False)
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("127.0.0.1", True),
+        ("::1", True),
+        ("localhost", False),
+        (None, False),
+    ],
+)
+def test_is_ip_address(value, expected):
+    assert utils.is_ip_address(value) is expected

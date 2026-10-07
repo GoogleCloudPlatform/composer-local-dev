@@ -279,6 +279,15 @@ the machine via `host.docker.internal` domain alias. Here are some example;
 > If you are running your target service inside another docker container
 > make sure that the port is also exposed to the host machine.
 
+## Access a local Airflow environment from other machines
+
+By default, the Airflow web server and database ports are published on
+`127.0.0.1`, so only the host machine can reach them.
+
+To publish the ports on all network interfaces instead, create the environment
+with `--bind-address 0.0.0.0`, or set `"bind_address": "0.0.0.0"` in
+`composer/<LOCAL_ENVIRONMENT_NAME>/config.json`.
+
 ## Start a local Airflow environment
 
 To start a local Airflow environment, run:

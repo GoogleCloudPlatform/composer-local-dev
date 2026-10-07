@@ -394,6 +394,12 @@ class EnvironmentConfig:
             if port is not None
             else self.parse_int_param("port", allowed_range=(0, 65536))
         )
+        # Backwards compatibility: don't fail on missing bind_address
+        self.bind_address = self.config.get(
+            "bind_address", constants.DEFAULT_BIND_ADDRESS
+        )
+        if not utils.is_ip_address(self.bind_address):
+            raise errors.FailedToParseConfigBindAddressError(self.bind_address)
         self.database_engine = self.get_str_param("database_engine")
 
     def load_configuration_from_file(self) -> Dict:
@@ -476,6 +482,7 @@ class Environment:
         memory_limit: Optional[str] = None,
         cpu_count: Optional[int] = None,
         port: Optional[int] = None,
+        bind_address: Optional[str] = None,
         pypi_packages: Optional[Dict] = None,
         environment_vars: Optional[Dict] = None,
     ):
@@ -509,6 +516,11 @@ class Environment:
             self.database_engine == constants.DatabaseEngine.sqlite3
         )
         self.port: int = port if port is not None else 8080
+        self.bind_address: str = (
+            bind_address
+            if bind_address is not None
+            else constants.DEFAULT_BIND_ADDRESS
+        )
         self.pypi_packages = (
             pypi_packages if pypi_packages is not None else dict()
         )
@@ -581,6 +593,7 @@ class Environment:
             data_path=config.data_path,
             dag_dir_list_interval=config.dag_dir_list_interval,
             port=config.port,
+            bind_address=config.bind_address,
             database_engine=config.database_engine,
             memory_limit=config.memory_limit,
             cpu_count=config.cpu_count,
@@ -599,6 +612,7 @@ class Environment:
         plugins_path: Optional[str],
         database_engine: str,
         data_path: Optional[str] = None,
+        bind_address: Optional[str] = None,
         memory_limit: Optional[str] = None,
         cpu_count: Optional[int] = None,
     ):
@@ -626,6 +640,7 @@ class Environment:
             data_path=data_path,
             dag_dir_list_interval=10,
             port=web_server_port,
+            bind_address=bind_address,
             pypi_packages=pypi_packages,
             environment_vars=env_variables,
             database_engine=database_engine,
@@ -741,6 +756,7 @@ class Environment:
             "data_path": self.data_path,
             "dag_dir_list_interval": int(self.dag_dir_list_interval),
             "port": int(self.port),
+            "bind_address": self.bind_address,
             "database_engine": self.database_engine,
             "memory_limit": self.container_memory_limit,
             "cpu_count": self.container_cpu_count,
@@ -780,7 +796,7 @@ class Environment:
                     "AIRFLOW__DATABASE__SQL_ALCHEMY_CONN": f"postgresql+psycopg2://postgres:airflow@{self.db_container_name}:5432/airflow",
                 },
                 "ports": {
-                    f"5432/tcp": "25432",
+                    f"5432/tcp": (self.bind_address, "25432"),
                 },
             },
         }
@@ -835,7 +851,7 @@ class Environment:
             )
 
         ports = {
-            f"8080/tcp": self.port,
+            f"8080/tcp": (self.bind_address, self.port),
         }
         entrypoint = f"bash {constants.ENTRYPOINT_PATH}"
         memory_limit = (
